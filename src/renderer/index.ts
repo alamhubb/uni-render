@@ -1,3 +1,6 @@
+// 小程序端需要从 @vue/runtime-core 导入 createRenderer
+// 因为 @dcloudio/uni-mp-vue 没有导出它
+// 但 createRenderer 操作的是虚拟 DOM，不依赖平台
 import {
   createRenderer,
   RootRenderFunction,
@@ -6,7 +9,7 @@ import {
   VNode,
   RendererOptions,
 } from '@vue/runtime-core'
-import { isOn, isString, isFunction, extend } from '@vue/shared'
+import { isOn, isString, extend } from '@vue/shared'
 import { runtimeDocument } from '../dom'
 
 // 节点操作接口
@@ -18,7 +21,6 @@ export interface RendererElement extends RendererNode {}
 
 // 处理事件名称
 function normalizeEventName(name: string): string {
-  // onClick -> click, onTouchStart -> touchstart
   return name.slice(2).toLowerCase()
 }
 
@@ -30,7 +32,6 @@ function patchProp(
   nextValue: any
 ) {
   if (isOn(key)) {
-    // 事件处理
     const eventName = normalizeEventName(key)
     if (prevValue) {
       el.removeEventListener(eventName, prevValue)
@@ -39,14 +40,12 @@ function patchProp(
       el.addEventListener(eventName, nextValue)
     }
   } else if (key === 'style') {
-    // 样式处理
     if (isString(nextValue)) {
       el.style.cssText = nextValue
     } else if (nextValue) {
       for (const styleKey in nextValue) {
         el.style[styleKey] = nextValue[styleKey]
       }
-      // 移除旧样式
       if (prevValue) {
         for (const styleKey in prevValue) {
           if (!(styleKey in nextValue)) {
@@ -60,7 +59,6 @@ function patchProp(
   } else if (key === 'innerHTML' || key === 'textContent') {
     el[key] = nextValue == null ? '' : nextValue
   } else {
-    // 普通属性
     if (nextValue == null || nextValue === false) {
       el.removeAttribute(key)
     } else {
@@ -115,7 +113,6 @@ const nodeOps: Omit<RendererOptions<RendererNode, RendererElement>, 'patchProp'>
   },
 
   querySelector: (selector) => {
-    // 小程序环境不支持 querySelector
     return null
   },
 }
@@ -131,22 +128,21 @@ export const render = baseRender as RootRenderFunction<RendererElement>
 // 创建应用实例
 export const createApp = ((rootComponent: any, rootProps?: any) => {
   const app = baseCreateApp(rootComponent, rootProps)
-  
+
   const { mount } = app
   app.mount = (container: RendererElement | string) => {
     let rootContainer: RendererElement
-    
+
     if (isString(container)) {
-      // 小程序环境不支持 querySelector，需要传入实际的容器
       console.warn('String selector is not supported in mini-program environment')
       return
     } else {
       rootContainer = container
     }
-    
+
     return mount(rootContainer, false)
   }
-  
+
   return app
 }) as CreateAppFunction<RendererElement>
 
