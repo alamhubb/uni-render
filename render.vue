@@ -9,10 +9,7 @@ import {
 } from './src/renderer/context'
 import { h, VNode, Fragment } from 'vue'
 import { getCurrentInstance, provide, shallowRef } from 'vue'
-
-// #ifdef H5 || APP
 import document from './document.vue'
-// #endif
 
 const $emit = defineEmits<{
   (e: 'mounted', render: VueRender): void
