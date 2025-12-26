@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "jsx": "preserve",
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "lib": ["ESNext", "DOM"],
+    "baseUrl": ".",
+    "paths": {
+      "@aspect/uni-app-vue-render": ["./src/index.ts"]
+    },
+    "types": ["@dcloudio/types"],
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationDir": "./dist/types"
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue", "*.vue"],
+  "exclude": ["node_modules", "dist"]
+}
