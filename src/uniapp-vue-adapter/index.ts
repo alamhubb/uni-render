@@ -4,12 +4,6 @@
  * 解决 vOn 函数中 getCurrentInstance() 返回 null 的问题
  */
 
-import {
-  defineComponent,
-  ref,
-  computed,
-  createApp
-} from 'vue'
 
 /**
  * 文本处理函数
@@ -71,15 +65,62 @@ export function mpOnHide(callback?: Function): void {
 
 export { mpOnHide as onHide }
 
-// 导出官方 Vue API
+// ============================================
+// 导出官方 Vue 3 API
+// ============================================
 export {
+  // 核心 API
   defineComponent,
   ref,
   computed,
-  createApp
-}
+  reactive,
+  readonly,
 
-// 使用 createApp 作为 createSSRApp（在 H5 环境中它们是一样的）
+  // 生命周期
+  onMounted,
+  onUnmounted,
+  onBeforeMount,
+  onBeforeUnmount,
+  onUpdated,
+  onBeforeUpdate,
+
+  // Watch API
+  watch,
+  watchEffect,
+  watchPostEffect,
+  watchSyncEffect,
+
+  // 工具函数
+  nextTick,
+  getCurrentInstance,
+
+  // 组件 API
+  provide,
+  inject,
+
+  // 渲染函数
+  h,
+  createVNode,
+
+  // 注意：createApp 从官方 Vue 导出
+  // miniapp-runtime 使用标准 DOM 渲染器，不依赖 uni-app-render
+  createApp,
+
+  // 类型
+  type Ref,
+  type ComputedRef,
+  type App,
+  type VNode,
+  type Component
+} from 'vue'
+
+// ============================================
+// uni-app 兼容 API
+// ============================================
+
+// 在 miniapp-runtime 环境中，使用官方 Vue 的 createApp
+// 它有标准的 DOM 渲染器，可以直接渲染到浏览器 DOM
+import { createApp } from 'vue'
 export const createSSRApp = createApp
 
-console.log('[Custom Vendor] Loaded - using official Vue 3 runtime')
+console.log('[uniapp-vue-adapter] Loaded - using official Vue 3 with standard DOM renderer')
