@@ -12,6 +12,11 @@
             "types": "./index.ts",
             "default": "./index.ts"
         },
+        "./compat": {
+            "import": "./src/compat.ts",
+            "types": "./src/compat.ts",
+            "default": "./src/compat.ts"
+        },
         "./plugin": {
             "import": "../vite-plugin-uniappvue/index.ts",
             "types": "../vite-plugin-uniappvue/index.ts",

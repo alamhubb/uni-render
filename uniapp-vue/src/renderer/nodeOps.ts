@@ -36,9 +36,11 @@ export function setUpdateScheduler(scheduler: () => void): void {
 function scheduleUpdate(): void {
     if (!updateScheduler || dirty) return
 
+    console.log('[Custom Renderer] scheduleUpdate - 调度更新')
     dirty = true
     queueMicrotask(() => {
         if (updateScheduler) {
+            console.log('[Custom Renderer] queueMicrotask - 执行更新')
             updateScheduler()
         }
         dirty = false

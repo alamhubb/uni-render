@@ -4,7 +4,7 @@
  * 使用 Vue 的 createRenderer 创建小程序渲染器
  */
 
-import { createRenderer, h as vueH } from '@vue/runtime-core'
+import { createRenderer } from '@vue/runtime-core'
 import {
     createElement,
     createText,
@@ -48,7 +48,7 @@ function getPageInstance(): PageInstance | null {
 /**
  * 创建自定义渲染器
  */
-const { render } = createRenderer<MPNode, MPNode>({
+const { render, createApp: baseCreateApp } = createRenderer<MPNode, MPNode>({
     // 创建元素
     createElement,
 
@@ -111,8 +111,10 @@ function createRoot(): MPNode {
  */
 function triggerUpdate(): void {
     const page = getPageInstance()
+    console.log('[Custom Renderer] triggerUpdate - page:', !!page, 'rootNode:', !!rootNode)
     if (rootNode && page) {
         const serialized = serializeTree(rootNode)
+        console.log('[Custom Renderer] setData - vnodeTree:', JSON.stringify(serialized).slice(0, 200) + '...')
         page.setData({
             [dataKey]: serialized
         })
@@ -121,34 +123,36 @@ function triggerUpdate(): void {
 
 /**
  * 创建应用
+ * 
+ * 包装 Vue 的 createApp，添加自动 setData 功能
  */
 export function createApp(rootComponent: any) {
+    console.log('[Custom Renderer] createApp - 使用自定义渲染器创建应用')
+
+    // 创建虚拟根节点
     rootNode = createRoot()
 
     // 注册更新调度器，使 nodeOps 能够自动触发更新
     setUpdateScheduler(triggerUpdate)
 
-    return {
-        mount() {
-            // 创建 VNode
-            const vnode = vueH(rootComponent)
+    // 使用 Vue 返回的 createApp，这样才有完整的响应式支持
+    const app = baseCreateApp(rootComponent)
 
-            // 渲染到虚拟根节点
-            render(vnode, rootNode!)
+    // 包装 mount 方法
+    const originalMount = app.mount
+    app.mount = (container?: any) => {
+        console.log('[Custom Renderer] mount - 挂载到虚拟根节点')
 
-            // 触发初始更新
-            triggerUpdate()
+        // 挂载到我们的虚拟根节点
+        const result = originalMount.call(app, rootNode as any)
 
-            return this
-        },
+        // 触发初始更新
+        triggerUpdate()
 
-        unmount() {
-            if (rootNode) {
-                render(null, rootNode)
-                rootNode = null
-            }
-        }
+        return result
     }
+
+    return app
 }
 
 /**
