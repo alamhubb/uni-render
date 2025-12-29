@@ -27,22 +27,19 @@ interface PageInstance {
     data: Record<string, any>
 }
 
-// 声明全局变量
-declare global {
-    interface Window {
-        __currentPage__?: PageInstance
-    }
-}
+// 微信小程序全局 API 声明
+declare function getCurrentPages(): PageInstance[]
 
 let rootNode: MPNode | null = null
 let dataKey = 'vnodeTree'
 
 /**
  * 获取当前页面实例
- * 自动从 window.__currentPage__ 获取，由 miniapp-runtime 设置
+ * 使用微信小程序的 getCurrentPages() API
  */
 function getPageInstance(): PageInstance | null {
-    return typeof window !== 'undefined' ? window.__currentPage__ || null : null
+    const pages = getCurrentPages()
+    return pages.length > 0 ? pages[pages.length - 1] : null
 }
 
 /**
@@ -140,7 +137,7 @@ export function createApp(rootComponent: any) {
 
     // 包装 mount 方法
     const originalMount = app.mount
-    app.mount = (container?: any) => {
+    app.mount = () => {
         console.log('[Custom Renderer] mount - 挂载到虚拟根节点')
 
         // 挂载到我们的虚拟根节点

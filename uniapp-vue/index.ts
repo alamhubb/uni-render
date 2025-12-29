@@ -4,21 +4,21 @@
  * 为 uni-app 小程序提供 Vue 3 支持
  * 
  * 功能：
- * 1. 浏览器端：使用 Vue 标准渲染器
- * 2. 小程序端：使用自定义渲染器（customRender）
- * 3. 提供 uni-app 兼容函数
+ * 1. 使用自定义渲染器 (Custom Renderer)
+ * 2. 渲染到 MPNode 虚拟树 → setData → 小程序原生渲染
  */
 
 // ============================================
-// 导出 Vue 标准 API（浏览器端使用）
+// 导出 Vue 所有 API（runtime-dom 包含 runtime-core）
 // ============================================
 export * from '@vue/runtime-dom'
 
 // ============================================
-// 导出小程序端自定义渲染器
+// 用 Custom Renderer 的 createApp 覆盖 runtime-dom 的
 // ============================================
 export {
-    createApp as createMpApp,  // 小程序端 createApp
+    createApp,
+    createApp as createSSRApp,
     forceUpdate,
     getRootNode
 } from './src/renderer'
@@ -33,15 +33,9 @@ export {
     eventBus,
     bindNodeEvent,
     triggerNodeEvent,
-    createEventHandler
-} from './src/events'
-
-// ============================================
-// 导出事件处理器
-// ============================================
-export {
+    createEventHandler,
     createPageHandlers
-} from './src/bridge'
+} from './src/events'
 
 // ============================================
 // uni-app 兼容函数
@@ -123,4 +117,5 @@ export function injectHook(
     }
 }
 
-console.log('[uniapp-vue] Loaded - 支持浏览器和小程序双端')
+
+console.log('[uniapp-vue] 已加载 - Custom Renderer 模式')

@@ -82,3 +82,31 @@ export function createEventHandler(eventName: string) {
         }
     }
 }
+
+/**
+ * 创建页面事件处理器
+ * 
+ * 用于小程序 Page 配置，批量创建事件处理器
+ * 
+ * 用法：
+ * ```javascript
+ * Page({
+ *   ...createPageHandlers(),
+ *   onLoad() { ... }
+ * })
+ * ```
+ */
+export function createPageHandlers() {
+    return {
+        onNodeTap: createEventHandler('tap'),
+        onNodeClick: createEventHandler('click'),
+        onNodeInput: createEventHandler('input'),
+        onNodeChange: createEventHandler('change'),
+        onNodeFocus: createEventHandler('focus'),
+        onNodeBlur: createEventHandler('blur'),
+        onNodeLongpress: createEventHandler('longpress'),
+        onNodeTouchstart: createEventHandler('touchstart'),
+        onNodeTouchmove: createEventHandler('touchmove'),
+        onNodeTouchend: createEventHandler('touchend'),
+    }
+}
