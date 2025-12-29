@@ -17,7 +17,7 @@ export interface RendererNode {
   [key: string]: any
 }
 
-export interface RendererElement extends RendererNode {}
+export interface RendererElement extends RendererNode { }
 
 // 处理事件名称
 function normalizeEventName(name: string): string {
@@ -113,7 +113,7 @@ const nodeOps: Omit<RendererOptions<RendererNode, RendererElement>, 'patchProp'>
   },
 
   querySelector: (selector) => {
-    return null
+    return runtimeDocument.querySelector(selector)
   },
 }
 
@@ -134,8 +134,13 @@ export const createApp = ((rootComponent: any, rootProps?: any) => {
     let rootContainer: RendererElement
 
     if (isString(container)) {
-      console.warn('String selector is not supported in mini-program environment')
-      return
+      // 在浏览器环境中，支持字符串选择器
+      const el = runtimeDocument.querySelector(container)
+      if (!el) {
+        console.warn(`Cannot find element: ${container}`)
+        return
+      }
+      rootContainer = el as RendererElement
     } else {
       rootContainer = container
     }

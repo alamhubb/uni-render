@@ -9,67 +9,52 @@
  */
 
 // ============================================
-// 导出官方 Vue 3 API
-// 注意：这里必须从真实的 Vue 路径导入，避免 Vite alias 循环依赖
+// 导出官方 Vue 3 所有 API
+// 注意：从 @vue/runtime-dom 导入，避免 Vite alias 循环依赖
 // ============================================
-export {
-  // 核心 API
-  defineComponent,
-  ref,
-  computed,
-  reactive,
-  readonly,
-  toRef,
-  toRefs,
-  isRef,
-  unref,
-  shallowRef,
-  triggerRef,
-  customRef,
+export * from '@vue/runtime-dom'
 
-  // 生命周期
-  onMounted,
-  onUnmounted,
-  onBeforeMount,
-  onBeforeUnmount,
-  onUpdated,
-  onBeforeUpdate,
-  onActivated,
-  onDeactivated,
-  onErrorCaptured,
-  onRenderTracked,
-  onRenderTriggered,
+// ============================================
+// Vue 内部 API（uni-app 需要）
+// ============================================
+// injectHook 在 Vue 3.5+ 中不再导出，我们自己实现
+import { getCurrentInstance } from '@vue/runtime-dom'
 
-  // Watch API
-  watch,
-  watchEffect,
-  watchPostEffect,
-  watchSyncEffect,
+type LifecycleHook<T = Function> = T[] | null
 
-  // 工具函数
-  nextTick,
-  getCurrentInstance,
+export function injectHook(
+  type: string,
+  hook: Function,
+  target: any = getCurrentInstance(),
+  prepend = false
+) {
+  if (target) {
+    const hooks = target[type] || (target[type] = [])
+    if (prepend) {
+      hooks.unshift(hook)
+    } else {
+      hooks.push(hook)
+    }
+    return hook
+  }
+}
 
-  // 组件 API
-  provide,
-  inject,
+/**
+ * uni-app 自定义的错误日志函数
+ * 不是 Vue 官方 API
+ */
+export function logError(err: unknown, type?: string, args?: unknown[]): void {
+  console.error(`[uni-app error]${type ? ` ${type}` : ''}:`, err)
+  if (args && args.length) {
+    console.error('Arguments:', args)
+  }
+}
 
-  // 渲染函数
-  h,
-  createVNode,
-  cloneVNode,
-  mergeProps,
-  isVNode,
-
-  // 类型
-  type Ref,
-  type ComputedRef,
-  type App,
-  type VNode,
-  type Component,
-  type ComponentPublicInstance,
-  type PropType
-} from 'vue'
+/**
+ * uni-app 自定义的生命周期钩子（不是 Vue 官方 API）
+ */
+export function onBeforeActivate(callback?: Function): void { }
+export function onBeforeDeactivate(callback?: Function): void { }
 
 // ============================================
 // uni-app 适配函数

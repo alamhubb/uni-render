@@ -1,5 +1,5 @@
 interface MPCustomElementConstructor {
-  new (...args: any[]): any
+  new(...args: any[]): any
 }
 
 export class MPCustomElements {
@@ -12,13 +12,9 @@ export class MPCustomElements {
   }
 }
 
-// #ifdef MP || APP
-// @ts-ignore
-export const runtimeCustomElements = new MPCustomElements()
-// #endif
-
-// #ifdef H5
-// @ts-ignore
-export const runtimeCustomElements =
-  window.customElements as any as MPCustomElements
-// #endif
+// 在浏览器环境中使用原生 customElements
+// 在其他环境中使用 MPCustomElements polyfill
+export const runtimeCustomElements: MPCustomElements =
+  typeof window !== 'undefined' && window.customElements
+    ? (window.customElements as any as MPCustomElements)
+    : new MPCustomElements()
