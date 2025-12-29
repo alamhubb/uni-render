@@ -1,118 +1,76 @@
-import type { Plugin } from 'vite'
-import * as path from 'node:path'
-import * as fs from 'node:fs'
+/**
+ * vite-plugin-uniappvue
+ * 
+ * Vite 插件 - 自动配置 Vue alias 指向 uniapp-vue
+ * 
+ * 使用方式：
+ * ```typescript
+ * import { uniappVue } from 'uniapp-vue/plugin'
+ * 
+ * export default defineConfig({
+ *   plugins: [uniappVue()]
+ * })
+ * ```
+ */
 
-export interface UniVueHOptions {
-  // 是否自动注入全局组件
-  autoImport?: boolean
+import type { Plugin, ResolvedConfig } from 'vite'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+export interface UniappVueOptions {
+  /**
+   * 是否打印调试日志
+   * @default false
+   */
+  debug?: boolean
 }
 
-export function uniAppRender(options: UniVueHOptions = {}): Plugin {
-  const { autoImport = true } = options
-  
-  const platform = process.env.UNI_PLATFORM || ''
-  const isMP = /mp/i.test(platform)
-  const isH5 = /h5/i.test(platform)
-  const isApp = /app/i.test(platform)
+/**
+ * uniapp-vue Vite 插件
+ * 
+ * 功能：
+ * 1. 自动将 'vue' alias 指向 uniapp-vue
+ * 2. 确保所有 Vue 导入使用统一的适配层
+ */
+export function uniappVue(options: UniappVueOptions = {}): Plugin {
+  const { debug = false } = options
 
-  const packageName = 'uni-app-render'
-  const VIRTUAL_PREFIX = '\0uni-app-render:'
-
-  // 小程序需要生成的组件
-  const mpComponents = ['document']
-  if (isMP && !/alipay/i.test(platform)) {
-    mpComponents.push('comp')
+  const log = (...args: any[]) => {
+    if (debug) {
+      console.log('[uniapp-vue]', ...args)
+    }
   }
 
+  // uniapp-vue 入口文件路径
+  const uniappVuePath = resolve(__dirname, '../uniapp-vue/index.ts')
+
   return {
-    name: 'vite:uni-app-render',
+    name: 'vite:uniapp-vue',
     enforce: 'pre',
 
     config(config) {
+      log('Configuring Vue alias...')
+
       // 确保 resolve.alias 存在
       config.resolve = config.resolve || {}
       config.resolve.alias = config.resolve.alias || {}
-      
+
+      // 将 'vue' 指向 uniapp-vue
+      const alias = config.resolve.alias as Record<string, string>
+      alias['vue'] = uniappVuePath
+
+      log('Vue alias set to:', uniappVuePath)
+
       return config
     },
 
-    configResolved(resolvedConfig) {
-      if (!isMP) return
-
-      // 配置 rollup output
-      if (!resolvedConfig.build.rollupOptions.output) {
-        resolvedConfig.build.rollupOptions.output = {}
-      }
-
-      const output = resolvedConfig.build.rollupOptions.output
-      const chunkTest = new RegExp(`(${mpComponents.join('|')})\\.[jt]s$`)
-
-      if (Array.isArray(output)) {
-        output.forEach((item) => {
-          const manualChunks = item.manualChunks as any
-          item.manualChunks = (id: string, chunk: any) => {
-            if (chunkTest.test(id)) {
-              return undefined
-            }
-            return manualChunks?.(id, chunk)
-          }
-        })
-      } else {
-        const manualChunks = output.manualChunks as any
-        output.manualChunks = (id: string, chunk: any) => {
-          if (chunkTest.test(id)) {
-            return undefined
-          }
-          return manualChunks?.(id, chunk)
-        }
-      }
-    },
-
-    buildStart() {
-      if (!isMP) return
-
-      // 生成小程序组件入口
-      mpComponents.forEach((id) => {
-        this.emitFile({
-          type: 'chunk',
-          id: VIRTUAL_PREFIX + id,
-          fileName: `${id}.js`,
-        })
-      })
-    },
-
-    resolveId(id) {
-      if (id.startsWith(VIRTUAL_PREFIX)) {
-        return id
-      }
-    },
-
-    load(id) {
-      if (id.startsWith(VIRTUAL_PREFIX)) {
-        const realName = id.slice(VIRTUAL_PREFIX.length)
-        return `export * from '${packageName}/src/mp/${realName}'`
-      }
-    },
-
-    buildEnd() {
-      if (!isMP) return
-
-      // 生成小程序组件配置文件
-      mpComponents.forEach((id) => {
-        this.emitFile({
-          type: 'asset',
-          source: JSON.stringify({
-            component: true,
-            styleIsolation: 'apply-shared',
-          }),
-          fileName: `${id}.json`,
-        })
-      })
-
-      // TODO: 生成 wxml 模板文件
-      // 这部分需要从 uni-app-react 的模板生成器移植过来
-    },
+    configResolved(resolvedConfig: ResolvedConfig) {
+      log('Config resolved')
+      log('Vue alias:', (resolvedConfig.resolve.alias as any)['vue'])
+    }
   }
 }
 
-export default uniAppRender
+export default uniappVue

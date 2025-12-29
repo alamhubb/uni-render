@@ -1,0 +1,8 @@
+{
+    "name": "uniapp-vue-monorepo",
+    "version": "0.1.0",
+    "workspaces": [
+        "uniapp-vue",
+        "vite-plugin-uniappvue"
+    ]
+}
