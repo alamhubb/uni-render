@@ -128,6 +128,17 @@ export class MPHTMLElement extends MPElement {
   }
 
   set id(value: string) {
+    const oldId = this.id
+    // 如果 ID 发生变化，更新索引
+    if (oldId !== value && this.ownerDocument) {
+      const doc = this.ownerDocument as any
+      if (doc.unregisterElementId) {
+        doc.unregisterElementId(oldId)
+      }
+      if (doc.registerElementId) {
+        doc.registerElementId(value, this)
+      }
+    }
     this.setAttribute(ID, value)
   }
 
