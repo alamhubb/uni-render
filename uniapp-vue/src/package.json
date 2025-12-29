@@ -43,8 +43,8 @@
     "package.json"
   ],
   "scripts": {
-    "build:plugin": "tsc -p ./plugins/tsconfig.json",
-    "dev:plugin": "tsc -p ./plugins/tsconfig.json --watch",
+    "build:plugin": "tsc -p vite-plugin-uniappvue/tsconfig.json",
+    "dev:plugin": "tsc -p vite-plugin-uniappvue/tsconfig.json --watch",
     "prepublishOnly": "rm -rf dist && npm run build:plugin"
   },
   "peerDependencies": {
