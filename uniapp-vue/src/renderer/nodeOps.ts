@@ -17,6 +17,34 @@ export interface MPNode {
 // 节点 ID 计数器
 let nodeId = 0
 
+// 更新调度相关
+let updateScheduler: (() => void) | null = null
+let dirty = false
+
+/**
+ * 设置更新调度器
+ * 由 renderer 调用，传入触发更新的函数
+ */
+export function setUpdateScheduler(scheduler: () => void): void {
+    updateScheduler = scheduler
+}
+
+/**
+ * 调度更新
+ * 使用微任务批量处理，避免频繁调用 setData
+ */
+function scheduleUpdate(): void {
+    if (!updateScheduler || dirty) return
+
+    dirty = true
+    queueMicrotask(() => {
+        if (updateScheduler) {
+            updateScheduler()
+        }
+        dirty = false
+    })
+}
+
 /**
  * 创建元素节点
  */
@@ -65,11 +93,13 @@ export function insert(child: MPNode, parent: MPNode, anchor?: MPNode | null): v
         const index = parent.children.indexOf(anchor)
         if (index !== -1) {
             parent.children.splice(index, 0, child)
+            scheduleUpdate()
             return
         }
     }
 
     parent.children.push(child)
+    scheduleUpdate()
 }
 
 /**
@@ -81,6 +111,7 @@ export function remove(child: MPNode): void {
         const index = parent.children.indexOf(child)
         if (index !== -1) {
             parent.children.splice(index, 1)
+            scheduleUpdate()
         }
     }
 }
@@ -96,6 +127,7 @@ export function setElementText(node: MPNode, text: string): void {
         children: [],
         text
     }]
+    scheduleUpdate()
 }
 
 /**
@@ -103,6 +135,7 @@ export function setElementText(node: MPNode, text: string): void {
  */
 export function setText(node: MPNode, text: string): void {
     node.text = text
+    scheduleUpdate()
 }
 
 /**

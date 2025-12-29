@@ -1,59 +1,10 @@
 /**
  * 桥接层
  * 
- * 连接渲染器和小程序页面
+ * 连接渲染器和小程序页面（事件处理）
  */
 
-import { setUpdateCallback } from './renderer'
 import { createEventHandler } from './events'
-import type { SerializedNode } from './renderer/serialize'
-
-/**
- * 小程序页面实例接口
- */
-interface PageInstance {
-    setData: (data: Record<string, any>, callback?: () => void) => void
-    data: Record<string, any>
-}
-
-/**
- * 桥接配置
- */
-export interface BridgeOptions {
-    /**
-     * 数据 key 名称
-     * @default 'vnodeTree'
-     */
-    dataKey?: string
-
-    /**
-     * 更新后回调
-     */
-    onUpdate?: (data: SerializedNode) => void
-}
-
-/**
- * 创建桥接
- * 
- * 连接自定义渲染器和小程序页面
- * 
- * @param pageInstance 小程序页面实例
- * @param options 配置
- */
-export function createBridge(
-    pageInstance: PageInstance,
-    options: BridgeOptions = {}
-): void {
-    const { dataKey = 'vnodeTree', onUpdate } = options
-
-    setUpdateCallback((tree: SerializedNode) => {
-        pageInstance.setData({
-            [dataKey]: tree
-        }, () => {
-            onUpdate?.(tree)
-        })
-    })
-}
 
 /**
  * 创建页面事件处理器
@@ -80,3 +31,4 @@ export function createPageHandlers() {
         onNodeTouchend: createEventHandler('touchend'),
     }
 }
+

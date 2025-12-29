@@ -1,12 +1,65 @@
 # uniapp-vue
 
-让 uni-app 小程序支持 Vue 3 渲染函数（h 函数）开发
+为微信小程序提供 Vue 3 渲染函数（h 函数）支持。
 
-## 功能
+## 🎯 核心架构
 
-- ✅ 浏览器端：使用 Vue 标准渲染器
-- ✅ 小程序端：使用自定义渲染器（customRender）
-- ✅ 提供 uni-app 兼容函数
+> **重点**：理解这张图就理解了整个项目的工作原理
+
+```
+┌────────────────────────────────────┐
+│            用户代码                  │
+│  h('view', { class: 'x' }, [...])  │
+└────────────────┬───────────────────┘
+                 ↓
+┌────────────────────────────────────┐
+│   Custom Renderer (uniapp-vue)     │
+│   Vue createRenderer 创建          │
+└────────────────┬───────────────────┘
+                 ↓
+┌────────────────────────────────────┐
+│       MPNode 虚拟节点树              │
+│  { type: 'view', props: {...} }    │
+└────────────────┬───────────────────┘
+                 ↓
+┌────────────────────────────────────┐
+│         serialize 序列化            │
+└────────────────┬───────────────────┘
+                 ↓
+┌────────────────────────────────────┐
+│    setData({ vnodeTree: {...} })   │
+└────────────────┬───────────────────┘
+                 ↓
+┌────────────────────────────────────┐
+│   WXML 递归模板 (render.wxml)       │
+│   根据 vnodeTree 数据递归渲染        │
+└────────────────┬───────────────────┘
+                 ↓
+        ┌────────┴────────┐
+        ↓                 ↓
+┌───────────────┐   ┌───────────────┐
+│  微信小程序     │   │   浏览器       │
+│  原生渲染       │   │               │
+│  (目标平台)     │   │ wxml-compiler │
+└───────────────┘   │ WXML → h()    │
+                    └───────┬───────┘
+                            ↓
+                    ┌───────────────┐
+                    │ Vue runtime   │
+                    │ h() → DOM     │
+                    │ (开发预览)     │
+                    └───────────────┘
+```
+
+### 关键点
+
+1. **目标平台是微信小程序**，浏览器只是开发预览
+2. **Custom Renderer 只有一个**，两端共用
+3. **区别在最后一步**：
+   - 微信小程序：WXML 模板原生渲染
+   - 浏览器：wxml-compiler 将 WXML 转为 h()，Vue 渲染
+
+---
 
 ## 安装
 
@@ -15,27 +68,6 @@ npm install uniapp-vue
 ```
 
 ## 使用
-
-### 浏览器端
-
-直接使用 Vue 的 h 函数和 createApp：
-
-```typescript
-import { h, ref, defineComponent, createApp } from 'vue'
-
-const App = defineComponent({
-  setup() {
-    const count = ref(0)
-    return () => h('div', {}, count.value)
-  }
-})
-
-createApp(App).mount('#app')
-```
-
-### 小程序端
-
-使用自定义渲染器：
 
 ```typescript
 import { h, ref, defineComponent } from 'vue'
@@ -62,50 +94,13 @@ Page({
 })
 ```
 
-### 页面 WXML
-
-```xml
-<import src="/templates/render.wxml"/>
-<template is="node" data="{{node: vnodeTree}}"/>
-```
-
-## API
-
-### 从 Vue 导出
-
-- `h` - 创建虚拟节点
-- `ref`, `reactive`, `computed` - 响应式
-- `defineComponent` - 定义组件
-- `createApp` - 创建应用（浏览器端）
-
-### 小程序专用
-
-- `createMpApp` - 创建应用（小程序端，使用自定义渲染器）
-- `createBridge` - 连接渲染器和页面实例
-- `createPageHandlers` - 创建事件处理器
-
-### uni-app 兼容
-
-- `t()` - 文本处理
-- `o()` - 事件处理
-- `onLaunch`, `onShow`, `onHide` - 生命周期
-
-## 架构
-
-```
-用户代码: import { h } from 'vue'
-              ↓
-浏览器端: Vue 标准渲染器 → DOM
-小程序端: 自定义渲染器 → 虚拟节点 → setData → WXML
-```
-
 ## 目录结构
 
 ```
 uniapp-vue/
 ├── index.ts           # 入口
 ├── src/
-│   ├── renderer/      # 自定义渲染器
+│   ├── renderer/      # Custom Renderer
 │   │   ├── renderer.ts
 │   │   ├── nodeOps.ts
 │   │   ├── patchProp.ts
@@ -113,7 +108,7 @@ uniapp-vue/
 │   ├── events.ts      # 事件系统
 │   └── bridge.ts      # 桥接层
 └── templates/
-    └── render.wxml    # 小程序递归模板
+    └── render.wxml    # WXML 递归模板
 ```
 
 ## License

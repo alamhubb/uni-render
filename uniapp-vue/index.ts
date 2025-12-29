@@ -20,8 +20,7 @@ export * from '@vue/runtime-dom'
 export {
     createApp as createMpApp,  // 小程序端 createApp
     forceUpdate,
-    getRootNode,
-    setUpdateCallback
+    getRootNode
 } from './src/renderer'
 
 export type { MPNode } from './src/renderer/nodeOps'
@@ -38,10 +37,9 @@ export {
 } from './src/events'
 
 // ============================================
-// 导出桥接层
+// 导出事件处理器
 // ============================================
 export {
-    createBridge,
     createPageHandlers
 } from './src/bridge'
 

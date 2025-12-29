@@ -15,22 +15,34 @@ import {
     setText,
     parentNode,
     nextSibling,
+    setUpdateScheduler,
     type MPNode
 } from './nodeOps'
 import { patchProp } from './patchProp'
 import { serializeTree } from './serialize'
 
-// 渲染更新回调
-type UpdateCallback = (tree: any) => void
+// 小程序页面实例接口
+interface PageInstance {
+    setData: (data: Record<string, any>, callback?: () => void) => void
+    data: Record<string, any>
+}
 
-let updateCallback: UpdateCallback | null = null
+// 声明全局变量
+declare global {
+    interface Window {
+        __currentPage__?: PageInstance
+    }
+}
+
 let rootNode: MPNode | null = null
+let dataKey = 'vnodeTree'
 
 /**
- * 设置渲染更新回调
+ * 获取当前页面实例
+ * 自动从 window.__currentPage__ 获取，由 miniapp-runtime 设置
  */
-export function setUpdateCallback(callback: UpdateCallback): void {
-    updateCallback = callback
+function getPageInstance(): PageInstance | null {
+    return typeof window !== 'undefined' ? window.__currentPage__ || null : null
 }
 
 /**
@@ -95,11 +107,15 @@ function createRoot(): MPNode {
 
 /**
  * 触发更新
+ * 将虚拟树序列化并通过 setData 发送到小程序
  */
 function triggerUpdate(): void {
-    if (rootNode && updateCallback) {
+    const page = getPageInstance()
+    if (rootNode && page) {
         const serialized = serializeTree(rootNode)
-        updateCallback(serialized)
+        page.setData({
+            [dataKey]: serialized
+        })
     }
 }
 
@@ -109,6 +125,9 @@ function triggerUpdate(): void {
 export function createApp(rootComponent: any) {
     rootNode = createRoot()
 
+    // 注册更新调度器，使 nodeOps 能够自动触发更新
+    setUpdateScheduler(triggerUpdate)
+
     return {
         mount() {
             // 创建 VNode
@@ -117,7 +136,7 @@ export function createApp(rootComponent: any) {
             // 渲染到虚拟根节点
             render(vnode, rootNode!)
 
-            // 触发更新
+            // 触发初始更新
             triggerUpdate()
 
             return this
