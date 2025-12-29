@@ -1,0 +1,110 @@
+<!--
+  递归渲染模板
+  
+  用法：在页面 WXML 中引入并使用
+  
+  <import src="/templates/render.wxml"/>
+  <template is="node" data="{{node: vnodeTree}}"/>
+-->
+
+<!-- 递归渲染节点 -->
+<template name="node">
+  <!-- view -->
+  <view 
+    wx:if="{{node.type === 'view'}}" 
+    id="node-{{node.id}}"
+    class="{{node.props.class}}" 
+    style="{{node.props.style}}"
+    bindtap="onNodeTap"
+    data-id="{{node.id}}"
+  >
+    <block wx:for="{{node.children}}" wx:key="id">
+      <template is="node" data="{{node: item}}"/>
+    </block>
+  </view>
+  
+  <!-- text -->
+  <text 
+    wx:elif="{{node.type === 'text'}}" 
+    id="node-{{node.id}}"
+    class="{{node.props.class}}" 
+    style="{{node.props.style}}"
+  >
+    <block wx:for="{{node.children}}" wx:key="id">
+      <template is="node" data="{{node: item}}"/>
+    </block>
+  </text>
+  
+  <!-- button -->
+  <button 
+    wx:elif="{{node.type === 'button'}}" 
+    id="node-{{node.id}}"
+    class="{{node.props.class}}" 
+    style="{{node.props.style}}"
+    type="{{node.props.type || 'default'}}"
+    size="{{node.props.size || 'default'}}"
+    disabled="{{node.props.disabled}}"
+    bindtap="onNodeTap"
+    data-id="{{node.id}}"
+  >
+    <block wx:for="{{node.children}}" wx:key="id">
+      <template is="node" data="{{node: item}}"/>
+    </block>
+  </button>
+  
+  <!-- image -->
+  <image 
+    wx:elif="{{node.type === 'image'}}" 
+    id="node-{{node.id}}"
+    class="{{node.props.class}}" 
+    style="{{node.props.style}}"
+    src="{{node.props.src}}"
+    mode="{{node.props.mode || 'scaleToFill'}}"
+    lazy-load="{{node.props.lazyLoad}}"
+    bindtap="onNodeTap"
+    data-id="{{node.id}}"
+  />
+  
+  <!-- input -->
+  <input 
+    wx:elif="{{node.type === 'input'}}" 
+    id="node-{{node.id}}"
+    class="{{node.props.class}}" 
+    style="{{node.props.style}}"
+    value="{{node.props.value}}"
+    type="{{node.props.type || 'text'}}"
+    placeholder="{{node.props.placeholder}}"
+    disabled="{{node.props.disabled}}"
+    bindinput="onNodeInput"
+    bindfocus="onNodeFocus"
+    bindblur="onNodeBlur"
+    data-id="{{node.id}}"
+  />
+  
+  <!-- 纯文本节点 -->
+  <block wx:elif="{{node.type === '#text'}}">{{node.text}}</block>
+  
+  <!-- 注释节点（不渲染） -->
+  <block wx:elif="{{node.type === '#comment'}}"></block>
+  
+  <!-- 根节点 -->
+  <view wx:elif="{{node.type === '#root'}}">
+    <block wx:for="{{node.children}}" wx:key="id">
+      <template is="node" data="{{node: item}}"/>
+    </block>
+  </view>
+  
+  <!-- 未知节点类型，作为 view 处理 -->
+  <view 
+    wx:else 
+    id="node-{{node.id}}"
+    class="{{node.props.class}}" 
+    style="{{node.props.style}}"
+    bindtap="onNodeTap"
+    data-id="{{node.id}}"
+  >
+    <block wx:for="{{node.children}}" wx:key="id">
+      <template is="node" data="{{node: item}}"/>
+    </block>
+  </view>
+</template>

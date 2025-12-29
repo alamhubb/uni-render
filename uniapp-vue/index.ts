@@ -1,26 +1,58 @@
 /**
  * uniapp-vue
  * 
- * 为 uni-app 小程序提供 Vue 3 渲染函数（h 函数）支持
+ * 为 uni-app 小程序提供 Vue 3 支持
  * 
- * 极简设计：直接使用 Vue 标准渲染器，不需要自定义渲染器
- * WXML 编译成 h() → Vue 标准渲染 → 浏览器 DOM
+ * 功能：
+ * 1. 浏览器端：使用 Vue 标准渲染器
+ * 2. 小程序端：使用自定义渲染器（customRender）
+ * 3. 提供 uni-app 兼容函数
  */
 
 // ============================================
-// 直接导出 Vue 标准 API
+// 导出 Vue 标准 API（浏览器端使用）
 // ============================================
 export * from '@vue/runtime-dom'
 
 // ============================================
-// 额外的适配函数（兼容 uni-app）
+// 导出小程序端自定义渲染器
+// ============================================
+export {
+    createApp as createMpApp,  // 小程序端 createApp
+    forceUpdate,
+    getRootNode,
+    setUpdateCallback
+} from './src/renderer'
+
+export type { MPNode } from './src/renderer/nodeOps'
+export type { SerializedNode } from './src/renderer/serialize'
+
+// ============================================
+// 导出事件系统
+// ============================================
+export {
+    eventBus,
+    bindNodeEvent,
+    triggerNodeEvent,
+    createEventHandler
+} from './src/events'
+
+// ============================================
+// 导出桥接层
+// ============================================
+export {
+    createBridge,
+    createPageHandlers
+} from './src/bridge'
+
+// ============================================
+// uni-app 兼容函数
 // ============================================
 
 import { getCurrentInstance } from '@vue/runtime-dom'
 
 /**
  * 文本处理函数
- * uni-app 的 t() 函数用于处理文本插值
  */
 export function t(value: any): string {
     return String(value ?? '')
@@ -28,7 +60,6 @@ export function t(value: any): string {
 
 /**
  * 事件处理函数
- * 替代 uni-app 的 vOn，直接返回处理器函数
  */
 export function o(handler: Function): Function {
     return handler
@@ -62,20 +93,20 @@ export function onHide(callback?: Function): void {
 }
 
 /**
- * uni-app 自定义的错误日志函数
+ * 错误日志函数
  */
 export function logError(err: unknown, type?: string, args?: unknown[]): void {
     console.error(`[uni-app error]${type ? ` ${type}` : ''}:`, err)
 }
 
 /**
- * uni-app 自定义的生命周期钩子
+ * 生命周期钩子
  */
 export function onBeforeActivate(callback?: Function): void { }
 export function onBeforeDeactivate(callback?: Function): void { }
 
 /**
- * injectHook 实现（Vue 3.5+ 不再导出）
+ * injectHook 实现
  */
 export function injectHook(
     type: string,
@@ -94,4 +125,4 @@ export function injectHook(
     }
 }
 
-console.log('[uniapp-vue] Loaded - 直接使用 Vue 标准渲染器')
+console.log('[uniapp-vue] Loaded - 支持浏览器和小程序双端')

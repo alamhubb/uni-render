@@ -1,0 +1,135 @@
+/**
+ * 节点操作
+ * 
+ * 定义虚拟节点类型和操作函数
+ */
+
+// 虚拟节点类型
+export interface MPNode {
+    id: number
+    type: string
+    props: Record<string, any>
+    children: MPNode[]
+    text?: string
+    parent?: MPNode
+}
+
+// 节点 ID 计数器
+let nodeId = 0
+
+/**
+ * 创建元素节点
+ */
+export function createElement(type: string): MPNode {
+    return {
+        id: nodeId++,
+        type,
+        props: {},
+        children: []
+    }
+}
+
+/**
+ * 创建文本节点
+ */
+export function createText(text: string): MPNode {
+    return {
+        id: nodeId++,
+        type: '#text',
+        props: {},
+        children: [],
+        text
+    }
+}
+
+/**
+ * 创建注释节点
+ */
+export function createComment(text: string): MPNode {
+    return {
+        id: nodeId++,
+        type: '#comment',
+        props: {},
+        children: [],
+        text
+    }
+}
+
+/**
+ * 插入节点
+ */
+export function insert(child: MPNode, parent: MPNode, anchor?: MPNode | null): void {
+    child.parent = parent
+
+    if (anchor) {
+        const index = parent.children.indexOf(anchor)
+        if (index !== -1) {
+            parent.children.splice(index, 0, child)
+            return
+        }
+    }
+
+    parent.children.push(child)
+}
+
+/**
+ * 移除节点
+ */
+export function remove(child: MPNode): void {
+    const parent = child.parent
+    if (parent) {
+        const index = parent.children.indexOf(child)
+        if (index !== -1) {
+            parent.children.splice(index, 1)
+        }
+    }
+}
+
+/**
+ * 设置元素文本内容
+ */
+export function setElementText(node: MPNode, text: string): void {
+    node.children = [{
+        id: nodeId++,
+        type: '#text',
+        props: {},
+        children: [],
+        text
+    }]
+}
+
+/**
+ * 设置文本节点内容
+ */
+export function setText(node: MPNode, text: string): void {
+    node.text = text
+}
+
+/**
+ * 获取父节点
+ */
+export function parentNode(node: MPNode): MPNode | null {
+    return node.parent || null
+}
+
+/**
+ * 获取下一个兄弟节点
+ */
+export function nextSibling(node: MPNode): MPNode | null {
+    const parent = node.parent
+    if (!parent) return null
+
+    const index = parent.children.indexOf(node)
+    if (index !== -1 && index < parent.children.length - 1) {
+        return parent.children[index + 1]
+    }
+
+    return null
+}
+
+/**
+ * 重置节点 ID（用于测试）
+ */
+export function resetNodeId(): void {
+    nodeId = 0
+}
