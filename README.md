@@ -9,7 +9,7 @@
 通过 Vue 3 的 Custom Renderer 机制，让**标准的原生 Vue 3**代码能够在小程序环境运行。
 
 **关键特性**：
-- ✅ 使用**原生 Vue 3** (`@vue/runtime-core`, `@vue/runtime-dom`)
+- ✅ 使用**原生 Vue 3** (`@vue/runtime-core`)
 - ✅ **标准 Vue 3 API**，完全兼容 Vue 3 生态
 - ✅ 通过 Custom Renderer 适配小程序平台
 
@@ -27,7 +27,28 @@
 
 ## 📐 架构原理
 
+### 小程序平台架构（生产环境）
+
+```
+Vue 3 组件
+  ↓
+uniapp-vue
+  ├─ @vue/runtime-core (原生 Vue 3 响应式)
+  └─ Custom Renderer (小程序适配层)
+  ↓
+WXML 渲染
+  ├─ vnodeTree 数据结构
+  └─ render.wxml 递归模板
+  ↓
+小程序原生渲染
+```
+
+**核心依赖**：
+- `@vue/runtime-core` - Vue 3 核心响应式系统
+- **不需要** `@vue/runtime-dom` - 小程序没有 DOM
+
 ### 完整流程（开发和生产共用）
+
 
 ```
 ┌────────────────────────────────────┐

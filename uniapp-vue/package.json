@@ -31,7 +31,6 @@
     },
     "peerDependencies": {
         "vue": "^3.0.0",
-        "@vue/runtime-dom": "^3.0.0",
         "@vue/runtime-core": "^3.0.0"
     },
     "devDependencies": {
