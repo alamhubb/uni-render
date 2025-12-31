@@ -1,10 +1,17 @@
 # uniapp-vue
 
-> Vue 3 适配层，让 Vue 3 代码能运行在小程序平台
+> UniApp 编译器 + 原生 Vue 3 - 让标准 Vue 3 代码运行在小程序平台
 
 ## 🎯 核心定位
 
-**uniapp-vue** 是 Vue 3 的小程序运行时适配层，通过 Custom Renderer 机制，让 Vue 3 代码能够在小程序环境运行。
+**uniapp-vue = UniApp 编译器 + 原生 Vue 3**
+
+通过 Vue 3 的 Custom Renderer 机制，让**标准的原生 Vue 3**代码能够在小程序环境运行。
+
+**关键特性**：
+- ✅ 使用**原生 Vue 3** (`@vue/runtime-core`, `@vue/runtime-dom`)
+- ✅ **标准 Vue 3 API**，完全兼容 Vue 3 生态
+- ✅ 通过 Custom Renderer 适配小程序平台
 
 **无论开发还是生产，都需要 uniapp-vue 作为底层运行时。**
 
