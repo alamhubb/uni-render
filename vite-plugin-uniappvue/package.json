@@ -1,0 +1,32 @@
+{
+    "name": "vite-plugin-uniappvue",
+    "version": "0.1.0",
+    "type": "module",
+    "description": "Vite plugin for uniapp-vue Custom Renderer support",
+    "main": "./index.ts",
+    "module": "./index.ts",
+    "types": "./index.ts",
+    "monorepo": "./index.ts",
+    "exports": {
+        ".": {
+            "import": "./index.ts",
+            "types": "./index.ts",
+            "default": "./index.ts"
+        }
+    },
+    "keywords": [
+        "vite",
+        "plugin",
+        "uniapp",
+        "vue",
+        "miniapp"
+    ],
+    "dependencies": {
+        "glob": "^10.0.0"
+    },
+    "peerDependencies": {
+        "vite": "^5.0.0 || ^6.0.0",
+        "uniapp-vue": "*"
+    },
+    "license": "MIT"
+}

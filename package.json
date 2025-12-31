@@ -3,6 +3,7 @@
     "version": "0.1.0",
     "workspaces": [
         "uniapp-vue",
-        "vite-plugin-uniappvue"
+        "vite-plugin-uniappvue",
+        "vite-plugin-uniappvue-compiler"
     ]
 }
