@@ -15,13 +15,13 @@
 
 **无论开发还是生产，都需要 uniapp-vue 作为底层运行时。**
 
-### 与 miniapp-h5 的关系
+### 与 miniprogram-web 的关系
 
 **uniapp-vue** 是底层运行时，**开发和生产都必需**：
-- ✅ **开发时**：提供 Custom Renderer，配合 miniapp-h5 在浏览器预览
+- ✅ **开发时**：提供 Custom Renderer，配合 miniprogram-web 在浏览器预览
 - ✅ **生产时**：提供 Custom Renderer，打包到真实小程序平台运行
 
-**miniapp-h5** 是开发工具，**仅开发时使用**：
+**miniprogram-web** 是开发工具，**仅开发时使用**：
 - ✅ **开发时**：wxml-compiler + 浏览器模拟，让你在浏览器中调试
 - ❌ **生产时**：不需要，直接运行在真实小程序平台
 
@@ -79,7 +79,7 @@ WXML 渲染
 ┌───────────────┐   ┌───────────────────┐
 │  生产环境       │   │   开发环境         │
 │               │   │                   │
-│  真实小程序    │   │ [miniapp-h5]      │  ← 仅开发时需要
+│  真实小程序    │   │ [miniprogram-web]      │  ← 仅开发时需要
 │  原生渲染      │   │ wxml-compiler     │
 │               │   │ WXML → h() → DOM  │
 └───────────────┘   └───────────────────┘
@@ -129,7 +129,7 @@ WXML 渲染
 - ✅ **核心运行时的一部分**：render.wxml 定义了 vnodeTree 的渲染规则，是 Custom Renderer 的输出层
 - ✅ **开发和生产都需要**：
   - 真实小程序：直接使用 render.wxml 渲染
-  - 浏览器开发：miniapp-h5 编译 render.wxml 为 h() 函数后渲染
+  - 浏览器开发：miniprogram-web 编译 render.wxml 为 h() 函数后渲染
 - ✅ **数据结构契约**：它定义了 MPNode 序列化后的数据格式，与 Custom Renderer 紧密耦合
 
 
@@ -248,7 +248,7 @@ uniapp-vue/
 
 **使用场景**：
 - **真实小程序**：页面直接引用 render.wxml 渲染 vnodeTree
-- **浏览器开发**：miniapp-h5 编译 render.wxml 为 h() 函数
+- **浏览器开发**：miniprogram-web 编译 render.wxml 为 h() 函数
 
 **重要性**：它是连接 Custom Renderer（数据层）和小程序渲染（视图层）的桥梁。
 
@@ -341,11 +341,11 @@ import {
 } from 'uniapp-vue'
 ```
 
-## 🔗 与 miniapp-h5 的关系
+## 🔗 与 miniprogram-web 的关系
 
 **核心理解**：
 - **uniapp-vue** = 底层运行时，开发和生产都需要
-- **miniapp-h5** = 开发工具，仅开发时额外添加浏览器渲染层
+- **miniprogram-web** = 开发工具，仅开发时额外添加浏览器渲染层
 
 **开发流程**：
 
@@ -354,13 +354,13 @@ import {
 npm run dev:mp-h5
 # ↓ 使用：
 # - uniapp-vue (Custom Renderer)
-# - miniapp-h5 (wxml-compiler + 浏览器模拟)
+# - miniprogram-web (wxml-compiler + 浏览器模拟)
 
 # 生产打包（真实小程序）
 npm run build:mp-weixin
 # ↓ 使用：
 # - uniapp-vue (Custom Renderer)
-# - 不需要 miniapp-h5
+# - 不需要 miniprogram-web
 ```
 
 ## 🌟 核心特性
@@ -369,7 +369,7 @@ npm run build:mp-weixin
 - ✅ **多平台支持** - 微信、支付宝、百度、抖音等小程序平台
 - ✅ **类型安全** - 完整的 TypeScript 类型定义
 - ✅ **高性能** - 基于 Vue 3 的响应式系统和虚拟 DOM diff
-- ✅ **开发体验** - 配合 miniapp-h5 实现浏览器热重载调试
+- ✅ **开发体验** - 配合 miniprogram-web 实现浏览器热重载调试
 
 ## 📄 License
 

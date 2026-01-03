@@ -165,7 +165,7 @@ npm run build:mp-weixin
 ## 🔗 相关项目
 
 - **[uniapp-vue](../uniapp-vue)** - Vue 3 Custom Renderer 运行时
-- **[miniapp-h5](../../miniapp-h5)** - 浏览器开发预览工具
+- **[miniprogram-web](../../miniprogram-web)** - 浏览器开发预览工具
 
 ## 🌟 为什么需要这个插件？
 
@@ -192,7 +192,7 @@ UniApp 提供的 Vue 不是标准 Vue 3：
 | 插件 | 归属 | 职责 | 使用场景 |
 |------|------|------|----------|
 | **vite-plugin-uniappvue** | uniapp-vue | Custom Renderer 支持 | 开发 + 生产 |
-| **vite-plugin-mp** | miniapp-h5 | 浏览器开发工具 | 仅开发 |
+| **vite-plugin-mp** | miniprogram-web | 浏览器开发工具 | 仅开发 |
 
 **vite-plugin-uniappvue**：
 - ✅ Vue alias 配置
