@@ -272,5 +272,12 @@ export function setupPageEventProxy(
  * @returns 该页面的 eventHandlers 对象，如果不存在则返回 null
  */
 export function getPageEventHandlers(pageId: number): Record<string, Invoker> | null {
-    return pageEventHandlers.get(pageId) || null
+    console.log('[getPageEventHandlers] 查询 pageId:', pageId)
+    console.log('[getPageEventHandlers] Map keys:', Array.from(pageEventHandlers.keys()))
+    console.log('[getPageEventHandlers] Map size:', pageEventHandlers.size)
+
+    const result = pageEventHandlers.get(pageId) || null
+    console.log('[getPageEventHandlers] 查询结果:', result ? Object.keys(result) : 'null')
+
+    return result
 }
