@@ -90,7 +90,7 @@ const EVENT_MAP: Record<string, string> = {
 export function h(type: any, propsOrChildren?: any, children?: any): VNode {
     const instance = getCurrentInstance()
     if (!instance || instance.uid === undefined) {
-        throw new Error('[uniapp-vue] h() 必须在 setup() 或渲染函数中调用')
+        throw new Error('[uniapp-render] h() 必须在 setup() 或渲染函数中调用')
     }
     const componentId = instance.uid
 
@@ -162,4 +162,4 @@ export function cleanupEventHandlers(componentId: number): void {
 
 // 版本信息
 const VERSION = '5.0.0'
-console.log(`[uniapp-vue] v${VERSION} - getApp().globalData 模式`)
+console.log(`[uniapp-render] v${VERSION} - getApp().globalData 模式`)

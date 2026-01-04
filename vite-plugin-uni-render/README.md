@@ -1,21 +1,21 @@
 # vite-plugin-uniappvue
 
-> Vite 插件 - 为 uniapp-vue Custom Renderer 提供支持
+> Vite 插件 - 为 uniapp-render Custom Renderer 提供支持
 
 ## 🎯 功能
 
-**vite-plugin-uniappvue** 是 [uniapp-vue](../uniapp-vue) 的官方 Vite 插件，为 Custom Renderer 提供完整支持。
+**vite-plugin-uniappvue** 是 [uniapp-render](../uniapp-render) 的官方 Vite 插件，为 Custom Renderer 提供完整支持。
 
 ### 功能 1：设置 Vue Alias
 
-自动将 `'vue'` 导入重定向到 `'uniapp-vue'`，确保使用 Custom Renderer 而不是标准 DOM 渲染器。
+自动将 `'vue'` 导入重定向到 `'uniapp-render'`，确保使用 Custom Renderer 而不是标准 DOM 渲染器。
 
 ```javascript
 // 用户代码
 import { ref, h } from 'vue'
 
 // ↓ 自动重定向为
-import { ref, h } from 'uniapp-vue'
+import { ref, h } from 'uniapp-render'
 ```
 
 ### 功能 2：处理空 WXML（支持 h() 函数）
@@ -47,7 +47,7 @@ import { ref, h } from 'uniapp-vue'
 
 ```bash
 npm install vite-plugin-uniappvue -D
-npm install uniapp-vue
+npm install uniapp-render
 ```
 
 ## 🔧 使用方式
@@ -121,7 +121,7 @@ uniappVue({
 在 Vite 的 `config` 钩子中设置：
 
 ```typescript
-config.resolve.alias['vue'] = 'uniapp-vue'
+config.resolve.alias['vue'] = 'uniapp-render'
 ```
 
 ### 2. WXML 处理流程
@@ -164,7 +164,7 @@ npm run build:mp-weixin
 
 ## 🔗 相关项目
 
-- **[uniapp-vue](../uniapp-vue)** - Vue 3 Custom Renderer 运行时
+- **[uniapp-render](../uniapp-render)** - Vue 3 Custom Renderer 运行时
 - **[miniprogram-web](../../miniprogram-web)** - 浏览器开发预览工具
 
 ## 🌟 为什么需要这个插件？
@@ -191,7 +191,7 @@ UniApp 提供的 Vue 不是标准 Vue 3：
 
 | 插件 | 归属 | 职责 | 使用场景 |
 |------|------|------|----------|
-| **vite-plugin-uniappvue** | uniapp-vue | Custom Renderer 支持 | 开发 + 生产 |
+| **vite-plugin-uniappvue** | uniapp-render | Custom Renderer 支持 | 开发 + 生产 |
 | **vite-plugin-mp** | miniprogram-web | 浏览器开发工具 | 仅开发 |
 
 **vite-plugin-uniappvue**：

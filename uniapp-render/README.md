@@ -1,4 +1,4 @@
-# uniapp-vue
+# uniapp-render
 
 为 UniApp 提供自定义 `h` 函数，实现一套代码同时兼容 H5 和小程序。
 
@@ -24,9 +24,9 @@
 ## 📝 使用方式
 
 ```typescript
-// 只需要把 h 从 vue 改成从 uniapp-vue 导入
+// 只需要把 h 从 vue 改成从 uniapp-render 导入
 import { ref, defineComponent } from 'vue'
-import { h } from 'uniapp-vue'
+import { h } from 'uniapp-render'
 
 const Counter = defineComponent({
   setup() {
@@ -109,7 +109,7 @@ const Counter = defineComponent({
 ## 🗂️ 目录结构
 
 ```
-uniapp-vue/
+uniapp-render/
 ├── index.ts          # 入口，导出 h 函数和辅助函数
 └── src/
     └── h.ts          # 核心：自定义 h 函数实现

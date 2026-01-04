@@ -1,10 +1,10 @@
 /**
  * vite-plugin-uniappvue
  * 
- * Vite 插件 - 为 uniapp-vue Custom Renderer 提供支持
+ * Vite 插件 - 为 uniapp-render Custom Renderer 提供支持
  * 
  * 功能：
- * 1. 设置 Vue alias 指向 uniapp-vue
+ * 1. 设置 Vue alias 指向 uniapp-render
  * 2. 自动将纯 .ts/.js 渲染函数文件转换为带 RenderNode 的 Vue 组件
  * 3. 处理空 WXML，替换为 render.wxml 引用
  */
@@ -48,7 +48,7 @@ export function uniappVue(options: UniappVueOptions = {}): Plugin {
         }
     }
 
-    const uniappVuePackage = 'uniapp-vue'
+    const uniappVuePackage = 'uniapp-render'
 
     return {
         name: 'vite-plugin-uniappvue',
@@ -179,7 +179,7 @@ function transformRenderFunction(code: string, filePath: string): SlimeGenerator
         return null
     }
 
-    // 添加 uniapp-vue 导入
+    // 添加 uniapp-render 导入
     addUniappVueImport(ast)
 
     // 包装渲染函数
@@ -264,14 +264,14 @@ function hasRenderFunctionInSetup(setupMethod: any): boolean {
 }
 
 /**
- * 添加 uniapp-vue 导入
+ * 添加 uniapp-render 导入
  */
 function addUniappVueImport(ast: SlimeProgram): void {
     // 检查是否已有导入
     for (const stmt of ast.body) {
         if (stmt.type === SlimeAstTypeName.ImportDeclaration) {
             const imp = stmt as SlimeImportDeclaration
-            if (imp.source?.value === 'uniapp-vue') {
+            if (imp.source?.value === 'uniapp-render') {
                 return
             }
         }
@@ -279,7 +279,7 @@ function addUniappVueImport(ast: SlimeProgram): void {
 
     // 创建导入声明
     const importDecl = SlimeAstCreateUtils.createImportDeclaration()
-    importDecl.source = SlimeAstCreateUtils.createStringLiteral('uniapp-vue')
+    importDecl.source = SlimeAstCreateUtils.createStringLiteral('uniapp-render')
     importDecl.specifiers = [
         createImportSpecifier('useVnodeTree'),
         createImportSpecifier('RenderNode')
