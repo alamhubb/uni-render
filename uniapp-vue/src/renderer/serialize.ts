@@ -1,50 +1,42 @@
 /**
- * 序列化
- * 
- * 将虚拟节点树序列化为可 setData 的数据结构
+ * MPNode 类型定义和序列化函数
  */
 
-import type { MPNode } from './nodeOps'
-
-// 序列化后的节点类型（用于 setData）
-export interface SerializedNode {
+/**
+ * 小程序节点数据结构
+ * 用于 render.wxml 模板渲染
+ */
+export interface MPNode {
+    /** 节点唯一 ID，用于事件绑定 */
     id: number
+    /** 节点类型：view, text, button, input, image 等 */
     type: string
+    /** 节点属性 */
     props: Record<string, any>
+    /** 文本内容（仅文本节点） */
     text?: string
-    children: SerializedNode[]
+    /** 子节点 */
+    children: MPNode[]
 }
 
 /**
- * 序列化单个节点
+ * 序列化后的节点结构（用于 setData）
  */
-export function serializeNode(node: MPNode): SerializedNode {
-    return {
-        id: node.id,
-        type: node.type,
-        props: { ...node.props },
-        text: node.text,
-        children: node.children.map(serializeNode)
-    }
+export type SerializedNode = MPNode
+
+/**
+ * 序列化 MPNode 树
+ * 用于 setData 传输到渲染层
+ */
+export function serialize(node: MPNode): SerializedNode {
+    // 当前实现直接返回，后续可添加优化（如压缩、diff）
+    return node
 }
 
 /**
  * 序列化整棵树
+ * serializeTree 是 serialize 的别名
  */
-export function serializeTree(root: MPNode): SerializedNode {
-    return serializeNode(root)
-}
-
-/**
- * 差异序列化（优化性能）
- * 
- * 只序列化变化的部分
- * TODO: 实现增量更新
- */
-export function serializeDiff(
-    oldTree: SerializedNode | null,
-    newRoot: MPNode
-): SerializedNode {
-    // 暂时使用全量序列化
-    return serializeTree(newRoot)
+export function serializeTree(node: MPNode): SerializedNode {
+    return serialize(node)
 }

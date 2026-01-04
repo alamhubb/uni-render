@@ -4,7 +4,7 @@
  * 使用 Vue 的 createRenderer 创建小程序渲染器
  */
 
-import { createRenderer } from '@vue/runtime-core'
+import { createRenderer } from 'vue'
 import {
     createElement,
     createText,

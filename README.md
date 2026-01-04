@@ -1,258 +1,49 @@
 # uniapp-vue
 
-> UniApp 编译器 + 原生 Vue 3 - 让标准 Vue 3 代码运行在小程序平台
+> 让 UniApp 支持 Vue 渲染函数（h 函数）开发，实现**动态结构 + 动态数据**的小程序渲染方案
 
 ## 🎯 核心定位
 
-**uniapp-vue = UniApp 编译器 + 原生 Vue 3**
+**解决的问题**：UniApp 原生只支持 template 模板，无法使用 h() 渲染函数动态创建视图结构。
 
-通过 Vue 3 的 Custom Renderer 机制，让**标准的原生 Vue 3**代码能够在小程序环境运行。
-
-**关键特性**：
-- ✅ 使用**原生 Vue 3** (`@vue/runtime-core`)
-- ✅ **标准 Vue 3 API**，完全兼容 Vue 3 生态
-- ✅ 通过 Custom Renderer 适配小程序平台
-
-**无论开发还是生产，都需要 uniapp-vue 作为底层运行时。**
-
-### 与 miniprogram-web 的关系
-
-**uniapp-vue** 是底层运行时，**开发和生产都必需**：
-- ✅ **开发时**：提供 Custom Renderer，配合 miniprogram-web 在浏览器预览
-- ✅ **生产时**：提供 Custom Renderer，打包到真实小程序平台运行
-
-**miniprogram-web** 是开发工具，**仅开发时使用**：
-- ✅ **开发时**：wxml-compiler + 浏览器模拟，让你在浏览器中调试
-- ❌ **生产时**：不需要，直接运行在真实小程序平台
+**我们的方案**：通过 `useVnodeTree` + `RenderNode` 组件，将 h() 渲染函数的输出转换为可被 UniApp 渲染的数据结构。
 
 ## 📐 架构原理
 
-### 小程序平台架构（生产环境）
+### UniApp 原生方案 vs 我们的方案
+
+| | UniApp 原生 | uniapp-vue |
+|---|------------|------------|
+| **模板** | 每页一个静态 WXML | 通用 RenderNode 递归渲染 |
+| **setData 内容** | 只有数据 | 结构 + 数据 |
+| **编译时确定** | DOM 结构 | 无 |
+| **运行时确定** | 数据值 | 结构 + 数据 |
+
+### 工作流程
 
 ```
-Vue 3 组件
-  ↓
-uniapp-vue
-  ├─ @vue/runtime-core (原生 Vue 3 响应式)
-  └─ Custom Renderer (小程序适配层)
-  ↓
-WXML 渲染
-  ├─ vnodeTree 数据结构
-  └─ render.wxml 递归模板
-  ↓
-小程序原生渲染
+h('view', { class: 'box' }, 'Hello')
+    ↓
+useVnodeTree() 转换为 MPNode
+    ↓
+{ type: 'view', props: { class: 'box' }, text: 'Hello', children: [] }
+    ↓
+RenderNode 组件递归渲染
+    ↓
+UniApp 正常编译为 WXML
+    ↓
+小程序渲染
 ```
 
-**核心依赖**：
-- `@vue/runtime-core` - Vue 3 核心响应式系统
-- **不需要** `@vue/runtime-dom` - 小程序没有 DOM
+### 核心组件
 
-### 完整流程（开发和生产共用）
+| 组件 | 作用 |
+|------|------|
+| **useVnodeTree** | 将 h() 渲染函数转换为响应式的 MPNode 数据结构 |
+| **RenderNode.vue** | 通用递归渲染组件，根据 node.type 渲染不同元素 |
+| **MPNode** | 小程序节点数据结构 `{ id, type, props, text, children }` |
 
-
-```
-┌────────────────────────────────────┐
-│         Vue 3 用户代码               │
-│   <template>, setup(), reactive    │
-└────────────────┬───────────────────┘
-                 ↓
-┌────────────────────────────────────┐
-│   [uniapp-vue] Custom Renderer     │  ← 开发和生产都必需
-│    替换 Vue 的 DOM 渲染器           │
-└────────────────┬───────────────────┘
-                 ↓
-┌────────────────────────────────────┐
-│   [uniapp-vue] MPNode 虚拟树        │
-│   { type: 'view', props: {...} }   │
-└────────────────┬───────────────────┘
-                 ↓
-┌────────────────────────────────────┐
-│   [uniapp-vue] serialize 序列化     │
-└────────────────┬───────────────────┘
-                 ↓
-┌────────────────────────────────────┐
-│   [uniapp-vue] setData 同步数据     │
-└────────────────┬───────────────────┘
-                 ↓
-        ┌────────┴────────┐
-        ↓                 ↓
-┌───────────────┐   ┌───────────────────┐
-│  生产环境       │   │   开发环境         │
-│               │   │                   │
-│  真实小程序    │   │ [miniprogram-web]      │  ← 仅开发时需要
-│  原生渲染      │   │ wxml-compiler     │
-│               │   │ WXML → h() → DOM  │
-└───────────────┘   └───────────────────┘
-```
-
-### 为什么需要 render.wxml？
-
-**render.wxml 是 Custom Renderer 架构的关键输出层**，它定义了 vnodeTree 数据结构如何在小程序中被渲染。
-
-#### 工作原理
-
-1. **Custom Renderer 生成数据**：
-   ```javascript
-   // Vue 组件经过 Custom Renderer 处理后
-   setData({
-     vnodeTree: {
-       type: 'view',
-       props: { class: 'container' },
-       children: [...]
-     }
-   })
-   ```
-
-2. **render.wxml 递归渲染数据**：
-   ```xml
-   <!-- templates/render.wxml -->
-   <template name="node">
-     <view wx:if="{{node.type === 'view'}}" 
-           class="{{node.props.class}}">
-       <block wx:for="{{node.children}}">
-         <template is="node" data="{{node: item}}"/>
-       </block>
-     </view>
-     <!-- 其他节点类型... -->
-   </template>
-   ```
-
-3. **页面引用模板**：
-   ```xml
-   <!-- pages/index/index.wxml -->
-   <import src="/templates/render.wxml"/>
-   <template is="node" data="{{node: vnodeTree}}"/>
-   ```
-
-#### 为什么在 uniapp-vue 中？
-
-- ✅ **核心运行时的一部分**：render.wxml 定义了 vnodeTree 的渲染规则，是 Custom Renderer 的输出层
-- ✅ **开发和生产都需要**：
-  - 真实小程序：直接使用 render.wxml 渲染
-  - 浏览器开发：miniprogram-web 编译 render.wxml 为 h() 函数后渲染
-- ✅ **数据结构契约**：它定义了 MPNode 序列化后的数据格式，与 Custom Renderer 紧密耦合
-
-
-## 🚀 核心功能
-
-### 1. Vue 3 Custom Renderer
-
-使用 `@vue/runtime-core` 的 `createRenderer` API，创建专门针对小程序的自定义渲染器。
-
-```typescript
-import { createApp } from 'uniapp-vue'
-
-const app = createApp(App)
-app.mount('#app')  // 渲染到小程序
-```
-
-### 2. MPNode 虚拟树
-
-所有 Vue 组件都会被渲染成 MPNode 虚拟节点树，而不是 DOM 节点：
-
-```typescript
-// Vue template
-<view class="container">
-  <text>{{ message }}</text>
-</view>
-
-// 转换为 MPNode
-{
-  type: 'view',
-  props: { class: 'container' },
-  children: [
-    { type: 'text', children: [message] }
-  ]
-}
-```
-
-### 3. 事件系统
-
-提供小程序事件的绑定和触发机制：
-
-```typescript
-import { eventBus, bindNodeEvent } from 'uniapp-vue'
-
-// 绑定事件
-bindNodeEvent(node, 'tap', handler)
-
-// 触发事件
-eventBus.emit('tap', eventData)
-```
-
-### 4. 生命周期兼容
-
-支持小程序特有的生命周期钩子：
-
-```typescript
-import { onLaunch, onShow, onHide } from 'uniapp-vue'
-
-onLaunch(() => {
-  console.log('小程序启动')
-})
-
-onShow(() => {
-  console.log('小程序显示')
-})
-```
-
-### 5. uni-app API 兼容
-
-提供 uni-app 编译器需要的辅助函数：
-
-```typescript
-import { t, o, injectHook } from 'uniapp-vue'
-
-// 文本处理
-const text = t(value)
-
-// 事件处理
-const handler = o(fn)
-
-// 钩子注入
-injectHook('mounted', callback)
-```
-
-## 📦 项目结构
-
-```
-uniapp-vue/
-├── uniapp-vue/                      # 核心运行时包
-│   ├── src/
-│   │   ├── renderer/                # Custom Renderer 实现
-│   │   │   ├── nodeOps.ts           # MPNode 操作
-│   │   │   ├── serialize.ts         # 序列化
-│   │   │   └── index.ts             # createApp 等
-│   │   └── events/                  # 事件系统
-│   ├── templates/                   # WXML 渲染模板
-│   │   └── render.wxml              # vnodeTree 递归渲染模板
-│   └── index.ts                     # 导出 Vue 3 API
-├── vite-plugin-uniappvue/           # Vite 插件（独立包）
-│   ├── index.ts                     # 设置 Vue alias
-│   └── package.json                 # 独立发布配置
-└── vite-plugin-uniappvue-compiler/  # 编译器插件（独立包）
-    ├── index.ts                     # 处理空 WXML
-    └── package.json                 # 独立发布配置
-```
-
-### Vite 插件说明
-
-**vite-plugin-uniappvue** 和 **vite-plugin-uniappvue-compiler** 是独立的 npm 包：
-- ✅ 可以单独安装和使用
-- ✅ 使用包名引用 `'uniapp-vue'`，由 mono 或 node_modules 解析
-- ✅ 不依赖相对路径，更清晰的模块边界
-
-### templates/render.wxml
-
-这是 Custom Renderer 的**渲染输出层**，定义了序列化后的 vnodeTree 如何在小程序中渲染。
-
-**使用场景**：
-- **真实小程序**：页面直接引用 render.wxml 渲染 vnodeTree
-- **浏览器开发**：miniprogram-web 编译 render.wxml 为 h() 函数
-
-**重要性**：它是连接 Custom Renderer（数据层）和小程序渲染（视图层）的桥梁。
-
-## 🔧 使用方式
+## 🚀 使用方式
 
 ### 1. 安装依赖
 
@@ -260,53 +51,82 @@ uniapp-vue/
 npm install uniapp-vue
 ```
 
-### 2. 编写 Vue 3 代码
+### 2. 在 UniApp 项目中使用
 
 ```vue
 <template>
   <view class="container">
-    <text>{{ message }}</text>
-    <button @tap="handleClick">点击</button>
+    <text class="title">h() 函数测试</text>
+    
+    <!-- 使用 RenderNode 渲染动态内容 -->
+    <RenderNode :node="vnodeTree" />
   </view>
 </template>
 
-<script setup>
-import { ref } from 'uniapp-vue'
+<script setup lang="ts">
+import { h, ref, computed } from 'vue'
+import { useVnodeTree, RenderNode } from 'uniapp-vue'
 
-const message = ref('Hello MiniProgram')
+// 响应式数据
+const count = ref(0)
 
-const handleClick = () => {
-  message.value = 'Clicked!'
-}
+// 定义渲染函数
+const renderFn = () => h('view', { class: 'counter' }, [
+  h('text', {}, `计数: ${count.value}`),
+  h('button', { onClick: () => count.value++ }, '+1')
+])
+
+// 转换为响应式 MPNode 数据
+const vnodeTree = useVnodeTree(renderFn)
 </script>
 ```
 
-### 3. 配置 Vite
+### 3. 支持的元素类型
 
-```javascript
-// vite.config.js
-import { defineConfig } from 'vite'
-import { uniappVue } from 'vite-plugin-uniappvue'
+RenderNode 目前支持以下元素：
+- `view` - 容器
+- `text` - 文本
+- `button` - 按钮
+- `input` - 输入框
+- `image` - 图片
 
-export default defineConfig({
-  plugins: [
-    uniappVue()
-  ]
-})
+## 📦 项目结构
+
 ```
-
-### 4. 打包到小程序
-
-```bash
-npm run build:mp-weixin  # 微信小程序
-npm run build:mp-alipay  # 支付宝小程序
+uniapp-vue/
+├── uniapp-vue/                      # 核心运行时包
+│   ├── src/
+│   │   ├── renderer/                # 渲染器实现
+│   │   │   ├── useVnodeTree.ts      # VNode → MPNode 转换
+│   │   │   ├── RenderNode.vue       # 通用递归渲染组件
+│   │   │   ├── serialize.ts         # MPNode 类型定义
+│   │   │   ├── nodeOps.ts           # Custom Renderer 节点操作
+│   │   │   └── renderer.ts          # Custom Renderer 实现
+│   │   └── events.ts                # 事件系统
+│   └── index.ts                     # 导出 API
+└── vite-plugin-uniappvue/           # Vite 插件
 ```
 
 ## 🎨 导出的 API
 
-### Vue 3 核心 API
+### 动态渲染 API（核心功能）
 
-所有 `@vue/runtime-dom` 的 API 都可用：
+```typescript
+import {
+  // 核心
+  useVnodeTree,         // 将渲染函数转换为响应式 MPNode
+  RenderNode,           // 递归渲染组件
+  
+  // 事件
+  triggerEvent,         // 触发节点事件
+  bindEvent,            // 绑定节点事件
+  
+  // 类型
+  MPNode,               // 节点数据结构
+} from 'uniapp-vue'
+```
+
+### Vue 3 API（完整支持）
 
 ```typescript
 import {
@@ -320,56 +140,36 @@ import {
 } from 'uniapp-vue'
 ```
 
-### 自定义 API
+### 事件系统
 
 ```typescript
-import {
-  // 应用创建 (覆盖默认)
-  createApp, createSSRApp,
-  
-  // 类型
-  MPNode, SerializedNode,
-  
-  // 事件系统
-  eventBus, bindNodeEvent, triggerNodeEvent,
-  
-  // 小程序生命周期
-  onLaunch, onShow, onHide,
-  
-  // 工具函数
-  t, o, injectHook
-} from 'uniapp-vue'
+import { eventBus, bindNodeEvent, triggerNodeEvent } from 'uniapp-vue'
 ```
 
-## 🔗 与 miniprogram-web 的关系
+### UniApp 兼容函数
 
-**核心理解**：
-- **uniapp-vue** = 底层运行时，开发和生产都需要
-- **miniprogram-web** = 开发工具，仅开发时额外添加浏览器渲染层
-
-**开发流程**：
-
-```bash
-# 开发调试（浏览器预览）
-npm run dev:mp-h5
-# ↓ 使用：
-# - uniapp-vue (Custom Renderer)
-# - miniprogram-web (wxml-compiler + 浏览器模拟)
-
-# 生产打包（真实小程序）
-npm run build:mp-weixin
-# ↓ 使用：
-# - uniapp-vue (Custom Renderer)
-# - 不需要 miniprogram-web
+```typescript
+import { t, o, injectHook, onLaunch, onShow, onHide } from 'uniapp-vue'
 ```
 
-## 🌟 核心特性
+## 🔗 与 UniApp 的关系
 
-- ✅ **完整的 Vue 3 支持** - 使用 Composition API、`<script setup>` 等现代语法
-- ✅ **多平台支持** - 微信、支付宝、百度、抖音等小程序平台
-- ✅ **类型安全** - 完整的 TypeScript 类型定义
-- ✅ **高性能** - 基于 Vue 3 的响应式系统和虚拟 DOM diff
-- ✅ **开发体验** - 配合 miniprogram-web 实现浏览器热重载调试
+**uniapp-vue 与 UniApp 可以混合使用**：
+
+- 同一项目中，部分页面使用普通 template，部分页面使用 h() 函数
+- 同一页面中，部分内容使用 template，部分内容使用 RenderNode 动态渲染
+
+```vue
+<template>
+  <view>
+    <!-- UniApp 正常 template 内容 -->
+    <text>普通内容</text>
+    
+    <!-- h() 函数动态渲染区域 -->
+    <RenderNode :node="dynamicContent" />
+  </view>
+</template>
+```
 
 ## 📄 License
 

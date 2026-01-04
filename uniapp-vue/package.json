@@ -1,6 +1,6 @@
 {
     "name": "uniapp-vue",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "type": "module",
     "description": "让 uni-app 支持 Vue 渲染函数(h函数)开发，包含小程序自定义渲染器",
     "main": "./index.ts",
@@ -15,8 +15,7 @@
     },
     "files": [
         "index.ts",
-        "src",
-        "templates"
+        "src"
     ],
     "keywords": [
         "uni-app",
@@ -27,17 +26,14 @@
         "custom-renderer"
     ],
     "dependencies": {
-        "mitt": "^3.0.1",
-        "@vue/shared": "^3.4.21"
+        "mitt": "^3.0.1"
     },
     "peerDependencies": {
-        "vue": "^3.0.0",
-        "@vue/runtime-core": "^3.0.0"
+        "vue": "^3.0.0"
     },
     "devDependencies": {
         "typescript": "^5.0.0",
         "vue": "^3.4.0",
-        "@vue/runtime-core": "^3.4.0",
         "vite": "^5.0.0"
     },
     "license": "MIT"

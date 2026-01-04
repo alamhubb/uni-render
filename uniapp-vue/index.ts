@@ -9,9 +9,9 @@
  */
 
 // ============================================
-// 导出 Vue 所有 API（来自 runtime-core）
+// uniapp-vue 不再导出 Vue API
+// 用户需要直接从 'vue' 导入（由 UniApp 提供）
 // ============================================
-export * from '@vue/runtime-core'
 
 // ============================================
 // 用 Custom Renderer 的 createApp 覆盖 runtime-core 的
@@ -38,10 +38,25 @@ export {
 } from './src/events'
 
 // ============================================
+// 导出 vnodeTree 渲染系统（用于纯渲染函数组件）
+// ============================================
+export {
+    useVnodeTree,
+    triggerEvent,
+    bindEvent,
+    createPageEventHandlers
+} from './src/renderer/useVnodeTree'
+
+export { default as RenderNode } from './src/renderer/RenderNode.vue'
+
+
+
+// ============================================
 // uni-app 兼容函数
 // ============================================
 
-import { getCurrentInstance } from '@vue/runtime-core'
+import { getCurrentInstance } from 'vue'
+import type { ComponentInternalInstance } from 'vue'
 
 /**
  * 文本处理函数
