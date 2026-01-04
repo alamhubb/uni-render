@@ -9,12 +9,12 @@
  */
 
 // ============================================
-// 导出 Vue 所有 API（runtime-dom 包含 runtime-core）
+// 导出 Vue 所有 API（来自 runtime-core）
 // ============================================
-export * from '@vue/runtime-dom'
+export * from '@vue/runtime-core'
 
 // ============================================
-// 用 Custom Renderer 的 createApp 覆盖 runtime-dom 的
+// 用 Custom Renderer 的 createApp 覆盖 runtime-core 的
 // ============================================
 export {
     createApp,
@@ -41,7 +41,7 @@ export {
 // uni-app 兼容函数
 // ============================================
 
-import { getCurrentInstance } from '@vue/runtime-dom'
+import { getCurrentInstance } from '@vue/runtime-core'
 
 /**
  * 文本处理函数

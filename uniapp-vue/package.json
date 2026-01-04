@@ -36,7 +36,6 @@
     "devDependencies": {
         "typescript": "^5.0.0",
         "vue": "^3.4.0",
-        "@vue/runtime-dom": "^3.4.0",
         "@vue/runtime-core": "^3.4.0",
         "vite": "^5.0.0"
     },
