@@ -1,122 +1,95 @@
 # uniapp-render
 
-为 UniApp 提供自定义 `h` 函数，实现一套代码同时兼容 H5 和小程序。
+核心运行时包，提供 `useVnodeTree` 和 `RenderNode` 功能。
 
-## 📦 版本信息
+## 安装
 
-- **版本**: 5.0.0
-- **更新时间**: 2026-01-05
-- **核心特性**: 自定义 h 函数 + 跨平台事件
+```bash
+npm install uniapp-render
+```
 
----
+## 核心 API
 
-## 🎯 核心功能
+### `useVnodeTree(renderFn)`
 
-自定义 `h` 函数在标准 Vue h 函数基础上：
-
-1. **保留原始 `onClick`** - H5 环境使用 Vue 原生事件处理
-2. **添加 `bindtap`** - 小程序环境使用事件 ID 映射
-3. **全局 Map 存储** - 按组件 ID 分组管理事件处理器
-4. **Invoker 模式** - 支持事件更新，减少创建/销毁
-
----
-
-## 📝 使用方式
+将 h() 渲染函数转换为响应式的 MPNode 数据。
 
 ```typescript
-// 只需要把 h 从 vue 改成从 uniapp-render 导入
-import { ref, defineComponent } from 'vue'
-import { h } from 'uniapp-render'
+import { h } from 'vue'
+import { useVnodeTree } from 'uniapp-render'
 
-const Counter = defineComponent({
-  setup() {
-    const count = ref(0)
-    
-    const increment = () => {
-      count.value++
-    }
-    
-    // 使用标准 Vue h 函数写法
-    return () => h('view', { class: 'counter' }, [
-      h('text', {}, `计数: ${count.value}`),
-      h('button', { onClick: increment }, '+1')
-    ])
-  }
-})
+const { vnodeTree } = useVnodeTree(() => h('view', {}, 'Hello'))
 ```
 
-**就这么简单！** 其他代码完全不变，一套代码两端运行。
+**工作原理**：
 
----
+1. 接收一个返回 VNode 的渲染函数
+2. 使用 `watchEffect` 追踪响应式依赖
+3. 将 VNode 树转换为可序列化的 MPNode 数据
+4. 自动处理事件：`onClick` → `bindtap: 'e0'`
+5. 事件处理器存储在 `getApp().globalData.__eventHandlers__`
 
-## 🔧 工作原理
+### `RenderNode`
 
-```
-用户代码: h('button', { onClick: handler }, '点击')
-                        ↓
-                 自定义 h 函数处理
-                        ↓
-            ┌───────────────────────────┐
-            │ processedProps = {        │
-            │   onClick: handler,    ← H5 使用
-            │   bindtap: 'e0'        ← 小程序使用
-            │ }                         │
-            └───────────────────────────┘
-                        ↓
-            eventHandlers['e0'] = Invoker(handler)
-                        ↓
-                返回标准 VNode
-```
+递归渲染组件，将 MPNode 数据渲染为 UniApp 组件。
 
-### 环境适配
+```vue
+<template>
+  <RenderNode :node="vnodeTree" />
+</template>
 
-| 环境 | 事件处理方式 |
-|------|-------------|
-| H5 | Vue 使用保留的 `onClick` 直接处理 |
-| 小程序 | 框架使用 `bindtap` + `eventHandlers` 处理 |
-
----
-
-## 📦 API
-
-### `h(type, props?, children?)`
-
-自定义 h 函数，用法与 Vue 的 h 函数完全相同。
-
-**自动处理的事件**：
-- `onClick` → `bindtap`
-- `onTap` → `bindtap`
-- `onInput` → `bindinput`
-- `onChange` → `bindchange`
-- `onFocus` → `bindfocus`
-- `onBlur` → `bindblur`
-- 等等...
-
-### `getEventHandlers(componentId)`
-
-获取指定组件的事件处理器。
-
-### `cleanupEventHandlers(componentId)`
-
-清理组件的事件处理器（组件卸载时调用）。
-
-### `beginRender(componentId)`
-
-开始渲染，重置事件计数器。
-
----
-
-## 🗂️ 目录结构
-
-```
-uniapp-render/
-├── index.ts          # 入口，导出 h 函数和辅助函数
-└── src/
-    └── h.ts          # 核心：自定义 h 函数实现
+<script setup>
+import { RenderNode } from 'uniapp-render'
+</script>
 ```
 
----
+### 类型定义
 
-## 📜 License
+```typescript
+// MPNode - 小程序节点数据结构
+interface MPNode {
+  id: number           // 节点 ID
+  type: string         // 节点类型
+  props: Record<string, any>  // 属性
+  text?: string        // 文本内容
+  children: MPNode[]   // 子节点
+}
+```
 
-MIT
+## 事件处理
+
+### 事件转换规则
+
+| Vue 事件 | 小程序事件 |
+|---------|-----------|
+| `onClick` | `bindtap` |
+| `onTap` | `bindtap` |
+| `onInput` | `bindinput` |
+| `onChange` | `bindchange` |
+| `onFocus` | `bindfocus` |
+| `onBlur` | `bindblur` |
+
+### 事件存储
+
+事件处理器存储在全局 `getApp().globalData.__eventHandlers__`：
+
+```
+Map<pageId, Record<eventId, Invoker>>
+```
+
+- `pageId`: Vue 组件实例的 `uid`
+- `eventId`: 递增的事件 ID（`e0`, `e1`, ...）
+- `Invoker`: 事件处理器包装对象，支持热更新
+
+## 目录结构
+
+```
+src/
+├── index.ts           # 入口文件
+└── renderer/
+    ├── index.ts       # renderer 模块入口
+    ├── useVnodeTree.ts    # 核心：VNode → MPNode 转换
+    ├── RenderNode.vue     # 递归渲染组件
+    ├── triggerEvent.ts    # 事件触发函数
+    └── serialize.ts       # MPNode 类型定义
+```

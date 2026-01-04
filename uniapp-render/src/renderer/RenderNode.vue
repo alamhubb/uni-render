@@ -1,176 +1,159 @@
 <template>
   <!-- 递归渲染 vnodeTree -->
-  <template v-if="node">
+  <template v-if="nodeToRender">
     <!-- view 容器 -->
     <view 
-      v-if="node.type === 'view'"
-      :id="node.props?.id"
-      :class="node.props?.class"
-      :style="node.props?.style"
-      :data-id="node.id"
+      v-if="nodeToRender.type === 'view'"
+      :id="nodeToRender.props?.id"
+      :class="nodeToRender.props?.class"
+      :style="nodeToRender.props?.style"
+      :data-id="nodeToRender.id"
       @tap="onTap"
     >
-      <RenderNode v-for="(child, index) in node.children" :key="child.id || index" :node="child" />
+      <RenderNode v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
     </view>
     
     <!-- text 文本 -->
     <text 
-      v-else-if="node.type === 'text'"
-      :id="node.props?.id"
-      :class="node.props?.class"
-      :style="node.props?.style"
-    >{{ node.text }}<RenderNode v-for="(child, index) in node.children" :key="child.id || index" :node="child" /></text>
+      v-else-if="nodeToRender.type === 'text'"
+      :id="nodeToRender.props?.id"
+      :class="nodeToRender.props?.class"
+      :style="nodeToRender.props?.style"
+    >{{ nodeToRender.text }}<RenderNode v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" /></text>
     
     <!-- 纯文本节点 -->
-    <text v-else-if="node.type === '#text'">{{ node.text }}</text>
+    <text v-else-if="nodeToRender.type === '#text'">{{ nodeToRender.text }}</text>
     
     <!-- button 按钮 -->
     <button 
-      v-else-if="node.type === 'button'"
-      :id="node.props?.id"
-      :class="node.props?.class"
-      :style="node.props?.style"
-      :type="node.props?.type || 'default'"
-      :size="node.props?.size || 'default'"
-      :disabled="node.props?.disabled"
-      :data-id="node.id"
+      v-else-if="nodeToRender.type === 'button'"
+      :id="nodeToRender.props?.id"
+      :class="nodeToRender.props?.class"
+      :style="nodeToRender.props?.style"
+      :type="nodeToRender.props?.type || 'default'"
+      :size="nodeToRender.props?.size || 'default'"
+      :disabled="nodeToRender.props?.disabled"
+      :data-id="nodeToRender.id"
       @tap="onTap"
-    ><text v-if="node.text">{{ node.text }}</text><RenderNode v-for="(child, index) in node.children" :key="child.id || index" :node="child" /></button>
+    ><text v-if="nodeToRender.text">{{ nodeToRender.text }}</text><RenderNode v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" /></button>
     
     <!-- input 输入框 -->
     <input 
-      v-else-if="node.type === 'input'"
-      :id="node.props?.id"
-      :class="node.props?.class"
-      :style="node.props?.style"
-      :type="node.props?.type || 'text'"
-      :value="node.props?.value"
-      :placeholder="node.props?.placeholder"
-      :disabled="node.props?.disabled"
-      :data-id="node.id"
+      v-else-if="nodeToRender.type === 'input'"
+      :id="nodeToRender.props?.id"
+      :class="nodeToRender.props?.class"
+      :style="nodeToRender.props?.style"
+      :type="nodeToRender.props?.type || 'text'"
+      :value="nodeToRender.props?.value"
+      :placeholder="nodeToRender.props?.placeholder"
+      :disabled="nodeToRender.props?.disabled"
+      :data-id="nodeToRender.id"
       @input="onInput"
     />
     
     <!-- image 图片 -->
     <image 
-      v-else-if="node.type === 'image'"
-      :id="node.props?.id"
-      :class="node.props?.class"
-      :style="node.props?.style"
-      :src="node.props?.src"
-      :mode="node.props?.mode || 'scaleToFill'"
-      :data-id="node.id"
+      v-else-if="nodeToRender.type === 'image'"
+      :id="nodeToRender.props?.id"
+      :class="nodeToRender.props?.class"
+      :style="nodeToRender.props?.style"
+      :src="nodeToRender.props?.src"
+      :mode="nodeToRender.props?.mode || 'scaleToFill'"
+      :data-id="nodeToRender.id"
       @tap="onTap"
     />
     
     <!-- 默认：当作 view 处理 -->
     <view 
       v-else
-      :class="node.props?.class"
-      :style="node.props?.style"
-      :data-id="node.id"
+      :class="nodeToRender.props?.class"
+      :style="nodeToRender.props?.style"
+      :data-id="nodeToRender.id"
       @tap="onTap"
     >
-      <RenderNode v-for="(child, index) in node.children" :key="child.id || index" :node="child" />
+      <RenderNode v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
     </view>
   </template>
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType, inject } from 'vue'
-import { getPageEventHandlers } from './useVnodeTree'
+import { defineComponent, PropType, inject, ref, computed, watchEffect, getCurrentInstance, provide, onUnmounted } from 'vue'
+import type { VNode } from 'vue'
+import { triggerEvent, createMpEvent } from './triggerEvent'
+import { vnodeToMPNode, createConvertContext } from './converter'
+import { getEventHandlers, cleanupEventHandlers, getComponentEventMap } from './useVnodeTree'
 import type { MPNode } from './serialize'
 
-// 使用 defineComponent 以支持递归组件
 export default defineComponent({
   name: 'RenderNode',
   props: {
+    // 方式1：直接传入 MPNode（原有方式，用于递归渲染子节点）
     node: {
       type: Object as PropType<MPNode | null>,
+      default: null
+    },
+    // 方式2：传入 render 函数（新方式，自动处理响应式）
+    render: {
+      type: Function as PropType<() => VNode>,
       default: null
     }
   },
   setup(props) {
-    // 🔑 获取当前页面 ID（由 useVnodeTree 自动 provide）
-    const pageId = inject<number>('__pageId__', 0)
-    console.log('[RenderNode] 当前页面ID:', pageId)
+    const instance = getCurrentInstance()
+    
+    // 如果传入了 render 函数，自动处理响应式
+    const convertedNode = ref<MPNode | null>(null)
+    let componentId: number | null = null
+    
+    if (props.render) {
+      // 根组件：创建事件 Map 和处理响应式
+      componentId = instance?.uid ?? 0
+      provide('__componentId__', componentId)
+      
+      // 获取或创建事件 Map
+      const eventHandlers = getComponentEventMap(componentId)
+      
+      watchEffect(() => {
+        // 每次渲染前清空事件（复用 eventId）
+        eventHandlers.clear()
+        
+        // 创建转换上下文
+        const ctx = createConvertContext(eventHandlers)
+        
+        // 调用 render 函数（在 watchEffect 内，自动追踪响应式）
+        const vnode = props.render!()
+        
+        // 转换为 MPNode
+        convertedNode.value = vnodeToMPNode(vnode, ctx)
+      })
+      
+      onUnmounted(() => {
+        if (componentId !== null) {
+          cleanupEventHandlers(componentId)
+        }
+      })
+    }
+    
+    // 最终渲染的节点：优先使用 node prop，其次使用转换后的节点
+    const nodeToRender = computed(() => props.node || convertedNode.value)
+    
+    // 获取组件 ID（可能是自己的，也可能是父组件 provide 的）
+    const injectedComponentId = inject<number>('__componentId__', 0)
+    const effectiveComponentId = computed(() => componentId ?? injectedComponentId)
 
     /**
      * 统一事件处理函数
-     * 从全局 Map 获取当前页面的 eventHandlers
      */
     function handleEvent(e: any, eventType: string) {
-      if (!props.node?.props) return
+      if (!nodeToRender.value?.props) return
       
-      // 获取事件 ID（例如：bindtap -> 'e0'）
       const bindKey = `bind${eventType}`
-      const eventId = props.node.props[bindKey]
+      const eventId = nodeToRender.value.props[bindKey]
       
-      // 🔑 关键：如果没有 eventId，说明当前节点没有绑定该事件
-      // 这种情况通常是事件冒泡导致的，直接返回
-      if (!eventId) {
-        return
-      }
+      if (!eventId) return
       
-      console.log(`[RenderNode] ${eventType} 事件触发, eventId:`, eventId)
-      
-      // 📖 从全局 Map 获取当前页面的 eventHandlers
-      const mpInstance = getPageEventHandlers(pageId)
-      
-      if (!mpInstance) {
-        console.warn('[RenderNode] 未找到页面的 eventHandlers, pageId:', pageId)
-        return
-      }
-      
-      // 🎯 关键：调用 mpInstance[eventId]
-      // 真机：小程序框架调用 this[eventId](event)
-      // H5：我们调用 mpInstance[eventId](event)
-      if (mpInstance[eventId]) {
-        console.log(`[RenderNode] 调用 mpInstance['${eventId}']`)
-        
-        // 创建小程序风格的事件对象
-        const mpEvent = createMpEvent(e, eventType)
-        
-        // 调用处理器（Invoker 函数）
-        const handler = mpInstance[eventId]
-        if (typeof handler === 'function') {
-          handler(mpEvent)
-        } else if (handler && typeof handler.value === 'function') {
-          // Invoker 模式：{ value: Function }
-          handler.value(mpEvent)
-        }
-      } else {
-        console.warn(`[RenderNode] 未找到事件处理器: mpInstance['${eventId}']`)
-      }
-    }
-
-    /**
-     * 创建小程序风格的事件对象
-     */
-    function createMpEvent(nativeEvent: any, eventType: string) {
-      const target = nativeEvent.target || {}
-      const currentTarget = nativeEvent.currentTarget || {}
-      
-      const mpEvent: any = {
-        type: eventType,
-        timeStamp: nativeEvent.timeStamp || Date.now(),
-        target: {
-          id: target.id || '',
-          dataset: target.dataset || {},
-        },
-        currentTarget: {
-          id: currentTarget.id || '',
-          dataset: currentTarget.dataset || {},
-        },
-        detail: {},
-      }
-      
-      // input 事件特殊处理
-      if (eventType === 'input' && target.value !== undefined) {
-        mpEvent.detail.value = target.value
-      }
-      
-      return mpEvent
+      const mpEvent = createMpEvent(e, eventType)
+      triggerEvent(effectiveComponentId.value, eventId, mpEvent)
     }
 
     function onTap(e: any) {
@@ -182,6 +165,7 @@ export default defineComponent({
     }
 
     return {
+      nodeToRender,
       onTap,
       onInput
     }

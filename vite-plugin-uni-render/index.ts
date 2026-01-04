@@ -1,357 +1,203 @@
 /**
- * vite-plugin-uniappvue
- * 
- * Vite 插件 - 为 uniapp-render Custom Renderer 提供支持
- * 
+ * vite-plugin-uni-render
+ *
+ * Vite 插件 - 自动将 render 函数转换为 useVnodeTree + RenderNode 方案
+ *
  * 功能：
- * 1. 设置 Vue alias 指向 uniapp-render
- * 2. 自动将纯 .ts/.js 渲染函数文件转换为带 RenderNode 的 Vue 组件
- * 3. 处理空 WXML，替换为 render.wxml 引用
+ * 1. 检测使用 render 函数的 Vue 组件
+ * 2. 自动用 useVnodeTree 包裹 render 函数
+ * 3. 自动注入 RenderNode 组件和 template
  */
 
-import type { Plugin, ResolvedConfig } from 'vite'
-import { readFileSync, writeFileSync, existsSync } from 'fs'
-import { sync as globSync } from 'glob'
-import { relative, dirname, basename, join } from 'path'
-import { SlimeParser, SlimeCstToAstUtils, registerSlimeCstToAstUtil } from 'slime-parser'
-import { SlimeGenerator, type SlimeGeneratorResult } from 'slime-generator'
-import {
-    SlimeAstCreateUtils,
-    SlimeAstTypeName,
-    type SlimeProgram,
-    type SlimeImportDeclaration,
-    type SlimeExportDefaultDeclaration,
-    type SlimeObjectExpression,
-    type SlimeProperty,
-    type SlimeFunctionExpression,
-    type SlimeReturnStatement,
-    type SlimeCallExpression,
-    type SlimeIdentifier
-} from 'slime-ast'
+import type { Plugin } from 'vite'
+import { dirname, basename, join, relative } from 'path'
+import { existsSync } from 'fs'
 
-export interface UniappVueOptions {
+export interface UniRenderOptions {
+    /** 是否开启调试日志 */
     debug?: boolean
-    mpDist?: string
-    srcDir?: string
+    /** 要处理的目录，默认 ['pages', 'components'] */
+    includeDirs?: string[]
 }
 
-export function uniappVue(options: UniappVueOptions = {}): Plugin {
+export function uniRender(options: UniRenderOptions = {}): Plugin {
     const {
         debug = false,
-        mpDist = 'dist/dev/mp-weixin',
-        srcDir = 'src'
+        includeDirs = ['pages', 'components']
     } = options
 
     const log = (...args: any[]) => {
         if (debug) {
-            console.log('[vite-plugin-uniappvue]', ...args)
+            console.log('[vite-plugin-uni-render]', ...args)
         }
     }
 
-    const uniappVuePackage = 'uniapp-render'
-
     return {
-        name: 'vite-plugin-uniappvue',
+        name: 'vite-plugin-uni-render',
         enforce: 'pre',
 
-        config(config) {
-            log('Configuring Vue alias...')
-            config.resolve = config.resolve || {}
-            config.resolve.alias = config.resolve.alias || {}
-            const alias = config.resolve.alias as Record<string, string>
-            alias['vue'] = uniappVuePackage
-            log('Vue alias set to:', uniappVuePackage)
-            return config
-        },
-
-        configResolved(resolvedConfig: ResolvedConfig) {
-            log('Config resolved')
-        },
-
         transform(code, id) {
-            // 只处理 pages 目录下的 .ts/.js 文件
-            if (!id.includes('/pages/') && !id.includes('\\pages\\')) {
+            // 只处理 .vue 文件
+            if (!id.endsWith('.vue')) {
                 return null
             }
 
-            if (!id.endsWith('.ts') && !id.endsWith('.js')) {
+            // 检查是否在需要处理的目录中
+            const shouldProcess = includeDirs.some(dir =>
+                id.includes(`/${dir}/`) || id.includes(`\\${dir}\\`)
+            )
+
+            if (!shouldProcess) {
                 return null
             }
 
-            // 检查同目录下是否有 .vue 文件
-            const dir = dirname(id)
-            const baseName = basename(id).replace(/\.(ts|js)$/, '')
-            const vueFilePath = join(dir, `${baseName}.vue`)
-
-            if (existsSync(vueFilePath)) {
-                log(`跳过 ${id} - 存在对应的 .vue 文件`)
+            // 检查是否有 render 函数返回模式
+            if (!hasRenderFunctionPattern(code)) {
                 return null
             }
 
-            log(`转换 ${id} - 使用 slime-parser AST 处理`)
+            log(`检测到 render 函数: ${relative(process.cwd(), id)}`)
 
             try {
-                const result = transformRenderFunction(code, id)
+                const result = transformVueComponent(code, id)
 
                 if (result) {
-                    console.log(`[vite-plugin-uniappvue] ✓ 已转换: ${relative(process.cwd(), id)}`)
+                    console.log(`[vite-plugin-uni-render] ✓ 已转换: ${relative(process.cwd(), id)}`)
                     return {
-                        code: result.code,
+                        code: result,
                         map: null
                     }
                 }
             } catch (e: any) {
-                console.warn(`[vite-plugin-uniappvue] 转换失败 ${id}: ${e.message}`)
+                console.warn(`[vite-plugin-uni-render] 转换失败 ${id}: ${e.message}`)
             }
 
             return null
-        },
-
-        async writeBundle() {
-            if (!existsSync(mpDist)) {
-                log(`Output directory ${mpDist} not found, skipping WXML processing`)
-                return
-            }
-
-            log('Processing WXML files in', mpDist)
-            const wxmlFiles = globSync(`${mpDist}/pages/**/*.wxml`)
-            let processedCount = 0
-
-            for (const filePath of wxmlFiles) {
-                const content = readFileSync(filePath, 'utf-8').trim()
-                const isEmpty =
-                    content === '' ||
-                    content === '<view></view>' ||
-                    content === '<view class="content"></view>' ||
-                    /^<view[^>]*>\s*<\/view>$/.test(content)
-
-                if (isEmpty) {
-                    const newContent = `<block>
-  <import src="/templates/render.wxml"/>
-  <template is="render" data="{{vnodeTree}}" />
-</block>`
-                    writeFileSync(filePath, newContent, 'utf-8')
-                    processedCount++
-                    log(`✓ ${relative(mpDist, filePath)} - 已添加 Custom Renderer 支持`)
-                }
-            }
-
-            if (processedCount > 0) {
-                console.log(`[vite-plugin-uniappvue] 已为 ${processedCount} 个页面添加 Custom Renderer 支持`)
-            }
         }
     }
 }
 
 /**
- * 使用 slime-parser 转换纯渲染函数文件
+ * 检测代码中是否有 render 函数模式
+ *
+ * 匹配以下模式：
+ * - setup() { return () => h(...) }
+ * - setup() { return () => { return h(...) } }
  */
-function transformRenderFunction(code: string, filePath: string): SlimeGeneratorResult | null {
-    registerSlimeCstToAstUtil(SlimeCstToAstUtils)
+function hasRenderFunctionPattern(code: string): boolean {
+    // 检查是否有 setup 函数返回箭头函数的模式
+    const patterns = [
+        /return\s*\(\s*\)\s*=>\s*h\s*\(/,           // return () => h(
+        /return\s*\(\s*\)\s*=>\s*\{[\s\S]*?h\s*\(/, // return () => { ... h(
+        /return\s+function\s*\(\s*\)\s*\{[\s\S]*?h\s*\(/, // return function() { ... h(
+    ]
 
-    const parser = new SlimeParser(code)
-    const cst = parser.Program('module')
+    return patterns.some(pattern => pattern.test(code))
+}
 
-    if (!cst) {
+/**
+ * 转换 Vue 组件
+ *
+ * 将 setup() 返回的 render 函数用 useVnodeTree 包裹
+ */
+function transformVueComponent(code: string, filePath: string): string | null {
+    // 提取 <script> 部分
+    const scriptMatch = code.match(/<script([^>]*)>([\s\S]*?)<\/script>/)
+    if (!scriptMatch) {
         return null
     }
 
-    const ast = SlimeCstToAstUtils.toFileAst(cst) as SlimeProgram
+    const scriptAttrs = scriptMatch[1]
+    let scriptContent = scriptMatch[2]
 
-    if (!ast || !ast.body) {
+    // 检查是否已经使用了 useVnodeTree
+    if (scriptContent.includes('useVnodeTree')) {
         return null
     }
 
-    // 查找 export default
-    const exportDefault = findExportDefault(ast)
-    if (!exportDefault) {
-        return null
-    }
+    // 检查是否有 template
+    const hasTemplate = /<template>[\s\S]*?<\/template>/.test(code)
 
-    // 查找并包装 setup 方法中的渲染函数
-    const setupMethod = findSetupMethod(exportDefault)
-    if (!setupMethod) {
-        return null
-    }
-
-    // 检查是否有渲染函数返回
-    if (!hasRenderFunctionInSetup(setupMethod)) {
-        return null
-    }
+    // 如果没有 template 或 template 为空，需要添加
+    const templateMatch = code.match(/<template>([\s\S]*?)<\/template>/)
+    const templateContent = templateMatch ? templateMatch[1].trim() : ''
+    const needsTemplate = !hasTemplate || templateContent === '' ||
+        templateContent === '<view></view>' ||
+        /^<view[^>]*>\s*<\/view>$/.test(templateContent)
 
     // 添加 uniapp-render 导入
-    addUniappVueImport(ast)
+    if (!scriptContent.includes("from 'uniapp-render'") &&
+        !scriptContent.includes('from "uniapp-render"')) {
 
-    // 包装渲染函数
-    wrapRenderFunctionInSetup(setupMethod)
+        // 找到第一个 import 语句的位置
+        const importMatch = scriptContent.match(/^(\s*import\s+)/m)
+        if (importMatch) {
+            const insertPos = scriptContent.indexOf(importMatch[0])
+            scriptContent =
+                scriptContent.slice(0, insertPos) +
+                "import { useVnodeTree, RenderNode } from 'uniapp-render'\n" +
+                scriptContent.slice(insertPos)
+        } else {
+            // 没有 import 语句，添加到开头
+            scriptContent = "import { useVnodeTree, RenderNode } from 'uniapp-render'\n" + scriptContent
+        }
+    }
 
-    // 生成代码
-    const tokens = parser.parsedTokens
-    const result = SlimeGenerator.generator(ast, tokens)
+    // 转换 setup 返回的 render 函数
+    // 模式1: return () => h(...)
+    scriptContent = scriptContent.replace(
+        /(return\s+)(\(\s*\)\s*=>\s*(?:h\s*\([\s\S]*?\)|[\s\S]*?))([\s\n\r]*[,}\)])/g,
+        (match, returnPart, renderFn, ending) => {
+            // 检查是否是在 setup 内部
+            if (isInsideSetup(scriptContent, match)) {
+                return `${returnPart}{ vnodeTree: useVnodeTree(${renderFn}), RenderNode }${ending}`
+            }
+            return match
+        }
+    )
+
+    // 重建 script 部分
+    const newScript = `<script${scriptAttrs}>${scriptContent}</script>`
+
+    // 替换原来的 script
+    let result = code.replace(/<script([^>]*)>[\s\S]*?<\/script>/, newScript)
+
+    // 如果需要添加/替换 template
+    if (needsTemplate) {
+        const renderNodeTemplate = `<template>
+  <RenderNode :node="vnodeTree" />
+</template>`
+
+        if (hasTemplate) {
+            // 替换现有的空 template
+            result = result.replace(/<template>[\s\S]*?<\/template>/, renderNodeTemplate)
+        } else {
+            // 在 script 之前添加 template
+            result = renderNodeTemplate + '\n\n' + result
+        }
+    }
 
     return result
 }
 
 /**
- * 查找 export default 声明
+ * 简单检查匹配是否在 setup 函数内部
  */
-function findExportDefault(ast: SlimeProgram): any | null {
-    for (const stmt of ast.body) {
-        if (stmt.type === SlimeAstTypeName.ExportDefaultDeclaration) {
-            return stmt
-        }
-    }
-    return null
-}
+function isInsideSetup(code: string, match: string): boolean {
+    const matchIndex = code.indexOf(match)
+    const beforeMatch = code.slice(0, matchIndex)
 
-/**
- * 查找 setup 方法
- */
-function findSetupMethod(exportDefault: any): any | null {
-    const declaration = exportDefault.declaration
-
-    if (!declaration || declaration.type !== SlimeAstTypeName.ObjectExpression) {
-        return null
-    }
-
-    const objExpr = declaration as SlimeObjectExpression
-
-    for (const prop of objExpr.properties || []) {
-        if (prop.type === SlimeAstTypeName.Property) {
-            const property = prop as SlimeProperty
-            const key = property.key as SlimeIdentifier
-
-            if (key && key.type === SlimeAstTypeName.Identifier && key.name === 'setup') {
-                return property.value
-            }
-        }
-    }
-
-    return null
-}
-
-/**
- * 检查 setup 方法中是否有渲染函数返回
- */
-function hasRenderFunctionInSetup(setupMethod: any): boolean {
-    if (!setupMethod || setupMethod.type !== SlimeAstTypeName.FunctionExpression) {
+    // 查找最近的 setup 关键字
+    const setupIndex = beforeMatch.lastIndexOf('setup')
+    if (setupIndex === -1) {
         return false
     }
 
-    const funcExpr = setupMethod as SlimeFunctionExpression
-    const body = funcExpr.body
-
-    if (!body || !body.body) {
-        return false
-    }
-
-    // 查找 return 语句
-    for (const stmt of body.body) {
-        if (stmt.type === SlimeAstTypeName.ReturnStatement) {
-            const returnStmt = stmt as SlimeReturnStatement
-            const argument = returnStmt.argument
-
-            // 检查是否是箭头函数
-            if (argument &&
-                (argument.type === SlimeAstTypeName.ArrowFunctionExpression ||
-                    argument.type === SlimeAstTypeName.FunctionExpression)) {
-                return true
-            }
-        }
-    }
-
-    return false
+    // 检查 setup 后面是否有函数定义
+    const afterSetup = beforeMatch.slice(setupIndex)
+    return /setup\s*\([^)]*\)\s*\{/.test(afterSetup) ||
+        /setup\s*:\s*function\s*\([^)]*\)\s*\{/.test(afterSetup) ||
+        /setup\s*:\s*\([^)]*\)\s*=>\s*\{/.test(afterSetup)
 }
 
-/**
- * 添加 uniapp-render 导入
- */
-function addUniappVueImport(ast: SlimeProgram): void {
-    // 检查是否已有导入
-    for (const stmt of ast.body) {
-        if (stmt.type === SlimeAstTypeName.ImportDeclaration) {
-            const imp = stmt as SlimeImportDeclaration
-            if (imp.source?.value === 'uniapp-render') {
-                return
-            }
-        }
-    }
-
-    // 创建导入声明
-    const importDecl = SlimeAstCreateUtils.createImportDeclaration()
-    importDecl.source = SlimeAstCreateUtils.createStringLiteral('uniapp-render')
-    importDecl.specifiers = [
-        createImportSpecifier('useVnodeTree'),
-        createImportSpecifier('RenderNode')
-    ]
-
-    ast.body.unshift(importDecl)
-}
-
-function createImportSpecifier(name: string): any {
-    const spec = SlimeAstCreateUtils.createImportSpecifier()
-    spec.imported = SlimeAstCreateUtils.createIdentifier(name)
-    spec.local = SlimeAstCreateUtils.createIdentifier(name)
-    return spec
-}
-
-/**
- * 包装 setup 方法中的渲染函数
- * 将 return () => h(...) 改为 return { vnodeTree: useVnodeTree(() => h(...)), RenderNode }
- */
-function wrapRenderFunctionInSetup(setupMethod: any): void {
-    if (setupMethod.type !== SlimeAstTypeName.FunctionExpression) {
-        return
-    }
-
-    const funcExpr = setupMethod as SlimeFunctionExpression
-    const body = funcExpr.body
-
-    if (!body || !body.body) {
-        return
-    }
-
-    // 查找并修改 return 语句
-    for (let i = 0; i < body.body.length; i++) {
-        const stmt = body.body[i]
-
-        if (stmt.type === SlimeAstTypeName.ReturnStatement) {
-            const returnStmt = stmt as SlimeReturnStatement
-            const argument = returnStmt.argument
-
-            if (argument &&
-                (argument.type === SlimeAstTypeName.ArrowFunctionExpression ||
-                    argument.type === SlimeAstTypeName.FunctionExpression)) {
-
-                // 创建 useVnodeTree 调用
-                const useVnodeTreeCall = SlimeAstCreateUtils.createCallExpression()
-                useVnodeTreeCall.callee = SlimeAstCreateUtils.createIdentifier('useVnodeTree')
-                useVnodeTreeCall.arguments = [argument]
-
-                // 创建返回对象
-                const returnObj = SlimeAstCreateUtils.createObjectExpression()
-
-                // vnodeTree: useVnodeTree(...)
-                const vnodeTreeProp = SlimeAstCreateUtils.createProperty()
-                vnodeTreeProp.key = SlimeAstCreateUtils.createIdentifier('vnodeTree')
-                vnodeTreeProp.value = useVnodeTreeCall
-                vnodeTreeProp.shorthand = false
-                vnodeTreeProp.computed = false
-
-                // RenderNode: RenderNode
-                const renderNodeProp = SlimeAstCreateUtils.createProperty()
-                renderNodeProp.key = SlimeAstCreateUtils.createIdentifier('RenderNode')
-                renderNodeProp.value = SlimeAstCreateUtils.createIdentifier('RenderNode')
-                renderNodeProp.shorthand = true
-                renderNodeProp.computed = false
-
-                returnObj.properties = [vnodeTreeProp, renderNodeProp]
-
-                // 替换 return 语句的参数
-                returnStmt.argument = returnObj
-            }
-        }
-    }
-}
-
-export default uniappVue
+export default uniRender

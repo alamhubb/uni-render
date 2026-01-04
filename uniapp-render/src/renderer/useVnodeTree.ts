@@ -5,25 +5,42 @@
  * - 逻辑层：事件处理函数存储在 eventHandlers 里（不能被序列化）
  * - 渲染层：vnodeTree 只包含事件 ID 字符串（可序列化通过 setData 传递）
  * - 事件触发：渲染层触发 → 通过事件 ID 查找 → 调用逻辑层的处理函数
+ *
+ * 【数据结构】
+ * 双层 Map: Map<componentId, Map<eventId, Function>>
  */
 
 import { ref, watchEffect, getCurrentInstance, provide, onUnmounted } from 'vue'
 import type { VNode } from 'vue'
 import type { MPNode } from './serialize'
 
-/**
- * Invoker 接口 - 模仿 UniApp 的事件处理机制
- */
-interface Invoker {
-    (e: any): void
-    value: Function
+// ============================================
+// 事件名映射
+// ============================================
+const EVENT_MAP: Record<string, string> = {
+    'onClick': 'tap',
+    'onTap': 'tap',
+    'onInput': 'input',
+    'onChange': 'change',
+    'onFocus': 'focus',
+    'onBlur': 'blur',
+    'onSubmit': 'submit',
+    'onScroll': 'scroll',
+    'onLongpress': 'longpress',
 }
 
+// ============================================
+// 全局事件存储 - 双层 Map
+// ============================================
+
+// 小程序运行时全局函数声明
+declare function getApp(): any
+
 /**
- * 获取小程序全局 eventHandlers 存储
- * 使用 getApp().globalData 存储，符合小程序官方规范
+ * 获取全局事件处理器存储
+ * 双层 Map: Map<componentId, Map<eventId, Function>>
  */
-function getGlobalEventHandlers(): Map<number, Record<string, Invoker>> {
+function getGlobalEventHandlers(): Map<number, Map<string, Function>> {
     const app = getApp() as any
     if (!app.globalData) {
         app.globalData = {}
@@ -35,31 +52,44 @@ function getGlobalEventHandlers(): Map<number, Record<string, Invoker>> {
 }
 
 /**
+ * 获取或创建组件的事件 Map
+ */
+export function getComponentEventMap(componentId: number): Map<string, Function> {
+    const globalMap = getGlobalEventHandlers()
+    let componentMap = globalMap.get(componentId)
+    if (!componentMap) {
+        componentMap = new Map()
+        globalMap.set(componentId, componentMap)
+    }
+    return componentMap
+}
+
+// ============================================
+// 核心函数
+// ============================================
+
+/**
  * 将渲染函数转换为响应式的 vnodeTree
  */
 export function useVnodeTree(renderFn: () => any) {
-    console.log('🚀 [useVnodeTree] VERSION 4.2 - getApp().globalData 模式 🚀')
-
     const instance = getCurrentInstance()
-    const pageId = instance?.uid ?? 0
-    console.log('[useVnodeTree] 页面ID:', pageId)
+    const componentId = instance?.uid ?? 0
 
     const vnodeTree = ref<MPNode | null>(null)
-    const eventHandlers: Record<string, Invoker> = {}
+    const eventHandlers = getComponentEventMap(componentId)
 
-    // 📌 存储到 getApp().globalData
-    const globalHandlers = getGlobalEventHandlers()
-    globalHandlers.set(pageId, eventHandlers)
-    console.log('[useVnodeTree] 已存储到 globalData, 当前页面数:', globalHandlers.size)
-
-    provide('__pageId__', pageId)
+    provide('__componentId__', componentId)
 
     let eventIndex = 0
     let nodeIdCounter = 0
 
     watchEffect(() => {
+        // 每次渲染前重置计数器
         eventIndex = 0
         nodeIdCounter = 0
+
+        // 清空旧事件（避免残留）
+        eventHandlers.clear()
 
         const vnode = renderFn()
         if (vnode) {
@@ -70,13 +100,14 @@ export function useVnodeTree(renderFn: () => any) {
     })
 
     onUnmounted(() => {
-        getGlobalEventHandlers().delete(pageId)
-        console.log('[useVnodeTree] 清理页面:', pageId)
+        // 清理组件的所有事件
+        getGlobalEventHandlers().delete(componentId)
     })
 
     function vnodeToMPNode(vnode: VNode): MPNode {
         const nodeId = ++nodeIdCounter
 
+        // 文本子节点
         if (typeof vnode.children === 'string') {
             return {
                 id: nodeId,
@@ -87,6 +118,7 @@ export function useVnodeTree(renderFn: () => any) {
             }
         }
 
+        // 纯文本/数字
         if (typeof vnode === 'string' || typeof vnode === 'number') {
             return {
                 id: nodeId,
@@ -97,6 +129,7 @@ export function useVnodeTree(renderFn: () => any) {
             }
         }
 
+        // 处理子节点
         const children: MPNode[] = []
         if (Array.isArray(vnode.children)) {
             for (const child of vnode.children) {
@@ -127,24 +160,28 @@ export function useVnodeTree(renderFn: () => any) {
         const normalized: Record<string, any> = {}
 
         for (const [key, value] of Object.entries(props)) {
+            // 处理事件
             if (key.startsWith('on') && typeof value === 'function') {
-                let eventName = key.slice(2).toLowerCase()
-                if (eventName === 'click') eventName = 'tap'
+                // 查找事件名映射
+                const mappedEvent = EVENT_MAP[key]
+                const eventName = mappedEvent || key.slice(2).toLowerCase()
 
                 const eventId = `e${eventIndex++}`
-                if (eventHandlers[eventId]) {
-                    eventHandlers[eventId].value = value
-                } else {
-                    const invoker: Invoker = ((e: any) => invoker.value(e)) as Invoker
-                    invoker.value = value
-                    eventHandlers[eventId] = invoker
-                }
+                eventHandlers.set(eventId, value)  // 直接存储函数
                 normalized[`bind${eventName}`] = eventId
-            } else if (key === 'class') {
+            }
+            // 处理 class
+            else if (key === 'class') {
                 normalized[key] = Array.isArray(value) ? value.join(' ') : value
-            } else if (key === 'style' && typeof value === 'object') {
-                normalized[key] = Object.entries(value).map(([k, v]) => `${k}: ${v}`).join(';')
-            } else {
+            }
+            // 处理 style
+            else if (key === 'style' && typeof value === 'object') {
+                normalized[key] = Object.entries(value)
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join('; ')
+            }
+            // 其他属性
+            else {
                 normalized[key] = value
             }
         }
@@ -154,28 +191,39 @@ export function useVnodeTree(renderFn: () => any) {
     return { vnodeTree, eventHandlers }
 }
 
+// ============================================
+// 导出的辅助函数
+// ============================================
+
 /**
- * 获取指定页面的 eventHandlers
+ * 获取指定组件的事件 Map
  */
-export function getPageEventHandlers(pageId: number): Record<string, Invoker> | null {
-    const globalHandlers = getGlobalEventHandlers()
-    return globalHandlers.get(pageId) || null
+export function getEventHandlers(componentId: number): Map<string, Function> | null {
+    return getGlobalEventHandlers().get(componentId) || null
 }
 
 /**
- * 在小程序页面实例上设置事件代理
+ * 清理指定组件的事件
  */
-export function setupPageEventProxy(
-    pageInstance: any,
-    eventHandlers: Record<string, any>,
+export function cleanupEventHandlers(componentId: number): void {
+    getGlobalEventHandlers().delete(componentId)
+}
+
+/**
+ * 在小程序组件实例上设置事件代理
+ */
+export function setupEventProxy(
+    instance: any,
+    eventHandlers: Map<string, Function>,
     maxEvents: number = 100
 ): void {
-    pageInstance._eventHandlers = eventHandlers
+    instance._eventHandlers = eventHandlers
     for (let i = 0; i < maxEvents; i++) {
         const eventId = `e${i}`
-        pageInstance[eventId] = function (e: any) {
-            if (pageInstance._eventHandlers?.[eventId]) {
-                return pageInstance._eventHandlers[eventId](e)
+        instance[eventId] = function (e: any) {
+            const handler = instance._eventHandlers?.get(eventId)
+            if (handler) {
+                return handler(e)
             }
         }
     }

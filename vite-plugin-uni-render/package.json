@@ -1,12 +1,11 @@
 {
-    "name": "vite-plugin-uniappvue",
-    "version": "0.1.0",
+    "name": "vite-plugin-uni-render",
+    "version": "1.0.0",
     "type": "module",
-    "description": "Vite plugin for uniapp-render Custom Renderer support",
+    "description": "Vite 插件 - 自动将 render 函数转换为 useVnodeTree + RenderNode 方案",
     "main": "./index.ts",
     "module": "./index.ts",
     "types": "./index.ts",
-    "monorepo": "./src/index.ts",
     "exports": {
         ".": {
             "import": "./index.ts",
@@ -19,11 +18,10 @@
         "plugin",
         "uniapp",
         "vue",
+        "render",
+        "h-function",
         "miniapp"
     ],
-    "dependencies": {
-        "glob": "^10.0.0"
-    },
     "peerDependencies": {
         "vite": "^5.0.0 || ^6.0.0",
         "uniapp-render": "*"
