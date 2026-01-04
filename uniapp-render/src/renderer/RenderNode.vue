@@ -77,72 +77,55 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType, inject, ref, computed, watchEffect, getCurrentInstance, provide, onUnmounted } from 'vue'
-import type { VNode } from 'vue'
-import { triggerEvent, createMpEvent } from './triggerEvent'
-import { vnodeToMPNode, createConvertContext } from './converter'
-import { getEventHandlers, cleanupEventHandlers, getComponentEventMap } from './useVnodeTree'
+import { defineComponent, PropType, inject, computed, provide } from 'vue'
+import { createMpEvent } from './triggerEvent'
+import { triggerEventById } from './useRenderNode'
 import type { MPNode } from './serialize'
 
+/**
+ * RenderNode - 动态节点渲染组件
+ * 
+ * 职责：
+ * 1. 接收 MPNode 数据（纯 JSON，可通过 setData 传递）
+ * 2. 递归渲染为 UniApp 原生组件
+ * 3. 事件触发时从全局对象获取处理器
+ * 
+ * 使用方式：
+ * ```vue
+ * <RenderNode :node="node" />
+ * ```
+ */
 export default defineComponent({
   name: 'RenderNode',
   props: {
-    // 方式1：直接传入 MPNode（原有方式，用于递归渲染子节点）
+    // MPNode 节点数据（纯 JSON）
     node: {
       type: Object as PropType<MPNode | null>,
-      default: null
-    },
-    // 方式2：传入 render 函数（新方式，自动处理响应式）
-    render: {
-      type: Function as PropType<() => VNode>,
       default: null
     }
   },
   setup(props) {
-    const instance = getCurrentInstance()
+    // 当前渲染的节点
+    const nodeToRender = computed(() => props.node)
     
-    // 如果传入了 render 函数，自动处理响应式
-    const convertedNode = ref<MPNode | null>(null)
-    let componentId: number | null = null
-    
-    if (props.render) {
-      // 根组件：创建事件 Map 和处理响应式
-      componentId = instance?.uid ?? 0
-      provide('__componentId__', componentId)
-      
-      // 获取或创建事件 Map
-      const eventHandlers = getComponentEventMap(componentId)
-      
-      watchEffect(() => {
-        // 每次渲染前清空事件（复用 eventId）
-        eventHandlers.clear()
-        
-        // 创建转换上下文
-        const ctx = createConvertContext(eventHandlers)
-        
-        // 调用 render 函数（在 watchEffect 内，自动追踪响应式）
-        const vnode = props.render!()
-        
-        // 转换为 MPNode
-        convertedNode.value = vnodeToMPNode(vnode, ctx)
-      })
-      
-      onUnmounted(() => {
-        if (componentId !== null) {
-          cleanupEventHandlers(componentId)
-        }
-      })
-    }
-    
-    // 最终渲染的节点：优先使用 node prop，其次使用转换后的节点
-    const nodeToRender = computed(() => props.node || convertedNode.value)
-    
-    // 获取组件 ID（可能是自己的，也可能是父组件 provide 的）
+    // 从父组件注入 componentId（使用数字类型）
     const injectedComponentId = inject<number>('__componentId__', 0)
-    const effectiveComponentId = computed(() => componentId ?? injectedComponentId)
+    
+    // 计算当前有效的 componentId
+    const componentId = computed(() => {
+      // 优先使用节点自身的 componentId（根节点会有）
+      const nodeComponentId = nodeToRender.value?.props?.__componentId__
+      if (typeof nodeComponentId === 'number') return nodeComponentId
+      // 其次使用注入的（子节点使用）
+      return injectedComponentId
+    })
+    
+    // 为子节点 provide componentId
+    provide('__componentId__', componentId.value || injectedComponentId)
 
     /**
      * 统一事件处理函数
+     * 从全局对象获取事件处理器
      */
     function handleEvent(e: any, eventType: string) {
       if (!nodeToRender.value?.props) return
@@ -153,7 +136,12 @@ export default defineComponent({
       if (!eventId) return
       
       const mpEvent = createMpEvent(e, eventType)
-      triggerEvent(effectiveComponentId.value, eventId, mpEvent)
+      
+      // 从全局对象获取并调用事件处理器
+      const cid = componentId.value
+      if (cid !== undefined && cid !== null) {
+        triggerEventById(cid, eventId, mpEvent)
+      }
     }
 
     function onTap(e: any) {

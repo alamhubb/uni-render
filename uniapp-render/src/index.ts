@@ -2,47 +2,71 @@
  * uniapp-render - 让 UniApp 支持 Vue 渲染函数（h 函数）开发
  *
  * 核心功能：
- * - RenderNode: 递归渲染组件，支持两种使用方式
- *   1. 传入 render 函数：<RenderNode :render="() => h('view', {}, 'Hello')" />
- *   2. 传入 MPNode 数据：<RenderNode :node="mpNodeData" />
+ * - useRenderNode: 在逻辑层执行 render 函数，返回可序列化的 MPNode
+ * - RenderNode: 递归渲染组件，接收 MPNode 数据
+ *
+ * 兼容微信小程序：
+ * - 不传递函数，只传递纯 JSON 数据
+ * - 事件通过 eventId 映射，存储在全局对象中
  *
  * 使用方式：
  * ```vue
  * <template>
- *   <RenderNode :render="renderContent" />
+ *   <RenderNode :node="node" />
  * </template>
  *
  * <script setup>
  * import { h, ref } from 'vue'
- * import { RenderNode } from 'uniapp-render'
+ * import { useRenderNode, RenderNode } from 'uniapp-render'
  *
  * const count = ref(0)
- * const renderContent = () => h('view', {}, [
- *   h('text', {}, `计数: ${count.value}`),
- *   h('button', { onClick: () => count.value++ }, '+1')
- * ])
+ *
+ * const { node } = useRenderNode(() =>
+ *   h('view', {}, [
+ *     h('text', {}, `计数: ${count.value}`),
+ *     h('button', { onClick: () => count.value++ }, '+1')
+ *   ])
+ * )
  * </script>
  * ```
  */
 
-// 核心组件
+// ============================================
+// 核心 API
+// ============================================
+
+// Hook：在逻辑层执行 render，返回 MPNode
+export { useRenderNode } from './renderer/useRenderNode'
+export type { UseRenderNodeReturn } from './renderer/useRenderNode'
+
+// 组件：渲染 MPNode 数据
 export { default as RenderNode } from './renderer/RenderNode.vue'
 
-// 可选：手动使用的工具函数
+// ============================================
+// 事件管理
+// ============================================
+
 export {
-    useVnodeTree,
     getEventHandlers,
     cleanupEventHandlers,
+    getComponentEventMap,
+    triggerEventById,
     setupEventProxy,
-    getComponentEventMap
-} from './renderer/useVnodeTree'
+} from './renderer/useRenderNode'
+
+// ============================================
+// 工具函数
+// ============================================
 
 // VNode → MPNode 转换器
 export { vnodeToMPNode, createConvertContext, EVENT_MAP } from './renderer/converter'
 export type { ConvertContext } from './renderer/converter'
 
-// 事件触发
+// 事件工具
 export { triggerEvent, createMpEvent } from './renderer/triggerEvent'
 
+// ============================================
 // 类型定义
+// ============================================
+
 export type { MPNode, SerializedNode } from './renderer/serialize'
