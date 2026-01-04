@@ -27,7 +27,8 @@
         "custom-renderer"
     ],
     "dependencies": {
-        "mitt": "^3.0.1"
+        "mitt": "^3.0.1",
+        "@vue/shared": "^3.4.21"
     },
     "peerDependencies": {
         "vue": "^3.0.0",
