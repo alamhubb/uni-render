@@ -102,6 +102,18 @@ export default defineComponent({
     function handleEvent(e: any, eventType: string) {
       if (!props.node?.props) return
       
+      // 获取事件 ID（例如：bindtap -> 'e0'）
+      const bindKey = `bind${eventType}`
+      const eventId = props.node.props[bindKey]
+      
+      // 🔑 关键：如果没有 eventId，说明当前节点没有绑定该事件
+      // 这种情况通常是事件冒泡导致的，直接返回
+      if (!eventId) {
+        return
+      }
+      
+      console.log(`[RenderNode] ${eventType} 事件触发, eventId:`, eventId)
+      
       // 📖 从全局 Map 获取当前页面的 eventHandlers
       const mpInstance = getPageEventHandlers(pageId)
       
@@ -109,14 +121,6 @@ export default defineComponent({
         console.warn('[RenderNode] 未找到页面的 eventHandlers, pageId:', pageId)
         return
       }
-      
-      // 获取事件 ID（例如：bindtap -> 'e0'）
-      const bindKey = `bind${eventType}`
-      const eventId = props.node.props[bindKey]
-      
-      console.log(`[RenderNode] ${eventType} 事件触发, eventId:`, eventId)
-      
-      if (!eventId) return
       
       // 🎯 关键：调用 mpInstance[eventId]
       // 真机：小程序框架调用 this[eventId](event)

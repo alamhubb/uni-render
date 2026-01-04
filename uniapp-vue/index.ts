@@ -27,6 +27,17 @@ export type { MPNode } from './src/renderer/nodeOps'
 export type { SerializedNode } from './src/renderer/serialize'
 
 // ============================================
+// 导出自定义 h 函数
+// ============================================
+export {
+    h,
+    getEventHandlers,
+    cleanupEventHandlers,
+    beginRender,
+    _debugEventHandlers
+} from './src/h'
+
+// ============================================
 // 导出事件系统
 // ============================================
 export {
