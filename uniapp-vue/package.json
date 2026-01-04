@@ -1,40 +1,41 @@
 {
-    "name": "uniapp-vue",
-    "version": "0.3.0",
-    "type": "module",
-    "description": "让 uni-app 支持 Vue 渲染函数(h函数)开发，包含小程序自定义渲染器",
-    "main": "./index.ts",
-    "module": "./index.ts",
-    "types": "./index.ts",
-    "exports": {
-        ".": {
-            "import": "./index.ts",
-            "types": "./index.ts",
-            "default": "./index.ts"
-        }
-    },
-    "files": [
-        "index.ts",
-        "src"
-    ],
-    "keywords": [
-        "uni-app",
-        "vue",
-        "h-function",
-        "render",
-        "miniapp",
-        "custom-renderer"
-    ],
-    "dependencies": {
-        "mitt": "^3.0.1"
-    },
-    "peerDependencies": {
-        "vue": "^3.0.0"
-    },
-    "devDependencies": {
-        "typescript": "^5.0.0",
-        "vue": "^3.4.0",
-        "vite": "^5.0.0"
-    },
-    "license": "MIT"
+  "name": "uniapp-vue",
+  "version": "0.3.0",
+  "type": "module",
+  "description": "让 uni-app 支持 Vue 渲染函数(h函数)开发，包含小程序自定义渲染器",
+  "main": "./index.ts",
+  "module": "./index.ts",
+  "types": "./index.ts",
+  "monorepo": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./index.ts",
+      "types": "./index.ts",
+      "default": "./index.ts"
+    }
+  },
+  "files": [
+    "index.ts",
+    "src"
+  ],
+  "keywords": [
+    "uni-app",
+    "vue",
+    "h-function",
+    "render",
+    "miniapp",
+    "custom-renderer"
+  ],
+  "dependencies": {
+    "mitt": "^3.0.1"
+  },
+  "peerDependencies": {
+    "vue": "^3.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vue": "^3.4.0",
+    "vite": "^5.0.0"
+  },
+  "license": "MIT"
 }

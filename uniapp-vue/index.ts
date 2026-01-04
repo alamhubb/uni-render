@@ -42,9 +42,8 @@ export {
 // ============================================
 export {
     useVnodeTree,
-    triggerEvent,
-    bindEvent,
-    createPageEventHandlers
+    setupPageEventProxy,
+    getPageEventHandlers
 } from './src/renderer/useVnodeTree'
 
 export { default as RenderNode } from './src/renderer/RenderNode.vue'
