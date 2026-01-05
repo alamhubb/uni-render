@@ -73,3 +73,12 @@ export { triggerEvent, createMpEvent } from './renderer/triggerEvent'
 // ============================================
 
 export type { MPNode, SerializedNode } from './renderer/serialize'
+
+// ============================================
+// UniApp 内部函数（强制导出以避免 tree-shaking）
+// 用于 miniprogram-runtime 解析 u-p 属性
+// ============================================
+
+// @ts-ignore - findComponentPropsData 是 UniApp 的内部函数
+export { findComponentPropsData } from 'vue'
+
