@@ -42,6 +42,9 @@ export type { UseRenderNodeReturn } from './renderer/useRenderNode'
 // 组件：渲染 MPNode 数据
 export { default as RenderNode } from './renderer/RenderNode.vue'
 
+// 简单测试组件
+export { default as SimpleDiv } from './components/SimpleDiv.vue'
+
 // ============================================
 // 事件管理
 // ============================================
