@@ -13,8 +13,8 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./src/renderer/RenderNode.vue": "./src/renderer/RenderNode.vue",
-    "./src/components/SimpleDiv.vue": "./src/components/SimpleDiv.vue"
+    "./src/renderer/*": "./src/renderer/*",
+    "./src/components/*": "./src/components/*"
   },
   "files": [
     "src"

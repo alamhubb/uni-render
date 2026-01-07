@@ -44,6 +44,7 @@ export { default as RenderNode } from './renderer/RenderNode.vue'
 
 // 简单测试组件
 export { default as SimpleDiv } from './components/SimpleDiv.vue'
+export { default as SimpleTest } from './components/SimpleTest.vue'
 
 // ============================================
 // 事件管理
