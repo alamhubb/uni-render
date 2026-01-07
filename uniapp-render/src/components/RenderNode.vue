@@ -5,7 +5,7 @@
     <view 
       v-if="nodeToRender.type === 'view'"
       :id="nodeToRender.props?.id"
-      :class="nodeToRender.props?.class"
+      :class="[attrs.class, nodeToRender.props?.class]"
       :style="nodeToRender.props?.style"
       :data-id="nodeToRender.id"
       @tap="onTap"
@@ -17,18 +17,18 @@
     <text 
       v-else-if="nodeToRender.type === 'text'"
       :id="nodeToRender.props?.id"
-      :class="nodeToRender.props?.class"
+      :class="[attrs.class, nodeToRender.props?.class]"
       :style="nodeToRender.props?.style"
     >{{ nodeToRender.text }}<RenderNode v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" /></text>
     
     <!-- 纯文本节点 -->
-    <text v-else-if="nodeToRender.type === '#text'">{{ nodeToRender.text }}</text>
+    <text v-else-if="nodeToRender.type === '#text'" :class="attrs.class">{{ nodeToRender.text }}</text>
     
     <!-- button 按钮 -->
     <button 
       v-else-if="nodeToRender.type === 'button'"
       :id="nodeToRender.props?.id"
-      :class="nodeToRender.props?.class"
+      :class="[attrs.class, nodeToRender.props?.class]"
       :style="nodeToRender.props?.style"
       :type="nodeToRender.props?.type || 'default'"
       :size="nodeToRender.props?.size || 'default'"
@@ -41,7 +41,7 @@
     <input 
       v-else-if="nodeToRender.type === 'input'"
       :id="nodeToRender.props?.id"
-      :class="nodeToRender.props?.class"
+      :class="[attrs.class, nodeToRender.props?.class]"
       :style="nodeToRender.props?.style"
       :type="nodeToRender.props?.type || 'text'"
       :value="nodeToRender.props?.value"
@@ -55,7 +55,7 @@
     <image 
       v-else-if="nodeToRender.type === 'image'"
       :id="nodeToRender.props?.id"
-      :class="nodeToRender.props?.class"
+      :class="[attrs.class, nodeToRender.props?.class]"
       :style="nodeToRender.props?.style"
       :src="nodeToRender.props?.src"
       :mode="nodeToRender.props?.mode || 'scaleToFill'"
@@ -66,7 +66,7 @@
     <!-- 默认：当作 view 处理 -->
     <view 
       v-else
-      :class="nodeToRender.props?.class"
+      :class="[attrs.class, nodeToRender.props?.class]"
       :style="nodeToRender.props?.style"
       :data-id="nodeToRender.id"
       @tap="onTap"
@@ -97,6 +97,7 @@ import type { MPNode } from '../renderer/serialize'
  */
 export default defineComponent({
   name: 'RenderNode',
+  inheritAttrs: false,
   props: {
     // MPNode 节点数据（纯 JSON）
     node: {
@@ -104,7 +105,7 @@ export default defineComponent({
       default: null
     }
   },
-  setup(props) {
+  setup(props, { attrs }) {
     // 当前渲染的节点
     const nodeToRender = computed(() => props.node)
     
@@ -153,6 +154,7 @@ export default defineComponent({
     }
 
     return {
+      attrs,
       nodeToRender,
       onTap,
       onInput
