@@ -1,7 +1,6 @@
 <template>
   <!-- 递归渲染 vnodeTree -->
   <template v-if="nodeToRender">
-    <div>8888</div>
     <!-- view 容器 -->
     <view 
       v-if="nodeToRender.type === 'view'"
