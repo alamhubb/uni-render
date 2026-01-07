@@ -10,6 +10,7 @@
       :data-id="nodeToRender.id"
       @tap="onTap"
     >
+      <text v-if="nodeToRender.text">{{ nodeToRender.text }}</text>
       <render-node v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
     </view>
     
