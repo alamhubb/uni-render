@@ -10,7 +10,7 @@
       :data-id="nodeToRender.id"
       @tap="onTap"
     >
-      <RenderNode v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
+      <render-node v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
     </view>
     
     <!-- text 文本 -->
@@ -19,7 +19,7 @@
       :id="nodeToRender.props?.id"
       :class="[attrs.class, nodeToRender.props?.class]"
       :style="nodeToRender.props?.style"
-    >{{ nodeToRender.text }}<RenderNode v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" /></text>
+    >{{ nodeToRender.text }}<render-node v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" /></text>
     
     <!-- 纯文本节点 -->
     <text v-else-if="nodeToRender.type === '#text'" :class="attrs.class">{{ nodeToRender.text }}</text>
@@ -35,7 +35,7 @@
       :disabled="nodeToRender.props?.disabled"
       :data-id="nodeToRender.id"
       @tap="onTap"
-    ><text v-if="nodeToRender.text">{{ nodeToRender.text }}</text><RenderNode v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" /></button>
+    ><text v-if="nodeToRender.text">{{ nodeToRender.text }}</text><render-node v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" /></button>
     
     <!-- input 输入框 -->
     <input 
@@ -71,7 +71,7 @@
       :data-id="nodeToRender.id"
       @tap="onTap"
     >
-      <RenderNode v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
+      <render-node v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
     </view>
   </template>
 </template>
@@ -96,7 +96,7 @@ import type { MPNode } from '../renderer/serialize'
  * ```
  */
 export default defineComponent({
-  name: 'RenderNode',
+  name: 'render-node',
   inheritAttrs: false,
   props: {
     // MPNode 节点数据（纯 JSON）
