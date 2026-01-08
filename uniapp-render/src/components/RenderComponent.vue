@@ -2,81 +2,50 @@
   <!-- 递归渲染 RenderNode -->
   <template v-if="nodeToRender">
     <!-- view 容器 -->
-    <view 
-      v-if="nodeToRender.type === 'view'"
-      :id="nodeToRender.props?.id"
-      :class="[attrs.class, nodeToRender.props?.class]"
-      :style="nodeToRender.props?.style"
-      :data-id="nodeToRender.id"
-      @tap="onTap"
-      @longpress="onLongPress"
-    >
+    <view v-if="nodeToRender.type === 'view'" :id="nodeToRender.props?.id"
+      :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style" :data-id="nodeToRender.id"
+      @tap="onTap" @click="onTap" @longpress="onLongPress">
       <text v-if="nodeToRender.text">{{ nodeToRender.text }}</text>
       <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
     </view>
-    
+
     <!-- text 文本 -->
-    <text 
-      v-else-if="nodeToRender.type === 'text'"
-      :id="nodeToRender.props?.id"
-      :class="[attrs.class, nodeToRender.props?.class]"
-      :style="nodeToRender.props?.style"
-      @tap="onTap"
-    >{{ nodeToRender.text }}<render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" /></text>
-    
+    <text v-else-if="nodeToRender.type === 'text'" :id="nodeToRender.props?.id"
+      :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style" @tap="onTap">{{
+        nodeToRender.text }}<render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index"
+        :node="child" /></text>
+
     <!-- 纯文本节点 -->
     <text v-else-if="nodeToRender.type === '#text'" :class="attrs.class">{{ nodeToRender.text }}</text>
-    
-    <!-- button 按钮 -->
-    <button 
-      v-else-if="nodeToRender.type === 'button'"
+
+    <!-- button 按钮 - 使用 view 包装以确保事件触发 -->
+    <view v-else-if="nodeToRender.type === 'button'" 
       :id="nodeToRender.props?.id"
-      :class="[attrs.class, nodeToRender.props?.class]"
+      :class="[attrs.class, nodeToRender.props?.class, 'uni-btn']" 
       :style="nodeToRender.props?.style"
-      :type="nodeToRender.props?.type || 'default'"
-      :size="nodeToRender.props?.size || 'default'"
-      :disabled="nodeToRender.props?.disabled"
-      :data-id="nodeToRender.id"
-      @tap="onTap"
-      @longpress="onLongPress"
-    ><text v-if="nodeToRender.text">{{ nodeToRender.text }}</text><render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" /></button>
-    
+      :data-id="nodeToRender.id" 
+      @tap="onTap" 
+      @click="onTap">
+      <text v-if="nodeToRender.text">{{ nodeToRender.text }}</text>
+      <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
+    </view>
+
     <!-- input 输入框 -->
-    <input 
-      v-else-if="nodeToRender.type === 'input'"
-      :id="nodeToRender.props?.id"
-      :class="[attrs.class, nodeToRender.props?.class]"
-      :style="nodeToRender.props?.style"
-      :type="nodeToRender.props?.type || 'text'"
-      :value="nodeToRender.props?.value"
-      :placeholder="nodeToRender.props?.placeholder"
-      :disabled="nodeToRender.props?.disabled"
-      :data-id="nodeToRender.id"
-      @input="onInput"
-      @focus="onFocus"
-      @blur="onBlur"
-    />
-    
+    <input v-else-if="nodeToRender.type === 'input'" :id="nodeToRender.props?.id"
+      :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style"
+      :type="nodeToRender.props?.type || 'text'" :value="nodeToRender.props?.value"
+      :placeholder="nodeToRender.props?.placeholder" :disabled="nodeToRender.props?.disabled" :data-id="nodeToRender.id"
+      @input="onInput" @focus="onFocus" @blur="onBlur" />
+
     <!-- image 图片 -->
-    <image 
-      v-else-if="nodeToRender.type === 'image'"
-      :id="nodeToRender.props?.id"
-      :class="[attrs.class, nodeToRender.props?.class]"
-      :style="nodeToRender.props?.style"
-      :src="nodeToRender.props?.src"
-      :mode="nodeToRender.props?.mode || 'scaleToFill'"
-      :data-id="nodeToRender.id"
-      @tap="onTap"
-    />
-    
+    <image v-else-if="nodeToRender.type === 'image'" :id="nodeToRender.props?.id"
+      :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style"
+      :src="nodeToRender.props?.src" :mode="nodeToRender.props?.mode || 'scaleToFill'" :data-id="nodeToRender.id"
+      @tap="onTap" />
+
     <!-- 默认：当作 view 处理 -->
-    <view 
-      v-else
-      :class="[attrs.class, nodeToRender.props?.class]"
-      :style="nodeToRender.props?.style"
-      :data-id="nodeToRender.id"
-      @tap="onTap"
-    >
+    <view v-else :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style"
+      :data-id="nodeToRender.id" @tap="onTap">
       <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
     </view>
   </template>
@@ -112,17 +81,23 @@ export default defineComponent({
      */
     function handleEvent(e: any, eventType: string) {
       if (!nodeToRender.value?.props) return
-      
+
       // 从 data-eid-{eventType} 获取事件 ID
       const eventId = nodeToRender.value.props[`data-eid-${eventType}`]
-      
+
       if (!eventId || typeof eventId !== 'string') return
-      
+
       // 使用新的事件系统
       renderEvent(eventId, e)
     }
 
     function onTap(e: any) {
+      console.log('[RenderComponent] onTap called', {
+        nodeId: nodeToRender.value?.id,
+        nodeType: nodeToRender.value?.type,
+        props: nodeToRender.value?.props,
+        hasEid: nodeToRender.value?.props?.['data-eid-tap']
+      })
       handleEvent(e, 'tap')
     }
 

@@ -1,15 +1,15 @@
 # vite-plugin-uni-render
 
-> Vite 插件 - 自动将 render 函数转换为 useVnodeTree + RenderNode 方案
+> Vite 插件 - 自动将无模板的渲染函数 Vue 组件转换为小程序可用的格式
 
 ## 功能
 
-自动检测 Vue 组件中的 render 函数，并转换为 `uniapp-render` 的 `useVnodeTree` + `RenderNode` 方案。
+自动检测没有模板的 Vue 渲染函数组件，并转换为 `uniapp-render` 的 `defineRenderComponent` + `render-component` 方案。
 
-**转换前**：
+**用户写（标准 Vue 代码）**：
 ```vue
 <script lang="ts">
-import { h, ref, defineComponent } from 'vue'
+import { defineComponent, ref, h } from 'vue'
 
 export default defineComponent({
   setup() {
@@ -24,27 +24,23 @@ export default defineComponent({
 </script>
 ```
 
-**转换后**：
+**自动转换为**：
 ```vue
 <template>
-  <RenderNode :node="vnodeTree" />
+  <render-component :node="node" />
 </template>
 
 <script lang="ts">
-import { useVnodeTree, RenderNode } from 'uniapp-render'
-import { h, ref, defineComponent } from 'vue'
+import { defineRenderComponent, ref, h } from 'uniapp-render'
 
-export default defineComponent({
+export default defineRenderComponent({
   setup() {
     const count = ref(0)
 
-    return {
-      vnodeTree: useVnodeTree(() => h('view', { class: 'counter' }, [
-        h('text', {}, `计数: ${count.value}`),
-        h('button', { onClick: () => count.value++ }, '+1')
-      ])),
-      RenderNode
-    }
+    return () => h('view', { class: 'counter' }, [
+      h('text', {}, `计数: ${count.value}`),
+      h('button', { onClick: () => count.value++ }, '+1')
+    ])
   }
 })
 </script>
@@ -67,6 +63,7 @@ import { uniRender } from 'vite-plugin-uni-render'
 
 export default defineConfig({
   plugins: [
+    // ⚠️ 必须放在 uni() 之前
     uniRender({
       debug: true,  // 开启调试日志
       includeDirs: ['pages', 'components']  // 要处理的目录
@@ -75,6 +72,8 @@ export default defineConfig({
   ]
 })
 ```
+
+**⚠️ 重要**：`uniRender()` 必须放在 `uni()` 之前，确保在 UniApp 处理之前完成转换。
 
 ## 配置选项
 
@@ -85,17 +84,19 @@ export default defineConfig({
 
 ## 工作原理
 
-1. **检测**：在 Vite 转换阶段，检测 `.vue` 文件中的 `setup()` 函数是否返回箭头函数（render 函数模式）
+1. **检测**：在 Vite 转换阶段，检测 `.vue` 文件是否：
+   - 没有 `<template>` 或 template 为空
+   - `setup()` 返回函数（渲染函数模式）
 
 2. **转换**：
-   - 添加 `import { useVnodeTree, RenderNode } from 'uniapp-render'`
-   - 将 `return () => h(...)` 转换为 `return { vnodeTree: useVnodeTree(() => h(...)), RenderNode }`
+   - `from 'vue'` → `from 'uniapp-render'`
+   - `defineComponent` → `defineRenderComponent`
 
-3. **注入 template**：如果组件没有 template 或 template 为空，自动添加 `<RenderNode :node="vnodeTree" />`
+3. **注入 template**：自动添加 `<render-component :node="node" />`
 
 ## 支持的模式
 
-插件可以检测以下 render 函数模式：
+插件可以检测以下渲染函数模式：
 
 ```typescript
 // 模式 1：直接返回箭头函数
@@ -109,28 +110,23 @@ setup() {
     return h('view', {}, 'Hello')
   }
 }
-
-// 模式 3：返回普通函数
-setup() {
-  return function() {
-    return h('view', {}, 'Hello')
-  }
-}
 ```
 
 ## 注意事项
 
-1. **已有 useVnodeTree**：如果代码中已经使用了 `useVnodeTree`，不会重复转换
+1. **已有 defineRenderComponent**：如果代码中已经使用了 `defineRenderComponent`，不会重复转换
 
-2. **手动写 template**：如果你手动写了非空的 template，插件不会覆盖
+2. **有模板的组件**：如果你写了非空的 template，插件不会处理
 
 3. **目录过滤**：只处理 `includeDirs` 配置的目录下的文件
+
+4. **插件顺序**：必须放在 `uni()` 之前
 
 ## 与 uniapp-render 的关系
 
 本插件是 `uniapp-render` 的配套插件：
 
-- `uniapp-render`：核心运行时，提供 `useVnodeTree` 和 `RenderNode`
-- `vite-plugin-uni-render`：Vite 插件，自动转换 render 函数
+- `uniapp-render`：核心运行时，提供 `defineRenderComponent`、`render`、`render-component`
+- `vite-plugin-uni-render`：Vite 插件，自动转换渲染函数组件
 
-两者配合使用，让你可以直接写 render 函数，无需手动调用 `useVnodeTree`。
+两者配合使用，让你可以用**标准 Vue 写法**开发小程序，无需手动处理桥接代码。
