@@ -12,7 +12,7 @@
       @longpress="onLongPress"
     >
       <text v-if="nodeToRender.text">{{ nodeToRender.text }}</text>
-      <render-node v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
+      <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
     </view>
     
     <!-- text 文本 -->
@@ -22,7 +22,7 @@
       :class="[attrs.class, nodeToRender.props?.class]"
       :style="nodeToRender.props?.style"
       @tap="onTap"
-    >{{ nodeToRender.text }}<render-node v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" /></text>
+    >{{ nodeToRender.text }}<render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" /></text>
     
     <!-- 纯文本节点 -->
     <text v-else-if="nodeToRender.type === '#text'" :class="attrs.class">{{ nodeToRender.text }}</text>
@@ -39,7 +39,7 @@
       :data-id="nodeToRender.id"
       @tap="onTap"
       @longpress="onLongPress"
-    ><text v-if="nodeToRender.text">{{ nodeToRender.text }}</text><render-node v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" /></button>
+    ><text v-if="nodeToRender.text">{{ nodeToRender.text }}</text><render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" /></button>
     
     <!-- input 输入框 -->
     <input 
@@ -77,7 +77,7 @@
       :data-id="nodeToRender.id"
       @tap="onTap"
     >
-      <render-node v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
+      <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
     </view>
   </template>
 </template>
