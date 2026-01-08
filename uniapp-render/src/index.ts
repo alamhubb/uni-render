@@ -76,16 +76,13 @@ export { triggerEvent, createMpEvent } from './renderer/triggerEvent'
 export type { MPNode, SerializedNode } from './renderer/serialize'
 
 // ============================================
-// Custom Renderer（使用 Vue createRenderer）
+// Custom Renderer API
 // ============================================
-
 export {
     h,
-    renderToMPNode,  // 简单 API：直接用 h 函数渲染
-    createMPNodeApp,
-    useMPNode
+    useMPNodeRenderer,
+    createMPNodeApp
 } from './renderer/mpRenderer'
-export type { HProps, HChild, HChildren } from './renderer/mpRenderer.types'
 
 // ============================================
 // UniApp 内部函数（强制导出以避免 tree-shaking）
