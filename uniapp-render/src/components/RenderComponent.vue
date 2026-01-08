@@ -96,7 +96,7 @@ import type { RenderNode } from '../renderer/types'
  * 3. 事件触发时调用 renderEvent
  */
 export default defineComponent({
-  name: 'render-node',
+  name: 'render-component',
   inheritAttrs: false,
   props: {
     node: {
