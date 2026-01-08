@@ -34,6 +34,7 @@ export function createEventScope(): string {
 export function registerEvent(handler: Function, scopeId?: string): string {
     const eventId = `__mp_evt_${++eventIdCounter}__`
     eventRegistry.set(eventId, handler)
+    console.log('[registerEvent] registered', eventId, 'registry size:', eventRegistry.size)
 
     // 如果提供了作用域，记录到组件事件表
     if (scopeId && scopeRegistry.has(scopeId)) {
@@ -49,9 +50,13 @@ export function registerEvent(handler: Function, scopeId?: string): string {
  * @param event 原始事件对象
  */
 export function renderEvent(eventId: string, event?: any): void {
+    console.log('[renderEvent] called', { eventId, hasHandler: eventRegistry.has(eventId), registrySize: eventRegistry.size })
     const handler = eventRegistry.get(eventId)
     if (handler) {
+        console.log('[renderEvent] executing handler')
         handler(event)
+    } else {
+        console.warn('[renderEvent] ⚠️ handler not found for', eventId, 'available keys:', Array.from(eventRegistry.keys()))
     }
 }
 

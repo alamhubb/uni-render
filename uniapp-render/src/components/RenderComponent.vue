@@ -80,14 +80,24 @@ export default defineComponent({
      * 统一事件处理函数
      */
     function handleEvent(e: any, eventType: string) {
-      if (!nodeToRender.value?.props) return
+      console.log('[handleEvent] called', { eventType, hasProps: !!nodeToRender.value?.props })
+      
+      if (!nodeToRender.value?.props) {
+        console.warn('[handleEvent] ⚠️ nodeToRender.value.props is null')
+        return
+      }
 
       // 从 data-eid-{eventType} 获取事件 ID
       const eventId = nodeToRender.value.props[`data-eid-${eventType}`]
+      console.log('[handleEvent] eventId:', eventId, typeof eventId)
 
-      if (!eventId || typeof eventId !== 'string') return
+      if (!eventId || typeof eventId !== 'string') {
+        console.warn('[handleEvent] ⚠️ invalid eventId')
+        return
+      }
 
       // 使用新的事件系统
+      console.log('[handleEvent] calling renderEvent with', eventId)
       renderEvent(eventId, e)
     }
 
