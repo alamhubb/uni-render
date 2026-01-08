@@ -5,10 +5,10 @@
  */
 
 // Custom Renderer
-export { useMPNodeRenderer } from './mpRenderer'
+export { useRender } from './mpRenderer'
 
 // 事件系统
-export { triggerEvent } from './eventRegistry'
+export { renderEvent } from './eventRegistry'
 
 // 类型定义
-export type { MPNode, SerializedNode } from './types'
+export type { RenderNode } from './types'

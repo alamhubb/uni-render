@@ -16,7 +16,7 @@ import {
     type RendererOptions,
     type Component
 } from '@vue/runtime-core'
-import type { MPNode } from './types'
+import type { RenderNode } from './types'
 import { registerEvent, createEventScope, clearEventScope } from './eventRegistry'
 // @ts-ignore - vOn 不再使用，可以移除
 // import { o as vOn } from '@dcloudio/uni-mp-vue'
@@ -221,29 +221,22 @@ function normalizeStyle(value: any): string {
 }
 
 /**
- * 将 InternalNode 转换为纯 JSON 的 MPNode
+ * 将 InternalNode 转换为纯 JSON 的 RenderNode
  * 移除内部字段 (_parent)，只保留渲染需要的数据
  */
-function toMPNode(node: InternalNode): MPNode {
-    console.log('[toMPNode] 转换节点', {
-        type: node.type,
-        id: node.id,
-        childrenCount: node.children?.length,
-        text: node.text
-    })
-
-    const mpNode: MPNode = {
+function toRenderNode(node: InternalNode): RenderNode {
+    const renderNode: RenderNode = {
         id: node.id,
         type: node.type,
         props: { ...node.props },
-        children: node.children.map(child => toMPNode(child))
+        children: node.children.map(child => toRenderNode(child))
     }
 
     if (node.text !== undefined) {
-        mpNode.text = node.text
+        renderNode.text = node.text
     }
 
-    return mpNode
+    return renderNode
 }
 
 // ============================================
@@ -256,7 +249,7 @@ const { render, createApp: createRendererApp } = createRenderer<InternalNode, In
 // ============================================
 
 /**
- * useMPNodeRenderer - 响应式 MPNode 渲染器
+ * useRender - 响应式渲染器
  * 
  * 支持两种模式：
  * 1. 组件定义模式（推荐用于复杂场景）
@@ -270,18 +263,18 @@ const { render, createApp: createRendererApp } = createRenderer<InternalNode, In
  *     return () => h('view', {}, `计数: ${count.value}`)
  *   }
  * }
- * const mpNode = useMPNodeRenderer(MyComponent)
+ * const node = useRender(MyComponent)
  * ```
  * 
  * @example 渲染函数模式
  * ```ts
  * const count = ref(0)
- * const mpNode = useMPNodeRenderer(() => 
+ * const node = useRender(() => 
  *   h('view', {}, `计数: ${count.value}`)
  * )
  * ```
  */
-export function useMPNodeRenderer(componentOrRenderFn: Component | (() => any)) {
+export function useRender(componentOrRenderFn: Component | (() => any)) {
     // 创建事件作用域
     const scopeId = createEventScope()
 
@@ -317,10 +310,10 @@ export function useMPNodeRenderer(componentOrRenderFn: Component | (() => any)) 
 
     app.mount(rootNode as any)
 
-    // 转换为 MPNode（响应式）
+    // 转换为 RenderNode（响应式）
     const node = computed(() => {
         const internalChild = rootNode.children[0] || rootNode
-        return toMPNode(internalChild)
+        return toRenderNode(internalChild)
     })
 
     // 卸载函数：清理应用和事件
@@ -354,7 +347,7 @@ export function createMPNodeApp(rootComponent: Component, props?: Record<string,
     return {
         mount() {
             app.mount(rootNode as any)
-            return toMPNode(rootNode)
+            return toRenderNode(rootNode)
         },
         unmount() {
             app.unmount()

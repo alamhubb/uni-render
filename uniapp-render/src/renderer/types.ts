@@ -1,13 +1,13 @@
 /**
- * MPNode 类型定义
+ * RenderNode 类型定义
  * 
- * 小程序节点数据结构，用于 RenderNode 模板渲染
+ * 渲染节点数据结构，用于模板渲染
  */
 
 /**
- * 小程序节点数据结构
+ * 渲染节点数据结构
  */
-export interface MPNode {
+export interface RenderNode {
     /** 节点唯一 ID */
     id: number
     /** 节点类型：view, text, button, input, image 等 */
@@ -17,11 +17,5 @@ export interface MPNode {
     /** 文本内容（仅文本节点） */
     text?: string
     /** 子节点 */
-    children: MPNode[]
+    children: RenderNode[]
 }
-
-/**
- * 序列化后的节点结构（用于 setData）
- * 目前与 MPNode 相同
- */
-export type SerializedNode = MPNode

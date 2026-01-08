@@ -16,7 +16,7 @@ let eventIdCounter = 0
 let scopeIdCounter = 0
 
 /**
- * 创建事件作用域（每个 useMPNodeRenderer 实例一个）
+ * 创建事件作用域（每个 useRender 实例一个）
  * @returns scopeId
  */
 export function createEventScope(): string {
@@ -44,11 +44,11 @@ export function registerEvent(handler: Function, scopeId?: string): string {
 }
 
 /**
- * 触发事件（供 RenderNode 调用）
+ * 触发渲染事件（供 RenderComponent 调用）
  * @param eventId 事件 ID
  * @param event 原始事件对象
  */
-export function triggerEvent(eventId: string, event?: any): void {
+export function renderEvent(eventId: string, event?: any): void {
     const handler = eventRegistry.get(eventId)
     if (handler) {
         handler(event)
