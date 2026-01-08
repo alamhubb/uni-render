@@ -5,7 +5,7 @@
  */
 
 // Custom Renderer
-export { useRender } from './mpRenderer'
+export { render } from './render'
 
 // 事件系统
 export { renderEvent } from './event'

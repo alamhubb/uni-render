@@ -30,7 +30,7 @@
 // ============================================
 // Custom Renderer
 // ============================================
-export { useRender } from './renderer/mpRenderer'
+export { render } from './renderer/render'
 
 // ============================================
 // 事件系统（供 RenderComponent 调用）

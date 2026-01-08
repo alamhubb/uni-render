@@ -242,7 +242,7 @@ function toRenderNode(node: InternalNode): RenderNode {
 // ============================================
 // 创建渲染器
 // ============================================
-const { render, createApp: createRendererApp } = createRenderer<InternalNode, InternalNode>(nodeOps)
+const { createApp: createRendererApp } = createRenderer<InternalNode, InternalNode>(nodeOps)
 
 // ============================================
 // 导出的 API
@@ -274,7 +274,7 @@ const { render, createApp: createRendererApp } = createRenderer<InternalNode, In
  * )
  * ```
  */
-export function useRender(componentOrRenderFn: Component | (() => any)) {
+export function render(componentOrRenderFn: Component | (() => any)) {
     // 创建事件作用域
     const scopeId = createEventScope()
 
