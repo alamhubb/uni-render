@@ -76,6 +76,20 @@ export { triggerEvent, createMpEvent } from './renderer/triggerEvent'
 export type { MPNode, SerializedNode } from './renderer/serialize'
 
 // ============================================
+// Vue API（使用 @vue/runtime-core）
+// 用户应该从这里导入，确保响应式系统统一
+// ============================================
+export {
+    ref,
+    reactive,
+    computed,
+    watch,
+    watchEffect,
+    onMounted,
+    onUnmounted
+} from '@vue/runtime-core'
+
+// ============================================
 // Custom Renderer API
 // ============================================
 export {
