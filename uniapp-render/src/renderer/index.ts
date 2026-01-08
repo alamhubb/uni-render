@@ -4,24 +4,11 @@
  * 核心功能导出
  */
 
-// 核心组合函数
-export {
-    useVnodeTree,
-    getEventHandlers,
-    cleanupEventHandlers,
-    setupEventProxy,
-    getComponentEventMap
-} from './useVnodeTree'
+// Custom Renderer
+export { useMPNodeRenderer } from './mpRenderer'
 
-// VNode → MPNode 转换器
-export { vnodeToMPNode, createConvertContext, EVENT_MAP } from './converter'
-export type { ConvertContext } from './converter'
-
-// 递归渲染组件
-export { default as RenderNode } from './RenderNode.vue'
-
-// 事件触发
-export { triggerEvent, createMpEvent } from './triggerEvent'
+// 事件系统
+export { triggerEvent } from './eventRegistry'
 
 // 类型定义
-export type { MPNode, SerializedNode } from './serialize'
+export type { MPNode, SerializedNode } from './types'

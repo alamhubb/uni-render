@@ -12,12 +12,14 @@ import {
     ref,
     computed,
     watchEffect,
+    onUnmounted,
     type RendererOptions,
     type Component
 } from '@vue/runtime-core'
-import type { MPNode } from './serialize'
-// @ts-ignore
-import { o as vOn } from '@dcloudio/uni-mp-vue'
+import type { MPNode } from './types'
+import { registerEvent, createEventScope, clearEventScope } from './eventRegistry'
+// @ts-ignore - vOn 不再使用，可以移除
+// import { o as vOn } from '@dcloudio/uni-mp-vue'
 
 // ============================================
 // 内部节点类型（Custom Renderer 使用）
@@ -29,6 +31,7 @@ interface InternalNode {
     text?: string
     children: InternalNode[]
     _parent?: InternalNode | null  // 内部维护父子关系
+    _scopeId?: string              // 事件作用域 ID（从根节点继承）
 }
 
 // ============================================
@@ -104,22 +107,10 @@ const nodeOps: RendererOptions<InternalNode, InternalNode> = {
             const idx = parent.children.indexOf(anchor)
             if (idx > -1) {
                 parent.children.splice(idx, 0, child)
-                console.log('[nodeOps.insert] 插入节点（anchor）', {
-                    childType: child.type,
-                    parentType: parent.type,
-                    parentChildrenCount: parent.children.length
-                })
                 return
             }
         }
         parent.children.push(child)
-        console.log('[nodeOps.insert] 插入节点', {
-            childType: child.type,
-            childId: child.id,
-            parentType: parent.type,
-            parentId: parent.id,
-            parentChildrenCount: parent.children.length
-        })
     },
 
     remove(child: InternalNode): void {
@@ -144,13 +135,26 @@ const nodeOps: RendererOptions<InternalNode, InternalNode> = {
     patchProp(el: InternalNode, key: string, prevValue: any, nextValue: any): void {
         // 处理事件
         if (key.startsWith('on') && typeof nextValue === 'function') {
-            const mappedEvent = EVENT_MAP[key] || key.slice(2).toLowerCase()
-            try {
-                const eventId = vOn(nextValue)
-                el.props[`bind${mappedEvent}`] = eventId
-            } catch {
-                el.props[`bind${mappedEvent}`] = '__event__'
+            const eventType = key.slice(2).toLowerCase()
+            const mappedEvent = EVENT_MAP[key] || eventType
+
+            // 获取作用域 ID（沿着 _parent 链向上查找 root 节点的 _scopeId）
+            let scopeId: string | undefined
+            let node: InternalNode | null | undefined = el
+            while (node) {
+                if (node._scopeId) {
+                    scopeId = node._scopeId
+                    break
+                }
+                node = node._parent
             }
+
+            // 使用我们自己的事件注册系统（带作用域）
+            const eventId = registerEvent(nextValue, scopeId)
+            el.props[`bind${mappedEvent}`] = eventId
+            // 为每种事件类型存储独立的 eventId
+            el.props[`data-eid-${mappedEvent}`] = eventId
+
             return
         }
 
@@ -250,14 +254,15 @@ const { render, createApp: createRendererApp } = createRenderer<InternalNode, In
 // ============================================
 // 导出的 API
 // ============================================
-export { h } from '@vue/runtime-core'
 
 /**
  * useMPNodeRenderer - 响应式 MPNode 渲染器
  * 
- * 接受组件定义，使用 Custom Renderer 渲染到 InternalNode 树。
+ * 支持两种模式：
+ * 1. 组件定义模式（推荐用于复杂场景）
+ * 2. 渲染函数模式（简单场景）
  * 
- * @example
+ * @example 组件定义模式
  * ```ts
  * const MyComponent = {
  *   setup() {
@@ -267,34 +272,69 @@ export { h } from '@vue/runtime-core'
  * }
  * const mpNode = useMPNodeRenderer(MyComponent)
  * ```
+ * 
+ * @example 渲染函数模式
+ * ```ts
+ * const count = ref(0)
+ * const mpNode = useMPNodeRenderer(() => 
+ *   h('view', {}, `计数: ${count.value}`)
+ * )
+ * ```
  */
-export function useMPNodeRenderer(component: Component) {
+export function useMPNodeRenderer(componentOrRenderFn: Component | (() => any)) {
+    // 创建事件作用域
+    const scopeId = createEventScope()
+
     // 创建内部根节点
     const rootNode = reactive({
         id: 0,
         type: 'root',
         props: {},
         children: [],
-        _parent: null
+        _parent: null,
+        _scopeId: scopeId  // 存储作用域 ID，供 patchProp 使用
     }) as unknown as InternalNode
 
-    console.log('[useMPNodeRenderer] 初始化')
+    // 判断是组件定义还是渲染函数
+    const isRenderFn = typeof componentOrRenderFn === 'function' &&
+        !('setup' in componentOrRenderFn) &&
+        !('render' in componentOrRenderFn)
 
-    // 使用 createApp 挂载组件
-    const app = createRendererApp(component)
+    let app: ReturnType<typeof createRendererApp>
+
+    if (isRenderFn) {
+        // 渲染函数模式：包装为组件
+        const WrapperComponent = {
+            setup() {
+                return componentOrRenderFn as () => any
+            }
+        }
+        app = createRendererApp(WrapperComponent)
+    } else {
+        // 组件定义模式
+        app = createRendererApp(componentOrRenderFn as Component)
+    }
+
     app.mount(rootNode as any)
 
     // 转换为 MPNode（响应式）
-    return computed(() => {
+    const node = computed(() => {
         const internalChild = rootNode.children[0] || rootNode
-
-        console.log('[useMPNodeRenderer] computed 触发', {
-            rootChildren: rootNode.children.length,
-            childType: internalChild.type,
-            childrenCount: internalChild.children?.length
-        })
         return toMPNode(internalChild)
     })
+
+    // 卸载函数：清理应用和事件
+    const unmount = () => {
+        // 使用 scopeId 清理该作用域的所有事件
+        clearEventScope(scopeId)
+        app.unmount()
+    }
+
+    // 自动在组件卸载时清理事件
+    onUnmounted(unmount)
+
+    // 直接返回 node，简化 API
+    return node
 }
 
 /**
