@@ -330,27 +330,4 @@ export function useRender(componentOrRenderFn: Component | (() => any)) {
     return node
 }
 
-/**
- * 创建 MPNode 应用
- */
-export function createMPNodeApp(rootComponent: Component, props?: Record<string, any>) {
-    const rootNode = reactive({
-        id: 0,
-        type: 'root',
-        props: {},
-        children: [],
-        _parent: null
-    }) as unknown as InternalNode
 
-    const app = createRendererApp(rootComponent, props)
-
-    return {
-        mount() {
-            app.mount(rootNode as any)
-            return toRenderNode(rootNode)
-        },
-        unmount() {
-            app.unmount()
-        }
-    }
-}

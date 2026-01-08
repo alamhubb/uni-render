@@ -1,5 +1,5 @@
 <template>
-  <!-- 递归渲染 vnodeTree -->
+  <!-- 递归渲染 RenderNode -->
   <template v-if="nodeToRender">
     <!-- view 容器 -->
     <view 
@@ -9,6 +9,7 @@
       :style="nodeToRender.props?.style"
       :data-id="nodeToRender.id"
       @tap="onTap"
+      @longpress="onLongPress"
     >
       <text v-if="nodeToRender.text">{{ nodeToRender.text }}</text>
       <render-node v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
@@ -20,6 +21,7 @@
       :id="nodeToRender.props?.id"
       :class="[attrs.class, nodeToRender.props?.class]"
       :style="nodeToRender.props?.style"
+      @tap="onTap"
     >{{ nodeToRender.text }}<render-node v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" /></text>
     
     <!-- 纯文本节点 -->
@@ -36,6 +38,7 @@
       :disabled="nodeToRender.props?.disabled"
       :data-id="nodeToRender.id"
       @tap="onTap"
+      @longpress="onLongPress"
     ><text v-if="nodeToRender.text">{{ nodeToRender.text }}</text><render-node v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" /></button>
     
     <!-- input 输入框 -->
@@ -50,6 +53,8 @@
       :disabled="nodeToRender.props?.disabled"
       :data-id="nodeToRender.id"
       @input="onInput"
+      @focus="onFocus"
+      @blur="onBlur"
     />
     
     <!-- image 图片 -->
@@ -78,87 +83,73 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType, inject, computed, provide } from 'vue'
-import { createMpEvent } from '../renderer/triggerEvent'
-import { triggerEventById } from '../renderer/useRenderNode'
-import type { MPNode } from '../renderer/serialize'
+import { defineComponent, PropType, computed } from 'vue'
+import { renderEvent } from '../renderer/eventRegistry'
+import type { RenderNode } from '../renderer/types'
 
 /**
- * RenderNode - 动态节点渲染组件
+ * RenderComponent - 动态节点渲染组件
  * 
  * 职责：
- * 1. 接收 MPNode 数据（纯 JSON，可通过 setData 传递）
+ * 1. 接收 RenderNode 数据（纯 JSON，可通过 setData 传递）
  * 2. 递归渲染为 UniApp 原生组件
- * 3. 事件触发时从全局对象获取处理器
- * 
- * 使用方式：
- * ```vue
- * <RenderNode :node="node" />
- * ```
+ * 3. 事件触发时调用 renderEvent
  */
 export default defineComponent({
   name: 'render-node',
   inheritAttrs: false,
   props: {
-    // MPNode 节点数据（纯 JSON）
     node: {
-      type: Object as PropType<MPNode | null>,
+      type: Object as PropType<RenderNode | null>,
       default: null
     }
   },
   setup(props, { attrs }) {
-    // 当前渲染的节点
     const nodeToRender = computed(() => props.node)
-    
-    // 从父组件注入 componentId（使用数字类型）
-    const injectedComponentId = inject<number>('__componentId__', 0)
-    
-    // 计算当前有效的 componentId
-    const componentId = computed(() => {
-      // 优先使用节点自身的 componentId（根节点会有）
-      const nodeComponentId = nodeToRender.value?.props?.__componentId__
-      if (typeof nodeComponentId === 'number') return nodeComponentId
-      // 其次使用注入的（子节点使用）
-      return injectedComponentId
-    })
-    
-    // 为子节点 provide componentId
-    provide('__componentId__', componentId.value || injectedComponentId)
 
     /**
      * 统一事件处理函数
-     * 从全局对象获取事件处理器
      */
     function handleEvent(e: any, eventType: string) {
       if (!nodeToRender.value?.props) return
       
-      const bindKey = `bind${eventType}`
-      const eventId = nodeToRender.value.props[bindKey]
+      // 从 data-eid-{eventType} 获取事件 ID
+      const eventId = nodeToRender.value.props[`data-eid-${eventType}`]
       
-      if (!eventId) return
+      if (!eventId || typeof eventId !== 'string') return
       
-      const mpEvent = createMpEvent(e, eventType)
-      
-      // 从全局对象获取并调用事件处理器
-      const cid = componentId.value
-      if (cid !== undefined && cid !== null) {
-        triggerEventById(cid, eventId, mpEvent)
-      }
+      // 使用新的事件系统
+      renderEvent(eventId, e)
     }
 
     function onTap(e: any) {
       handleEvent(e, 'tap')
     }
 
+    function onLongPress(e: any) {
+      handleEvent(e, 'longpress')
+    }
+
     function onInput(e: any) {
       handleEvent(e, 'input')
+    }
+
+    function onFocus(e: any) {
+      handleEvent(e, 'focus')
+    }
+
+    function onBlur(e: any) {
+      handleEvent(e, 'blur')
     }
 
     return {
       attrs,
       nodeToRender,
       onTap,
-      onInput
+      onLongPress,
+      onInput,
+      onFocus,
+      onBlur
     }
   }
 })
