@@ -35,7 +35,7 @@ export { useRender } from './renderer/mpRenderer'
 // ============================================
 // 事件系统（供 RenderComponent 调用）
 // ============================================
-export { renderEvent } from './renderer/renderEvent'
+export { renderEvent } from './renderer/event'
 
 // ============================================
 // 类型定义
