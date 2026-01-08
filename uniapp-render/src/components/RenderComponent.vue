@@ -84,7 +84,7 @@
 
 <script lang="ts">
 import { defineComponent, PropType, computed } from 'vue'
-import { renderEvent } from '../renderer/eventRegistry'
+import { renderEvent } from '../renderer/renderEvent'
 import type { RenderNode } from '../renderer/types'
 
 /**

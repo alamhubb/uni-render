@@ -8,7 +8,7 @@
 export { useRender } from './mpRenderer'
 
 // 事件系统
-export { renderEvent } from './eventRegistry'
+export { renderEvent } from './renderEvent'
 
 // 类型定义
 export type { RenderNode } from './types'

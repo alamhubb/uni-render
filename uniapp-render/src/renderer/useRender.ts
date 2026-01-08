@@ -17,7 +17,7 @@ import {
     type Component
 } from '@vue/runtime-core'
 import type { RenderNode } from './types'
-import { registerEvent, createEventScope, clearEventScope } from './eventRegistry'
+import { registerEvent, createEventScope, clearEventScope } from './renderEvent'
 // @ts-ignore - vOn 不再使用，可以移除
 // import { o as vOn } from '@dcloudio/uni-mp-vue'
 
