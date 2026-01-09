@@ -9,7 +9,7 @@ import { parse as parseSFC } from '@vue/compiler-sfc'
 import * as vueShared from '@vue/shared'
 import { SlimeParser, SlimeCstToAst } from 'slime-parser'
 import { SlimeGenerator } from 'slime-generator'
-import { SlimeAstTypeName } from 'slime-ast'
+import { SlimeAstTypeName, SlimeAstCreateUtils } from 'slime-ast'
 
 // 调试：打印 @vue/shared 信息
 console.log('[compiler] @vue/shared keys:', Object.keys(vueShared).slice(0, 20))
@@ -59,19 +59,13 @@ export function transformVueSFC(vueCode: string): string | null {
             return null
         }
 
-        // 4. 检查是否已使用 uniapp-render
-        if (blocks.script.content.includes("from 'uniapp-render'") ||
-            blocks.script.content.includes('from "uniapp-render"')) {
-            return null
-        }
-
-        // 5. 使用 Slime Parser 转换 script
+        // 4. 使用 Slime Parser 转换 script（会自动合并 vue 和 uniapp-render 的导入）
         const transformedScript = transformScript(blocks.script.content)
         if (!transformedScript) {
             return null
         }
 
-        // 6. 构建新的 SFC
+        // 5. 构建新的 SFC
         return buildTransformedSFC(blocks, transformedScript)
     } catch (e: any) {
         console.error('[compiler] Full error:', e)
@@ -84,9 +78,9 @@ export function transformVueSFC(vueCode: string): string | null {
 /**
  * 使用 Slime 转换 script
  * 
- * 策略：
- * 1. 把 import {...} from 'vue' 改为 import {...} from 'uniapp-render'
- * 2. 额外导入 import { defineRenderComponent } from 'uniapp-render'
+ * 策略（参考 OVS 的实现，纯 AST 操作）：
+ * 1. 收集所有 from 'vue' 和 from 'uniapp-render' 的导入项
+ * 2. 合并到一个 from 'uniapp-render' 导入（直接操作 AST）
  * 3. 把 export default defineComponent({...}) 改为 export default defineRenderComponent({...})
  */
 function transformScript(scriptContent: string): string | null {
@@ -102,66 +96,117 @@ function transformScript(scriptContent: string): string | null {
         const ast = cstToAst.toProgram(cst) as any
         if (!ast) return null
 
-        // 1. 查找 import {...} from 'vue' 并替换为 from 'uniapp-render'
-        for (const statement of ast.body) {
-            if (statement.type === SlimeAstTypeName.ImportDeclaration) {
-                if (statement.source && statement.source.value === 'vue') {
-                    console.log('[compiler] Replacing vue -> uniapp-render')
-                    statement.source.value = 'uniapp-render'
-                    // 同时修改 raw，保持原始引号风格
-                    const originalRaw = statement.source.raw || "'vue'"
-                    const quoteChar = originalRaw.charAt(0)
-                    statement.source.raw = quoteChar + 'uniapp-render' + quoteChar
-                }
-            }
-        }
+        // 后处理：处理导入合并和 defineComponent 替换
+        const body = processImportsAndExports(ast.body)
+        if (!body) return null
 
-        // 2. 查找 export default defineComponent(...) 并替换为 defineRenderComponent(...)
-        let foundDefineComponent = false
-        for (const statement of ast.body) {
-            if (statement.type === SlimeAstTypeName.ExportDefaultDeclaration) {
-                const declaration = statement.declaration
-                // 检查是否是 defineComponent(...) 调用
-                if (declaration &&
-                    declaration.type === SlimeAstTypeName.CallExpression &&
-                    declaration.callee &&
-                    declaration.callee.type === SlimeAstTypeName.Identifier &&
-                    declaration.callee.name === 'defineComponent') {
-
-                    console.log('[compiler] Found export default defineComponent(...)')
-                    // 修改 callee 名称为 defineRenderComponent
-                    declaration.callee.name = 'defineRenderComponent'
-                    // 同时修改 raw（如果存在），因为 Generator 优先使用 raw
-                    if (declaration.callee.raw) {
-                        declaration.callee.raw = 'defineRenderComponent'
-                    }
-                    // 修改 loc.value（如果存在）
-                    if (declaration.callee.loc && declaration.callee.loc.value) {
-                        declaration.callee.loc.value = 'defineRenderComponent'
-                    }
-                    foundDefineComponent = true
-                }
-            }
-        }
-
-        if (!foundDefineComponent) {
-            console.log('[compiler] No defineComponent found, skipping')
-            return null
-        }
+        ast.body = body
 
         // 生成代码
         const result = SlimeGenerator.generator(ast, parser.parsedTokens)
-
-        // 在生成的代码开头添加 defineRenderComponent 导入
-        const importLine = "import { defineRenderComponent } from 'uniapp-render';\n"
-        const finalCode = importLine + result.code
-
-        console.log('[compiler] Generated code:', finalCode.substring(0, 300))
-        return finalCode
+        console.log('[compiler] Generated code:', result.code.substring(0, 300))
+        return result.code
     } catch (e: any) {
         console.warn(`[uniapp-render-compiler] 解析失败: ${e.message}`)
         return null
     }
+}
+
+/**
+ * 处理导入合并和 defineComponent 替换
+ * 参考 OVS 的 ensureRequiredImports 实现
+ */
+function processImportsAndExports(body: any[]): any[] | null {
+    // 1. 分离 import 语句和其他语句
+    const imports: any[] = []
+    const nonImports: any[] = []
+
+    for (const stmt of body) {
+        if (stmt.type === SlimeAstTypeName.ImportDeclaration) {
+            imports.push(stmt)
+        } else {
+            nonImports.push(stmt)
+        }
+    }
+
+    // 2. 收集所有需要从 uniapp-render 导入的 specifiers
+    const allSpecifiers = new Set<string>()
+    const importsToRemove: any[] = []
+
+    for (const imp of imports) {
+        const source = imp.source?.value
+        if (source === 'vue' || source === 'uniapp-render') {
+            // 收集 specifiers
+            if (imp.specifiers) {
+                for (const specItem of imp.specifiers) {
+                    const spec = specItem.specifier || specItem
+                    if (spec.type === SlimeAstTypeName.ImportSpecifier) {
+                        const name = spec.imported?.name
+                        if (name) {
+                            allSpecifiers.add(name)
+                            console.log(`[compiler] collected: ${name} from ${source}`)
+                        }
+                    }
+                }
+            }
+            // 标记这个导入需要删除
+            importsToRemove.push(imp)
+        }
+    }
+
+    // 3. 查找并替换 defineComponent → defineRenderComponent
+    let foundDefineComponent = false
+    for (const stmt of nonImports) {
+        if (stmt.type === SlimeAstTypeName.ExportDefaultDeclaration) {
+            const declaration = stmt.declaration
+            if (declaration?.type === SlimeAstTypeName.CallExpression &&
+                declaration.callee?.type === SlimeAstTypeName.Identifier &&
+                declaration.callee.name === 'defineComponent') {
+
+                console.log('[compiler] Found defineComponent, replacing...')
+                declaration.callee.name = 'defineRenderComponent'
+                if (declaration.callee.raw) {
+                    declaration.callee.raw = 'defineRenderComponent'
+                }
+                if (declaration.callee.loc?.value) {
+                    declaration.callee.loc.value = 'defineRenderComponent'
+                }
+                foundDefineComponent = true
+            }
+        }
+    }
+
+    if (!foundDefineComponent) {
+        console.log('[compiler] No defineComponent found')
+        return null
+    }
+
+    // 4. 调整 specifiers：添加 defineRenderComponent，移除 defineComponent
+    allSpecifiers.add('defineRenderComponent')
+    allSpecifiers.delete('defineComponent')
+
+    // 5. 过滤掉需要移除的 imports，保留其他 imports
+    const remainingImports = imports.filter(imp => !importsToRemove.includes(imp))
+
+    // 6. 创建合并后的导入语句（纯 AST 操作）
+    const newSpecifiers = Array.from(allSpecifiers).sort().map(name => ({
+        specifier: {
+            type: SlimeAstTypeName.ImportSpecifier,
+            imported: SlimeAstCreateUtils.createIdentifier(name),
+            local: SlimeAstCreateUtils.createIdentifier(name)
+        }
+    }))
+
+    const mergedImport = {
+        type: SlimeAstTypeName.ImportDeclaration,
+        specifiers: newSpecifiers,
+        source: SlimeAstCreateUtils.createStringLiteral('uniapp-render')
+    }
+
+    console.log('[compiler] Merged specifiers:', Array.from(allSpecifiers).sort().join(', '))
+
+    // 7. 返回：合并的导入 + 其他导入 + 非导入语句
+    return [mergedImport, ...remainingImports, ...nonImports]
 }
 
 /**
