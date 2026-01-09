@@ -1,0 +1,21 @@
+{
+    "name": "create-uniapp-render",
+    "version": "0.1.0",
+    "description": "Create a new UniApp project with render function support",
+    "type": "module",
+    "bin": {
+        "create-uniapp-render": "./bin/index.js"
+    },
+    "files": [
+        "bin",
+        "template"
+    ],
+    "keywords": [
+        "create",
+        "uniapp",
+        "render",
+        "cli",
+        "scaffold"
+    ],
+    "license": "MIT"
+}

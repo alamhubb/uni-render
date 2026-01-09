@@ -1,0 +1,33 @@
+{
+    "name": "vite-plugin-uniapp-render",
+    "version": "0.1.0",
+    "type": "module",
+    "description": "Vite 插件 - 自动将 render 函数转换为 useVnodeTree + RenderNode 方案",
+    "main": "./index.ts",
+    "module": "./index.ts",
+    "types": "./index.ts",
+    "exports": {
+        ".": {
+            "import": "./index.ts",
+            "types": "./index.ts",
+            "default": "./index.ts"
+        }
+    },
+    "keywords": [
+        "vite",
+        "plugin",
+        "uniapp",
+        "vue",
+        "render",
+        "h-function",
+        "miniapp"
+    ],
+    "dependencies": {
+        "uniapp-render-compiler": "workspace:*"
+    },
+    "peerDependencies": {
+        "vite": "^5.0.0 || ^6.0.0",
+        "uniapp-render": "*"
+    },
+    "license": "MIT"
+}
