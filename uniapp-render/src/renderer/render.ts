@@ -7,7 +7,6 @@
 import {
     reactive,
     computed,
-    onUnmounted,
     type Component
 } from '@vue/runtime-core'
 import { createRendererApp, toRenderNode, type InternalNode } from './customRenderer'
@@ -88,9 +87,6 @@ export function render(componentOrRenderFn: Component | (() => any)) {
         app.unmount()
     }
 
-    // 自动在组件卸载时清理事件
-    onUnmounted(unmount)
-
-    // 直接返回 node，简化 API
-    return node
+    // 返回 node 和 unmount 函数
+    return { node, unmount }
 }

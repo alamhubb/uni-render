@@ -71,30 +71,43 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 return null
             }
 
-            // 只处理 .vue 文件
-            if (!importer.endsWith('.vue')) {
+            // 调试：打印所有 'vue' 导入
+            console.log(`[resolveId DEBUG] source='vue', importer='${importer}'`)
+
+            // 只处理 .vue 文件（注意：Vite 可能使用带查询参数的虚拟模块）
+            // 例如：test.vue?vue&type=script&lang=ts
+            const isVueFile = importer.endsWith('.vue') || importer.includes('.vue?')
+            if (!isVueFile) {
+                console.log('[resolveId DEBUG]   → 不是 .vue 文件，跳过')
                 return null
             }
 
+            // 提取真实的 .vue 文件路径（去除查询参数）
+            const realPath = importer.split('?')[0]
+            console.log(`[resolveId DEBUG]   → 真实路径: ${realPath}`)
+
             // 检查是否在需要处理的目录中
             const shouldProcess = includeDirs.some(dir =>
-                importer.includes(`/${dir}/`) || importer.includes(`\\${dir}\\`)
+                realPath.includes(`/${dir}/`) || realPath.includes(`\\${dir}\\`)
             )
 
             if (!shouldProcess) {
+                console.log('[resolveId DEBUG]   → 不在处理目录中，跳过')
                 return null
             }
 
             // 检查是否有模板
-            if (hasTemplate(importer)) {
+            const hasTemplateResult = hasTemplate(realPath)
+            console.log(`[resolveId DEBUG]   → hasTemplate: ${hasTemplateResult}`)
+
+            if (hasTemplateResult) {
                 // 有模板，让 UniApp 处理
+                console.log('[resolveId DEBUG]   → 有模板，不重定向')
                 return null
             }
 
             // 没有模板，重定向到 uniapp-render
-            if (debug) {
-                console.log(`[vite-plugin-uniapp-render] resolveId: ${relative(process.cwd(), importer)} → 'uniapp-render'`)
-            }
+            console.log('[resolveId DEBUG]   → 没有模板，重定向到 uniapp-render！')
 
             // 返回 uniapp-render 的解析，跳过自己避免循环
             return this.resolve('uniapp-render', importer, { skipSelf: true })

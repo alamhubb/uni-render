@@ -85,8 +85,8 @@ export function transformVueSFC(vueCode: string): string | null {
  * 使用 Slime 转换 script
  * 
  * 策略：
- * 1. 保留用户的 import { defineComponent } from 'vue' 不变
- * 2. 在第一个 import 之前添加 import { defineRenderComponent } from 'uniapp-render'
+ * 1. 把 import {...} from 'vue' 改为 import {...} from 'uniapp-render'
+ * 2. 额外导入 import { defineRenderComponent } from 'uniapp-render'
  * 3. 把 export default defineComponent({...}) 改为 export default defineRenderComponent({...})
  */
 function transformScript(scriptContent: string): string | null {
@@ -102,7 +102,21 @@ function transformScript(scriptContent: string): string | null {
         const ast = cstToAst.toProgram(cst) as any
         if (!ast) return null
 
-        // 查找 export default defineComponent(...) 并替换为 defineRenderComponent(...)
+        // 1. 查找 import {...} from 'vue' 并替换为 from 'uniapp-render'
+        for (const statement of ast.body) {
+            if (statement.type === SlimeAstTypeName.ImportDeclaration) {
+                if (statement.source && statement.source.value === 'vue') {
+                    console.log('[compiler] Replacing vue -> uniapp-render')
+                    statement.source.value = 'uniapp-render'
+                    // 同时修改 raw，保持原始引号风格
+                    const originalRaw = statement.source.raw || "'vue'"
+                    const quoteChar = originalRaw.charAt(0)
+                    statement.source.raw = quoteChar + 'uniapp-render' + quoteChar
+                }
+            }
+        }
+
+        // 2. 查找 export default defineComponent(...) 并替换为 defineRenderComponent(...)
         let foundDefineComponent = false
         for (const statement of ast.body) {
             if (statement.type === SlimeAstTypeName.ExportDefaultDeclaration) {
@@ -160,6 +174,8 @@ function buildTransformedSFC(blocks: SFCBlock, transformedScript: string): strin
   <render-component :node="node" />
 </template>
 
-<script${blocks.script.attrs}>${transformedScript}</script>
+<script${blocks.script.attrs}>
+${transformedScript}
+</script>
 ${styleParts ? '\n' + styleParts : ''}`
 }

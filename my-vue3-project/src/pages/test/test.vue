@@ -1,32 +1,20 @@
-<template>
-  <render-component :node="node" />
-</template>
-
 <script lang="ts">
 /**
- * 手写测试页面 - 不使用 vite 插件转换
- * 直接内联 defineRenderComponent 的逻辑
+ * 测试页面 - 使用 vite 插件自动转换
  */
-import {defineRenderComponent, h, ref} from 'uniapp-render'
+import { defineComponent, h, ref } from 'vue'
 
-// ========================================
-// 直接内联 defineRenderComponent 的逻辑
-// ========================================
-export default defineRenderComponent({
+export default defineComponent({
   setup() {
-    console.log('[手写测试] setup called')
-
-    // ========== 用户的 setup 逻辑 ==========
     const count = ref(0)
     return () => h('view', { class: 'test-container' }, [
-      h('text', { class: 'title' }, '手写测试页面'),
+      h('text', { class: 'title' }, '测试页面（插件模式）'),
       h('text', {}, `计数: ${count.value}`),
       h('button', {
         class: 'btn',
         onClick: () => count.value++
       }, '点击 +1')
     ])
-    // ========================================
   }
 })
 </script>
