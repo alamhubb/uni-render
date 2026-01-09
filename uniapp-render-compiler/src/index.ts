@@ -11,17 +11,8 @@ import { SlimeParser, SlimeCstToAst } from 'slime-parser'
 import { SlimeGenerator } from 'slime-generator'
 import { SlimeAstTypeName, SlimeAstCreateUtils } from 'slime-ast'
 
-// 调试：打印 @vue/shared 信息
-console.log('[compiler] @vue/shared keys:', Object.keys(vueShared).slice(0, 20))
-console.log('[compiler] @vue/shared.genCacheKey:', vueShared.genCacheKey)
-console.log('[compiler] @vue/shared has genCacheKey?', 'genCacheKey' in vueShared)
-
 interface SFCBlock {
-    hasTemplate: boolean
-    script: {
-        attrs: string
-        content: string
-    }
+    scriptAttrs: string
     styles: string[]
 }
 
@@ -32,41 +23,23 @@ interface SFCBlock {
  */
 export function transformVueSFC(vueCode: string): string | null {
     try {
-        // 1. 使用 @vue/compiler-sfc 解析 Vue SFC
-        const { descriptor } = parseSFC(vueCode, {
-            filename: 'anonymous.vue'
-        })
+        const { descriptor } = parseSFC(vueCode, { filename: 'anonymous.vue' })
 
-        // 2. 提取 blocks
-        const blocks: SFCBlock = {
-            hasTemplate: !!descriptor.template && descriptor.template.content.trim().length > 0,
-            script: {
-                attrs: descriptor.script?.lang ? ` lang="${descriptor.script.lang}"` : '',
-                content: descriptor.script?.content || ''
-            },
-            styles: descriptor.styles.map(style => {
-                const attrs = style.scoped ? ' scoped' : ''
-                return `<style${attrs}>${style.content}</style>`
-            })
-        }
+        // 快速返回：有 template 或没有 script → 不处理
+        const hasTemplate = descriptor.template?.content?.trim()
+        const scriptContent = descriptor.script?.content
+        if (hasTemplate || !scriptContent) return null
 
-        if (!blocks.script.content) {
-            return null
-        }
+        // 构建需要的信息
+        const scriptAttrs = descriptor.script?.lang ? ` lang="${descriptor.script.lang}"` : ''
+        const styles = descriptor.styles.map(s => `<style${s.scoped ? ' scoped' : ''}>${s.content}</style>`)
 
-        // 3. 有 template → 不处理
-        if (blocks.hasTemplate) {
-            return null
-        }
+        // 转换 script
+        const transformedScript = transformScript(scriptContent)
+        if (!transformedScript) return null
 
-        // 4. 使用 Slime Parser 转换 script（会自动合并 vue 和 uniapp-render 的导入）
-        const transformedScript = transformScript(blocks.script.content)
-        if (!transformedScript) {
-            return null
-        }
-
-        // 5. 构建新的 SFC
-        return buildTransformedSFC(blocks, transformedScript)
+        // 构建新的 SFC
+        return buildTransformedSFC({ scriptAttrs, styles }, transformedScript)
     } catch (e: any) {
         console.error('[compiler] Full error:', e)
         console.error('[compiler] Stack:', e.stack)
@@ -209,9 +182,6 @@ function processImportsAndExports(body: any[]): any[] | null {
     return [mergedImport, ...remainingImports, ...nonImports]
 }
 
-/**
- * 构建转换后的 SFC
- */
 function buildTransformedSFC(blocks: SFCBlock, transformedScript: string): string {
     const styleParts = blocks.styles.join('\n\n')
 
@@ -219,7 +189,7 @@ function buildTransformedSFC(blocks: SFCBlock, transformedScript: string): strin
   <render-component :node="node" />
 </template>
 
-<script${blocks.script.attrs}>
+<script${blocks.scriptAttrs}>
 ${transformedScript}
 </script>
 ${styleParts ? '\n' + styleParts : ''}`
