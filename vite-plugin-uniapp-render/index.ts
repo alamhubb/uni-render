@@ -57,64 +57,12 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
         name: 'vite-plugin-uniapp-render',
         enforce: 'pre', // 在 UniApp 之前执行
 
-        /**
-         * 拦截模块解析，将空模板组件的 'vue' 重定向到 'uniapp-render'
-         */
-        resolveId(source, importer) {
-            // 只处理 'vue' 的导入
-            if (source !== 'vue') {
-                return null
-            }
-
-            // 必须有 importer（调用方文件）
-            if (!importer) {
-                return null
-            }
-
-            // 调试：打印所有 'vue' 导入
-            console.log(`[resolveId DEBUG] source='vue', importer='${importer}'`)
-
-            // 只处理 .vue 文件（注意：Vite 可能使用带查询参数的虚拟模块）
-            // 例如：test.vue?vue&type=script&lang=ts
-            const isVueFile = importer.endsWith('.vue') || importer.includes('.vue?')
-            if (!isVueFile) {
-                console.log('[resolveId DEBUG]   → 不是 .vue 文件，跳过')
-                return null
-            }
-
-            // 提取真实的 .vue 文件路径（去除查询参数）
-            const realPath = importer.split('?')[0]
-            console.log(`[resolveId DEBUG]   → 真实路径: ${realPath}`)
-
-            // 检查是否在需要处理的目录中
-            const shouldProcess = includeDirs.some(dir =>
-                realPath.includes(`/${dir}/`) || realPath.includes(`\\${dir}\\`)
-            )
-
-            if (!shouldProcess) {
-                console.log('[resolveId DEBUG]   → 不在处理目录中，跳过')
-                return null
-            }
-
-            // 检查是否有模板
-            const hasTemplateResult = hasTemplate(realPath)
-            console.log(`[resolveId DEBUG]   → hasTemplate: ${hasTemplateResult}`)
-
-            if (hasTemplateResult) {
-                // 有模板，让 UniApp 处理
-                console.log('[resolveId DEBUG]   → 有模板，不重定向')
-                return null
-            }
-
-            // 没有模板，重定向到 uniapp-render
-            console.log('[resolveId DEBUG]   → 没有模板，重定向到 uniapp-render！')
-
-            // 返回 uniapp-render 的解析，跳过自己避免循环
-            return this.resolve('uniapp-render', importer, { skipSelf: true })
-        },
+        // 注意：不使用 resolveId hook。
+        // 原因：resolveId 会影响所有 import from 'vue'，包括 UniApp 编译模板时生成的。
+        // 我们只需要替换用户代码中的 import，这在 transform 阶段由 compiler 完成。
 
         /**
-         * 转换代码，添加 useVnodeTree 包裹
+         * 转换代码
          */
         transform(code, id) {
             // 只处理 .vue 文件
