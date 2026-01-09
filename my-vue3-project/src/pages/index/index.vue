@@ -1,41 +1,32 @@
-<template>
-  <view class="content">
-    <image class="logo" src="/static/logo.png" />
-    <view class="text-area">
-      <text class="title">{{ title }}</text>
-    </view>
-  </view>
-</template>
+<script lang="ts">
+import { h, defineComponent, resolveComponent } from 'vue'
 
-<script setup lang="ts">
-import { ref } from 'vue'
-const title = ref('Hello')
+export default defineComponent({
+  setup() {
+    return () => h('view', { class: 'container' }, [
+      // UniApp Logo
+      h('image', {
+        class: 'logo',
+        src: '/static/logo.png'
+      }),
+      // HelloWorld 组件
+      h(resolveComponent('HelloWorld'), { msg: 'UniApp + Render' })
+    ])
+  }
+})
 </script>
 
-<style>
-.content {
+<style scoped>
+.container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  padding: 20px;
 }
 
 .logo {
-  height: 200rpx;
-  width: 200rpx;
-  margin-top: 200rpx;
-  margin-left: auto;
-  margin-right: auto;
-  margin-bottom: 50rpx;
-}
-
-.text-area {
-  display: flex;
-  justify-content: center;
-}
-
-.title {
-  font-size: 36rpx;
-  color: #8f8f94;
+  width: 100px;
+  height: 100px;
+  margin-bottom: 20px;
 }
 </style>
