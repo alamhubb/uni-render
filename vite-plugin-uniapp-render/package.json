@@ -6,6 +6,7 @@
     "main": "./index.ts",
     "module": "./index.ts",
     "types": "./index.ts",
+    "monorepo": "./index.ts",
     "exports": {
         ".": {
             "import": "./index.ts",
@@ -23,7 +24,7 @@
         "miniapp"
     ],
     "dependencies": {
-        "uniapp-render-compiler": "workspace:*"
+        "uniapp-render-compiler": "../uniapp-render-compiler"
     },
     "peerDependencies": {
         "vite": "^5.0.0 || ^6.0.0",

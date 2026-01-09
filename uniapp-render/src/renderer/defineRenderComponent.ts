@@ -5,11 +5,11 @@
  * 自动处理 render() 调用和响应式桥接
  */
 
-// ⚠️ 关键：分别从两个来源导入
-// - watch 从 @vue/runtime-core：用于监听 Custom Renderer 的响应式变化
-// - ref 从 vue（UniApp Vue）：用于给模板提供响应式数据
-import { watch as runtimeWatch } from '@vue/runtime-core'
-import { ref as uniRef } from 'vue'
+// ⚠️ 关键：分别导入
+// - watch: 从 @vue/runtime-core，监听 Custom Renderer 的响应式变化
+// - ref, defineComponent: 从 vue（UniApp），模板使用和组件定义
+import { watch } from '@vue/runtime-core'
+import { ref, defineComponent as vueDefineComponent } from 'vue'
 import { render } from './render'
 import type { Component } from '@vue/runtime-core'
 
@@ -28,14 +28,14 @@ export interface RenderComponentOptions {
  * 
  * 自动处理：
  * 1. 调用 render() 获取 RenderNode
- * 2. 桥接 runtime-core 和 mp-vue 的响应式系统
+ * 2. 桥接 runtime-core 和 uni-h5-vue 的响应式系统
  * 3. 返回 node 供模板使用
  * 
  * @example
  * ```typescript
- * import { defineRenderComponent, ref, h } from 'uniapp-render'
+ * import { defineComponent, ref, h } from 'uniapp-render'
  * 
- * export default defineRenderComponent({
+ * export default defineComponent({
  *   setup() {
  *     const count = ref(0)
  *     return () => h('view', {}, [
@@ -49,7 +49,8 @@ export interface RenderComponentOptions {
 export function defineRenderComponent(options: RenderComponentOptions) {
     const { setup: originalSetup, name, props: componentProps } = options
 
-    return {
+    // 使用 Vue 的 defineComponent 包装，让 UniApp 正确处理
+    return vueDefineComponent({
         name,
         props: componentProps,
         setup(props: any, ctx: any) {
@@ -67,18 +68,16 @@ export function defineRenderComponent(options: RenderComponentOptions) {
                 }
             }
 
-
             // 3. 使用 render() 获取 RenderNode
             const nodeInternal = render(InnerComponent)
             console.log('[defineRenderComponent] nodeInternal created')
 
-            // 4. 桥接：
-            // - uniRef: 创建 UniApp Vue 的响应式引用（给模板使用）
-            // - runtimeWatch: 监听 Custom Renderer 的 computed（@vue/runtime-core）
-            const node = uniRef(nodeInternal.value)
+            // 4. 创建响应式引用，供模板使用
+            const node = ref(nodeInternal.value)
             console.log('[defineRenderComponent] node ref created')
 
-            runtimeWatch(
+            // 5. 监听 nodeInternal 变化，同步到 node
+            watch(
                 () => nodeInternal.value,
                 (newVal: any) => {
                     console.log('[defineRenderComponent] nodeInternal changed, updating node')
@@ -87,8 +86,8 @@ export function defineRenderComponent(options: RenderComponentOptions) {
                 { deep: true }
             )
 
-            // 5. 返回 node 给模板使用
+            // 6. 返回 node 给模板使用
             return { node }
         }
-    }
+    })
 }

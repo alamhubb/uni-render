@@ -1,5 +1,6 @@
 <script lang="ts">
-import { h, defineComponent, resolveComponent } from 'vue'
+import { h, defineComponent } from 'vue'
+import HelloWorld from './components/HelloWorld.vue'
 
 export default defineComponent({
   setup() {
@@ -9,8 +10,8 @@ export default defineComponent({
         class: 'logo',
         src: '/static/logo.png'
       }),
-      // HelloWorld 组件
-      h(resolveComponent('HelloWorld'), { msg: 'UniApp + Render' })
+      // HelloWorld 组件 - 直接使用导入的组件
+      h(HelloWorld, { msg: 'UniApp + Render' })
     ])
   }
 })

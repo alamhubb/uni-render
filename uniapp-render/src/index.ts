@@ -2,61 +2,67 @@
  * uniapp-render - 让 UniApp 支持 Vue 渲染函数（h 函数）开发
  *
  * 核心功能：
- * - render: 使用 Custom Renderer 渲染组件
- * - defineRenderComponent: 定义渲染函数组件（自动桥接）
- * - renderEvent: 事件触发（供 RenderComponent 调用）
- *
- * 使用方式：
- * ```vue
- * <script lang="ts">
- * import { defineComponent, ref, h } from 'vue'  // 标准 Vue 写法
- *
- * export default defineComponent({
- *   setup() {
- *     const count = ref(0)
- *     return () => h('view', { onClick: () => count.value++ }, count.value)
- *   }
- * })
- * </script>
- * ```
- * 
- * vite-plugin-uni-render 会自动转换为：
- * - from 'vue' → from 'uniapp-render'
- * - defineComponent → defineRenderComponent
- * - 添加模板 <render-component :node="node" />
+ * - 自动转换无 template 的组件为渲染函数组件
+ * - defineRenderComponent: 智能桥接 render 函数到 UniApp
+ * - 完全兼容 Vue 3 标准 API
  */
 
 // ============================================
-// Custom Renderer
+// Vue 标准 API（和 @dcloudio/uni-h5-vue 一致）
 // ============================================
-export { render } from './renderer/render'
+export {
+    // 核心 API
+    h,
+
+    // 响应式 API
+    ref,
+    reactive,
+    computed,
+    readonly,
+    shallowRef,
+    shallowReactive,
+    toRef,
+    toRefs,
+
+    // 监听器
+    watch,
+    watchEffect,
+
+    // 生命周期钩子
+    onBeforeMount,
+    onMounted,
+    onBeforeUpdate,
+    onUpdated,
+    onBeforeUnmount,
+    onUnmounted,
+
+    // 依赖注入
+    provide,
+    inject,
+
+    // 其他工具
+    nextTick,
+    getCurrentInstance
+} from '@vue/runtime-core'
+
+// ============================================
+// 我们覆盖的 API
+// ============================================
+// 导出 defineRenderComponent 为 defineComponent
+// 当 vite-plugin 通过 resolveId 将 'vue' 重定向到 'uniapp-render' 时
+// 用户的 `import { defineComponent } from 'vue'` 会使用这个
+export { defineRenderComponent as defineComponent } from './renderer/defineRenderComponent'
+
+// 同时导出原名，供需要显式使用的场景
 export { defineRenderComponent } from './renderer/defineRenderComponent'
 
 // ============================================
-// 事件系统（供 RenderComponent 调用）
+// 内部工具（通常不需要用户直接使用）
 // ============================================
+export { render } from './renderer/render'
 export { renderEvent } from './renderer/event'
 
 // ============================================
 // 类型定义
 // ============================================
 export type { RenderNode } from './renderer/types'
-
-// ============================================
-// Vue API（从 @vue/runtime-core 导出）
-// 用户应该从这里导入，确保响应式系统统一
-// ============================================
-export {
-    h,
-    ref,
-    reactive,
-    computed,
-    watch,
-    watchEffect,
-    onMounted,
-    onUnmounted,
-    defineComponent as defineVueComponent  // vue 原始的 defineComponent
-} from '@vue/runtime-core'
-
-// 导出 defineRenderComponent 为 defineComponent，让用户代码无需修改
-export { defineRenderComponent as defineComponent } from './renderer/defineRenderComponent'

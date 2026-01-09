@@ -1,11 +1,57 @@
 import { defineConfig } from "vite";
-import uni from "@dcloudio/vite-plugin-uni";
-import { uniRender } from "vite-plugin-uniapp-render";
+import { uniRender } from "../vite-plugin-uniapp-render/index";
+import { createRequire } from "module";
+import { resolve } from "path";
+import { fileURLToPath } from "url";
 
-// https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [
-    uniRender(),  // ⚠️ 必须放在 uni() 之前
-    uni()
-  ],
+const require = createRequire(import.meta.url);
+const uni = require("@dcloudio/vite-plugin-uni").default;
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
+
+export default defineConfig(async ({ mode }) => {
+  // mp-h5 mode: run in browser (without vite-plugin-mp for now)
+  if (mode === 'mp-h5') {
+    return {
+      plugins: [
+        uniRender({ debug: true }),
+        uni()
+      ],
+      server: {
+        host: '192.168.1.7',
+      },
+      resolve: {
+        alias: [
+          { find: 'uniapp-render-compiler', replacement: resolve(__dirname, '../uniapp-render-compiler/src/index.ts') }
+        ]
+      },
+      optimizeDeps: {
+        exclude: [
+          'uniapp-render',
+          'uniapp-render-compiler'
+        ]
+      }
+    };
+  }
+
+  // 默认 h5 模式
+  return {
+    plugins: [
+      uniRender(),
+      uni()
+    ],
+    server: {
+      host: '192.168.1.7'
+    },
+    resolve: {
+      alias: [
+        { find: 'uniapp-render-compiler', replacement: resolve(__dirname, '../uniapp-render-compiler/src/index.ts') }
+      ]
+    },
+    optimizeDeps: {
+      exclude: [
+        'uniapp-render',
+        'uniapp-render-compiler'
+      ]
+    }
+  };
 });
