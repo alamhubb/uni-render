@@ -51,12 +51,15 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 return null
             }
 
+            // 判断是否为 page（在 pages/ 目录下）
+            const isPage = id.includes('/pages/') || id.includes('\\pages\\')
+
             // 使用 compiler 转换
-            const result = transformVueSFC(code)
+            const result = transformVueSFC(code, isPage)
 
             if (result) {
                 if (debug) {
-                    console.log(`[vite-plugin-uniapp-render] ✓ 已转换: ${relative(process.cwd(), id)}`)
+                    console.log(`[vite-plugin-uniapp-render] ✓ 已转换${isPage ? '(page)' : '(component)'}: ${relative(process.cwd(), id)}`)
                     console.log('[vite-plugin-uniapp-render] 转换后代码:')
                     console.log(result)
                 }

@@ -16,7 +16,7 @@ export default defineComponent({
           ,123
       ]),
       // HelloWorld 组件
-      // h(HelloWorld, { msg: 'Vite + Vue' })
+      h(HelloWorld, { msg: 'Vite + Vue' })
     ])
   }
 })
