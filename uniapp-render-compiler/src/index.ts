@@ -83,6 +83,11 @@ export function transformVueSFC(vueCode: string): string | null {
 
 /**
  * 使用 Slime 转换 script
+ * 
+ * 策略：
+ * 1. 保留用户的 import { defineComponent } from 'vue' 不变
+ * 2. 在第一个 import 之前添加 import { defineRenderComponent } from 'uniapp-render'
+ * 3. 把 export default defineComponent({...}) 改为 export default defineRenderComponent({...})
  */
 function transformScript(scriptContent: string): string | null {
     try {
@@ -97,17 +102,48 @@ function transformScript(scriptContent: string): string | null {
         const ast = cstToAst.toProgram(cst) as any
         if (!ast) return null
 
-        // 替换 from 'vue' → from 'uniapp-render'
+        // 查找 export default defineComponent(...) 并替换为 defineRenderComponent(...)
+        let foundDefineComponent = false
         for (const statement of ast.body) {
-            if (statement.type === SlimeAstTypeName.ImportDeclaration) {
-                if (statement.source && statement.source.value === 'vue') {
-                    statement.source.value = 'uniapp-render'
+            if (statement.type === SlimeAstTypeName.ExportDefaultDeclaration) {
+                const declaration = statement.declaration
+                // 检查是否是 defineComponent(...) 调用
+                if (declaration &&
+                    declaration.type === SlimeAstTypeName.CallExpression &&
+                    declaration.callee &&
+                    declaration.callee.type === SlimeAstTypeName.Identifier &&
+                    declaration.callee.name === 'defineComponent') {
+
+                    console.log('[compiler] Found export default defineComponent(...)')
+                    // 修改 callee 名称为 defineRenderComponent
+                    declaration.callee.name = 'defineRenderComponent'
+                    // 同时修改 raw（如果存在），因为 Generator 优先使用 raw
+                    if (declaration.callee.raw) {
+                        declaration.callee.raw = 'defineRenderComponent'
+                    }
+                    // 修改 loc.value（如果存在）
+                    if (declaration.callee.loc && declaration.callee.loc.value) {
+                        declaration.callee.loc.value = 'defineRenderComponent'
+                    }
+                    foundDefineComponent = true
                 }
             }
         }
 
+        if (!foundDefineComponent) {
+            console.log('[compiler] No defineComponent found, skipping')
+            return null
+        }
+
+        // 生成代码
         const result = SlimeGenerator.generator(ast, parser.parsedTokens)
-        return result.code
+
+        // 在生成的代码开头添加 defineRenderComponent 导入
+        const importLine = "import { defineRenderComponent } from 'uniapp-render';\n"
+        const finalCode = importLine + result.code
+
+        console.log('[compiler] Generated code:', finalCode.substring(0, 300))
+        return finalCode
     } catch (e: any) {
         console.warn(`[uniapp-render-compiler] 解析失败: ${e.message}`)
         return null

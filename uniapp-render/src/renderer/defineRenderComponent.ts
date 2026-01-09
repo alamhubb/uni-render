@@ -9,7 +9,7 @@
 // - watch: 从 @vue/runtime-core，监听 Custom Renderer 的响应式变化
 // - ref, defineComponent: 从 vue（UniApp），模板使用和组件定义
 import { watch } from '@vue/runtime-core'
-import { ref, defineComponent as vueDefineComponent } from 'vue'
+import { ref, defineComponent } from 'vue'
 import { render } from './render'
 import type { Component } from '@vue/runtime-core'
 
@@ -49,8 +49,8 @@ export interface RenderComponentOptions {
 export function defineRenderComponent(options: RenderComponentOptions) {
     const { setup: originalSetup, name, props: componentProps } = options
 
-    // 使用 Vue 的 defineComponent 包装，让 UniApp 正确处理
-    return vueDefineComponent({
+    // 使用 Vue 的 defineComponent 包装
+    return defineComponent({
         name,
         props: componentProps,
         setup(props: any, ctx: any) {
