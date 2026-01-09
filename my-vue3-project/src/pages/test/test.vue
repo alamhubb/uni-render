@@ -7,13 +7,12 @@
  * 手写测试页面 - 不使用 vite 插件转换
  * 直接内联 defineRenderComponent 的逻辑
  */
-import { h, ref } from 'uniapp-render'
-import {renddd} from "@/pages/test/cccrender";
+import {defineRenderComponent, h, ref} from 'uniapp-render'
 
 // ========================================
 // 直接内联 defineRenderComponent 的逻辑
 // ========================================
-export default renddd({
+export default defineRenderComponent({
   setup() {
     console.log('[手写测试] setup called')
 

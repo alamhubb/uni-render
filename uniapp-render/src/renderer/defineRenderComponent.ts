@@ -1,6 +1,6 @@
 /**
  * defineRenderComponent
- * 
+ *
  * 专门用于渲染函数组件的包装器
  * 自动处理 render() 调用和响应式桥接
  */
@@ -8,10 +8,11 @@
 // ⚠️ 关键：分别导入
 // - watch: 从 @vue/runtime-core，监听 Custom Renderer 的响应式变化
 // - ref, defineComponent: 从 vue（UniApp），模板使用和组件定义
-import { watch } from '@vue/runtime-core'
-import { ref, defineComponent } from 'vue'
-import { render } from './render'
-import type { Component } from '@vue/runtime-core'
+import {watch} from '@vue/runtime-core'
+import {ref as vueRef, defineComponent} from 'vue'
+import {render} from './render'
+
+import type {Component} from '@vue/runtime-core'
 
 // 【调试】模块加载标识
 const DEFINE_RENDER_MODULE_ID = Math.random().toString(36).substring(2, 8)
@@ -25,16 +26,16 @@ export interface RenderComponentOptions {
 
 /**
  * 定义一个渲染函数组件
- * 
+ *
  * 自动处理：
  * 1. 调用 render() 获取 RenderNode
  * 2. 桥接 runtime-core 和 uni-h5-vue 的响应式系统
  * 3. 返回 node 供模板使用
- * 
+ *
  * @example
  * ```typescript
  * import { defineComponent, ref, h } from 'uniapp-render'
- * 
+ *
  * export default defineComponent({
  *   setup() {
  *     const count = ref(0)
@@ -46,8 +47,8 @@ export interface RenderComponentOptions {
  * })
  * ```
  */
-export function defineRenderComponent(options: RenderComponentOptions) {
-    const { setup: originalSetup, name, props: componentProps } = options
+export function defineRenderComponent(vueComponent: RenderComponentOptions) {
+    const {setup: originalSetup, name, props: componentProps} = vueComponent
 
     // 使用 Vue 的 defineComponent 包装
     return defineComponent({
@@ -73,7 +74,7 @@ export function defineRenderComponent(options: RenderComponentOptions) {
             console.log('[defineRenderComponent] nodeInternal created')
 
             // 4. 创建响应式引用，供模板使用
-            const node = ref(nodeInternal.value)
+            const node = vueRef(nodeInternal.value)
             console.log('[defineRenderComponent] node ref created')
 
             // 5. 监听 nodeInternal 变化，同步到 node
@@ -83,11 +84,11 @@ export function defineRenderComponent(options: RenderComponentOptions) {
                     console.log('[defineRenderComponent] nodeInternal changed, updating node')
                     node.value = newVal
                 },
-                { deep: true }
+                {deep: true}
             )
 
             // 6. 返回 node 给模板使用
-            return { node }
+            return {node}
         }
     })
 }
