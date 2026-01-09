@@ -7,8 +7,8 @@
  * 手写测试页面 - 不使用 vite 插件转换
  * 直接内联 defineRenderComponent 的逻辑
  */
-import { h, ref, defineComponent } from 'vue'
-import { render } from 'uniapp-render'
+import { ref as vueRef, defineComponent } from 'vue'
+import { render, h, ref } from 'uniapp-render'
 import type { Component } from '@vue/runtime-core'
 import { watch } from '@vue/runtime-core'
 
@@ -24,9 +24,9 @@ export default defineComponent({
     const userRenderFn = () => h('view', { class: 'test-container' }, [
       h('text', { class: 'title' }, '手写测试页面'),
       h('text', {}, `计数: ${count.value}`),
-      h('button', { 
+      h('button', {
         class: 'btn',
-        onClick: () => count.value++ 
+        onClick: () => count.value++
       }, '点击 +1')
     ])
     // ========================================
@@ -46,7 +46,7 @@ export default defineComponent({
     console.log('[手写测试] nodeInternal created:', nodeInternal.value)
 
     // 4. 创建响应式引用，供模板使用
-    const node = ref(nodeInternal.value)
+    const node = vueRef(nodeInternal.value)
     console.log('[手写测试] node ref created:', node.value)
 
     // 5. 监听 nodeInternal 变化，同步到 node
