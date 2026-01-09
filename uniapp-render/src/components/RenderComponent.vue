@@ -4,7 +4,7 @@
     <!-- view 容器 -->
     <view v-if="nodeToRender.type === 'view'" :id="nodeToRender.props?.id"
       :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style" :data-id="nodeToRender.id"
-      @tap="onTap" @click="onTap" @longpress="onLongPress">
+      @tap="onTap" @longpress="onLongPress">
       <text v-if="nodeToRender.text">{{ nodeToRender.text }}</text>
       <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
     </view>
@@ -21,7 +21,7 @@
     <!-- button 按钮 - 使用 view 包装以确保事件触发 -->
     <view v-else-if="nodeToRender.type === 'button'" :id="nodeToRender.props?.id"
       :class="[attrs.class, nodeToRender.props?.class, 'uni-btn']" :style="nodeToRender.props?.style"
-      :data-id="nodeToRender.id" @tap="onTap" @click="onTap">
+      :data-id="nodeToRender.id" @tap="onTap">
       <text v-if="nodeToRender.text">{{ nodeToRender.text }}</text>
       <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
     </view>
