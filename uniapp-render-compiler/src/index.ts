@@ -6,9 +6,15 @@
  */
 
 import { parse as parseSFC } from '@vue/compiler-sfc'
+import * as vueShared from '@vue/shared'
 import { SlimeParser, SlimeCstToAst } from 'slime-parser'
 import { SlimeGenerator } from 'slime-generator'
 import { SlimeAstTypeName } from 'slime-ast'
+
+// 调试：打印 @vue/shared 信息
+console.log('[compiler] @vue/shared keys:', Object.keys(vueShared).slice(0, 20))
+console.log('[compiler] @vue/shared.genCacheKey:', vueShared.genCacheKey)
+console.log('[compiler] @vue/shared has genCacheKey?', 'genCacheKey' in vueShared)
 
 interface SFCBlock {
     hasTemplate: boolean
@@ -68,6 +74,8 @@ export function transformVueSFC(vueCode: string): string | null {
         // 6. 构建新的 SFC
         return buildTransformedSFC(blocks, transformedScript)
     } catch (e: any) {
+        console.error('[compiler] Full error:', e)
+        console.error('[compiler] Stack:', e.stack)
         console.warn(`[uniapp-render-compiler] 转换失败: ${e.message}`)
         return null
     }
@@ -85,7 +93,8 @@ function transformScript(scriptContent: string): string | null {
             return null
         }
 
-        const ast = SlimeCstToAst.toProgram(cst) as any
+        const cstToAst = new SlimeCstToAst()
+        const ast = cstToAst.toProgram(cst) as any
         if (!ast) return null
 
         // 替换 from 'vue' → from 'uniapp-render'

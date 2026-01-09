@@ -36,8 +36,8 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@vue/reactivity": "^3.4.21",
-    "@vue/runtime-core": "^3.4.21",
-    "@vue/shared": "^3.4.21"
+    "@vue/reactivity": "3.4.21",
+    "@vue/runtime-core": "3.4.21",
+    "@vue/shared": "3.4.21"
   }
 }

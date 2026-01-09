@@ -42,7 +42,54 @@ export {
 
     // 其他工具
     nextTick,
-    getCurrentInstance
+    getCurrentInstance,
+
+    // Block 相关 (模板编译需要)
+    createBlock,
+    openBlock,
+    createVNode,
+    createTextVNode,
+    createCommentVNode,
+    createElementBlock,
+    createElementVNode,
+    Fragment,
+    Text,
+    Comment,
+
+    // 组件解析 (模板编译需要)
+    resolveComponent,
+    resolveDirective,
+    resolveDynamicComponent,
+
+    // 指令相关
+    withDirectives,
+
+    // 渲染相关
+    renderSlot,
+    renderList,
+    withCtx,
+    mergeProps,
+    normalizeClass,
+    normalizeStyle,
+    normalizeProps,
+    guardReactiveProps,
+    toHandlers,
+    cloneVNode,
+
+    // 响应式工具
+    isRef,
+    unref,
+    toValue,
+    isReactive,
+    isReadonly,
+    isProxy,
+    markRaw,
+    toRaw,
+    triggerRef,
+    customRef,
+    shallowReadonly,
+    effectScope,
+    onScopeDispose
 } from '@vue/runtime-core'
 
 // ============================================
