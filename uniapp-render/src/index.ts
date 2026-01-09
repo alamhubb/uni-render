@@ -55,5 +55,8 @@ export {
     watchEffect,
     onMounted,
     onUnmounted,
-    defineComponent
+    defineComponent as defineVueComponent  // vue 原始的 defineComponent
 } from '@vue/runtime-core'
+
+// 导出 defineRenderComponent 为 defineComponent，让用户代码无需修改
+export { defineRenderComponent as defineComponent } from './renderer/defineRenderComponent'
