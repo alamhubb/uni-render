@@ -6,7 +6,6 @@
  */
 
 import { parse as parseSFC } from '@vue/compiler-sfc'
-import * as vueShared from '@vue/shared'
 import { SlimeParser, SlimeCstToAst } from 'slime-parser'
 import { SlimeGenerator } from 'slime-generator'
 import { SlimeAstTypeName, SlimeAstCreateUtils } from 'slime-ast'
