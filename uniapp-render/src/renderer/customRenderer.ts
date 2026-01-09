@@ -57,7 +57,8 @@ const nodeOps: RendererOptions<InternalNode, InternalNode> = {
     },
 
     createText(text: string): InternalNode {
-        return reactive({
+        console.log('[createText] text:', text)
+        const node = reactive({
             id: ++nodeIdCounter,
             type: '#text',
             props: {},
@@ -65,6 +66,8 @@ const nodeOps: RendererOptions<InternalNode, InternalNode> = {
             children: [],
             _parent: null
         }) as unknown as InternalNode
+        console.log('[createText] created node:', { id: node.id, type: node.type, text: node.text })
+        return node
     },
 
     createComment(): InternalNode {
@@ -78,10 +81,12 @@ const nodeOps: RendererOptions<InternalNode, InternalNode> = {
     },
 
     setText(node: InternalNode, text: string): void {
+        console.log('[setText] nodeId:', node.id, 'text:', text)
         node.text = text
     },
 
     setElementText(node: InternalNode, text: string): void {
+        console.log('[setElementText] nodeId:', node.id, 'text:', text)
         node.children = []
         node.text = text
     },

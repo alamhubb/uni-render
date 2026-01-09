@@ -13,9 +13,10 @@ export default defineComponent({
         h('navigator', { url: 'https://vuejs.org/', class: 'logo-link' }, [
           h('image', { src: '/static/vue.svg', class: 'logo vue' })
         ])
+          ,123
       ]),
       // HelloWorld 组件
-      h(HelloWorld, { msg: 'Vite + Vue' })
+      // h(HelloWorld, { msg: 'Vite + Vue' })
     ])
   }
 })

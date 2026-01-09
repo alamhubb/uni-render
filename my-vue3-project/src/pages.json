@@ -7,12 +7,6 @@
 	},
 	"pages": [
 		{
-			"path": "pages/test/test",
-			"style": {
-				"navigationBarTitleText": "手写测试"
-			}
-		},
-		{
 			"path": "pages/index/index",
 			"style": {
 				"navigationBarTitleText": "uniapp-render"
