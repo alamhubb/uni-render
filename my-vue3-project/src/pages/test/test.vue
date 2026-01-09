@@ -53,7 +53,7 @@ export default renddd({
 
     // ========== 用户的 setup 逻辑 ==========
     const count = ref(0)
-    const userRenderFn = () => h('view', { class: 'test-container' }, [
+    return () => h('view', { class: 'test-container' }, [
       h('text', { class: 'title' }, '手写测试页面'),
       h('text', {}, `计数: ${count.value}`),
       h('button', {
