@@ -19,13 +19,9 @@
     <text v-else-if="nodeToRender.type === '#text'" :class="attrs.class">{{ nodeToRender.text }}</text>
 
     <!-- button 按钮 - 使用 view 包装以确保事件触发 -->
-    <view v-else-if="nodeToRender.type === 'button'" 
-      :id="nodeToRender.props?.id"
-      :class="[attrs.class, nodeToRender.props?.class, 'uni-btn']" 
-      :style="nodeToRender.props?.style"
-      :data-id="nodeToRender.id" 
-      @tap="onTap" 
-      @click="onTap">
+    <view v-else-if="nodeToRender.type === 'button'" :id="nodeToRender.props?.id"
+      :class="[attrs.class, nodeToRender.props?.class, 'uni-btn']" :style="nodeToRender.props?.style"
+      :data-id="nodeToRender.id" @tap="onTap" @click="onTap">
       <text v-if="nodeToRender.text">{{ nodeToRender.text }}</text>
       <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
     </view>
@@ -81,7 +77,7 @@ export default defineComponent({
      */
     function handleEvent(e: any, eventType: string) {
       console.log('[handleEvent] called', { eventType, hasProps: !!nodeToRender.value?.props })
-      
+
       if (!nodeToRender.value?.props) {
         console.warn('[handleEvent] ⚠️ nodeToRender.value.props is null')
         return
@@ -92,7 +88,7 @@ export default defineComponent({
       console.log('[handleEvent] eventId:', eventId, typeof eventId)
 
       if (!eventId || typeof eventId !== 'string') {
-        console.warn('[handleEvent] ⚠️ invalid eventId')
+        // 没有 eventId 可能是事件冒泡到父级元素，静默返回
         return
       }
 
