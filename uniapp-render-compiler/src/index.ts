@@ -5,11 +5,10 @@
  * 使用 Slime AST 转换 script 内容
  */
 
-import { parse as parseSFC } from '@vue/compiler-sfc'
+import { parse as parseSFC, compileScript, compileTemplate, SFCScriptCompileOptions } from '@vue/compiler-sfc'
 import { SlimeParser, SlimeCstToAst } from 'slime-parser'
 import { SlimeGenerator } from 'slime-generator'
 import { SlimeAstTypeName, SlimeAstCreateUtils } from 'slime-ast'
-import { templateAstToHFunction } from './template-transform'
 
 interface SFCBlock {
     scriptAttrs: string
@@ -41,7 +40,7 @@ export function transformVueSFC(vueCode: string, isPage: boolean = false): strin
             console.log(`[compiler] 处理有 template 的${isPage ? 'page' : 'component'}`)
             const transformedScript = transformScriptWithTemplate(
                 scriptContent || '',
-                descriptor.template.ast,
+                descriptor,
                 isPage
             )
             if (!transformedScript) return null
@@ -66,64 +65,153 @@ export function transformVueSFC(vueCode: string, isPage: boolean = false): strin
 
 /**
  * 处理有 template 的组件
- * 将 template AST 转换为 render 函数，合并到 script 中
+ * 使用 @vue/compiler-sfc 的 compileScript 和 compileTemplate
  */
-function transformScriptWithTemplate(scriptContent: string, templateAst: any, isPage: boolean): string | null {
+function transformScriptWithTemplate(scriptContent: string, descriptor: any, isPage: boolean): string | null {
     try {
-        console.log('[compiler] 开始处理有 template 的组件')
+        console.log('[compiler] 使用官方 compileScript + compileTemplate 处理')
+        const id = 'uni-render' // 简单的 ID
 
-        // 1. 将 template AST 转换为 h() 调用的代码
-        const renderFunctionCode = templateAstToHFunction(templateAst)
-
-        console.log('[compiler] 生成的 render 函数代码:', renderFunctionCode.substring(0, 200))
-
-        // 2. 如果没有 script，创建一个基本的组件
-        if (!scriptContent.trim()) {
-            return `import { h, defineComponent } from 'vue'
-
-export default defineComponent({
-  setup() {
-    return ${renderFunctionCode}
-  }
-})`
+        // 1. 编译 Script
+        let compiledScript: any
+        try {
+            // 如果只有 template 没有 script，compileScript 需要从 descriptor 中获取
+            // 实际上 descriptor 包含了 script 和 scriptSetup
+            compiledScript = compileScript(descriptor, {
+                id,
+                inlineTemplate: false
+            })
+        } catch (e: any) {
+            // 如果没有 script 标签，可能需要手动构造一个空的导出
+            if (!descriptor.script && !descriptor.scriptSetup) {
+                compiledScript = { content: 'import { defineComponent } from "vue";\nexport default defineComponent({});' }
+            } else {
+                throw e
+            }
         }
 
-        // 3. 解析现有的 script
-        const parser = new SlimeParser(scriptContent)
-        const cst = parser.Program()
-
-        if (!cst || !parser.parsedTokens || parser.parsedTokens.length === 0) {
-            console.warn('[compiler] 解析 script 失败，使用简单合并')
-            // 降级：简单地在 script 后面追加 render 函数
-            return scriptContent + `\n\n// Auto-generated render function\nconst __render = ${renderFunctionCode}\n`
+        // 2. 编译 Template
+        let renderCode = ''
+        if (descriptor.template) {
+            const compiledTemplate = compileTemplate({
+                source: descriptor.template.content,
+                filename: 'anonymous.vue',
+                id,
+                compilerOptions: {
+                    mode: 'module',
+                    nodeTransforms: [
+                        (node: any) => {
+                            if (node.type === 1) { // ELEMENT
+                                const tagMap: Record<string, string> = {
+                                    'div': 'view',
+                                    'span': 'text',
+                                    'p': 'view',
+                                    'h1': 'text',
+                                    'h2': 'text',
+                                    'h3': 'text',
+                                    'h4': 'text',
+                                    'h5': 'text',
+                                    'h6': 'text',
+                                    'a': 'navigator',
+                                    'img': 'image',
+                                    'button': 'button',
+                                    'ul': 'view',
+                                    'li': 'view'
+                                }
+                                if (tagMap[node.tag]) {
+                                    node.tag = tagMap[node.tag]
+                                }
+                            }
+                        }
+                    ]
+                }
+            })
+            renderCode = compiledTemplate.code
         }
 
-        const cstToAst = new SlimeCstToAst()
-        const ast = cstToAst.toProgram(cst) as any
-        if (!ast) {
-            console.warn('[compiler] AST 转换失败')
-            return null
-        }
+        // 3. 合并代码
+        // 我们利用 SlimeParser 来解析并重新组织代码
+        // 目标结构：
+        //   Imports (Vue, etc)
+        //   const __sfc__ = defineComponent(...)
+        //   function render(...) { ... }
+        //   __sfc__.render = render
+        //   export default __sfc__
 
-        // 4. 处理导入和添加 render 函数
-        // TODO: 更完善的 AST 修改逻辑
-        // 目前先用简单的字符串拼接
-        const body = processImportsAndExports(ast.body)
-        if (!body) return null
+        const scriptCode = compiledScript.content
+        const finalCode = mergeCode(scriptCode, renderCode, isPage)
 
-        ast.body = body
-
-        // 生成代码
-        const result = SlimeGenerator.generator(ast, parser.parsedTokens)
-
-        // 在生成的代码中添加 render 函数
-        // 简化方案：在最后添加 render 函数并修改 setup 返回
-        return result.code + `\n\n// Auto-generated render function\n// Render: ${renderFunctionCode}\n`
+        return finalCode
 
     } catch (e: any) {
         console.error('[compiler] transformScriptWithTemplate 失败:', e.message)
         return null
     }
+}
+
+/**
+ * 合并 Script 和 Render 代码
+ */
+function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): string {
+    // 1. 处理 Script 代码
+    // 我们需要把 export default defineComponent(...) 替换为 const __sfc__ = defineComponent(...)
+    let newScriptCode = scriptCode
+
+    // 查找 export default
+    if (newScriptCode.includes('export default')) {
+        newScriptCode = newScriptCode.replace('export default', 'const __sfc__ =')
+    } else {
+        newScriptCode += '\nconst __sfc__ = {};'
+    }
+
+    // 2. 处理 Render 代码
+    // compileTemplate 生成的代码包含 import { ... } from "vue" 和 export function render
+    // 我们需要把 export function render 改为 function render
+    let newRenderCode = renderCode.replace('export function render', 'function render')
+
+    // 3. 清理 imports
+    const allImports: string[] = []
+
+    // 辅助函数：分离 import
+    const splitImports = (code: string) => {
+        const lines = code.split('\n')
+        const imports: string[] = []
+        const body: string[] = []
+        lines.forEach(line => {
+            if (line.trim().startsWith('import ') || line.trim().startsWith('import{')) {
+                imports.push(line)
+            } else {
+                body.push(line)
+            }
+        })
+        return { imports, body: body.join('\n') }
+    }
+
+    const scriptParts = splitImports(newScriptCode)
+    const renderParts = splitImports(newRenderCode)
+
+    allImports.push(...scriptParts.imports)
+    allImports.push(...renderParts.imports)
+
+    // 组合
+    let result = `
+${allImports.join('\n')}
+
+${scriptParts.body}
+
+${renderParts.body}
+
+__sfc__.render = render
+
+// Page 组件需要 defineRenderComponent
+${isPage ?
+            `import { defineRenderComponent } from 'uniapp-render'
+export default defineRenderComponent(__sfc__)`
+            :
+            `export default __sfc__`
+        }
+`
+    return result
 }
 
 /**
