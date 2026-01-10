@@ -10,7 +10,7 @@
 // - watch: 从 @vue/runtime-core，监听 Custom Renderer 的响应式变化
 // - ref, defineComponent: 从 @dcloudio/uni-h5-vue（UniApp的Vue），模板使用和组件定义
 import { watch } from '@vue/runtime-core'
-import { ref as vueRef, defineComponent, nextTick, onUnmounted } from '@dcloudio/uni-h5-vue'
+import { ref as vueRef, defineComponent, nextTick, onUnmounted } from 'vue'
 import { render } from './render'
 
 import type { Component } from '@vue/runtime-core'
