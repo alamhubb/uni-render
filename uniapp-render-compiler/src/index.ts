@@ -319,8 +319,8 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
     finalMagic.append('\n')
 
     if (isPage) {
-        // Page 组件：使用自执行函数包装（不用 defineRenderComponent）
-        finalMagic.append('export default (function createComponent2Render() {\n')
+        // Page 组件：使用 defineRenderComponent 包装
+        finalMagic.append('function createComponent2Render() {\n')
         for (const line of scriptParts.body.split('\n')) {
             finalMagic.append('  ' + line + '\n')
         }
@@ -331,13 +331,14 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
         finalMagic.append('\n')
         finalMagic.append('  __sfc__.render = render\n')
         finalMagic.append('  return __sfc__\n')
-        finalMagic.append('})()\n')
+        finalMagic.append('}\n\n')
+        finalMagic.append("import { defineRenderComponent } from 'uniapp-render'\n")
+        finalMagic.append('export default defineRenderComponent(createComponent2Render())\n')
 
-        // defineRenderComponent 版本（暂时禁用）：
-        // finalMagic.append('function createComponent2Render() {\n')
+        // 自执行函数版本（不用 defineRenderComponent）：
+        // finalMagic.append('export default (function createComponent2Render() {\n')
         // ...
-        // finalMagic.append("import { defineRenderComponent } from 'uniapp-render'\n")
-        // finalMagic.append('export default defineRenderComponent(createComponent2Render())\n')
+        // finalMagic.append('})()\n')
     } else {
         // 非 Page 组件：只合并，不包装
         finalMagic.append(scriptParts.body + '\n\n')
