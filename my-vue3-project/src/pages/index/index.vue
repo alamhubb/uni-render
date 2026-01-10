@@ -1,26 +1,18 @@
-<script lang="ts">
-import { h, ref, defineComponent } from 'vue'
+<script setup lang="ts">
 import HelloWorld from './components/HelloWorld.vue'
-
-export default defineComponent({
-  setup() {
-    return () => h('view', {}, [
-      // Logo 区域
-      h('view', {}, [
-        h('navigator', { url: 'https://vite.dev', class: 'logo-link' }, [
-          h('image', { src: '/static/logo.png', class: 'logo' })
-        ]),
-        h('navigator', { url: 'https://vuejs.org/', class: 'logo-link' }, [
-          h('image', { src: '/static/logo.png', class: 'logo vue' })
-        ])
-          ,123
-      ]),
-      // HelloWorld 组件
-      h(HelloWorld, { msg: 'Vite + Vue' })
-    ])
-  }
-})
 </script>
+
+<template>
+  <div>
+    <a href="https://vite.dev" target="_blank">
+      <img src="/static/logo.png" class="logo" alt="Vite logo" />
+    </a>
+    <a href="https://vuejs.org/" target="_blank">
+      <img src="/static/logo.png" class="logo vue" alt="Vue logo" />
+    </a>
+  </div>
+  <HelloWorld msg="Vite + Vue" />
+</template>
 
 <style scoped>
 .logo {
