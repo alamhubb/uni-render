@@ -7,11 +7,11 @@
  * 转换逻辑委托给 uniapp-render-compiler
  */
 
-import type { Plugin } from 'vite'
-import { relative, resolve, dirname, isAbsolute, basename, join, extname } from 'pathe'
-import { readFileSync, existsSync } from 'fs'
-import { transformVueSFC } from 'uniapp-render-compiler'
-import { parse as parseSFC } from '@vue/compiler-sfc'
+import type {Plugin} from 'vite'
+import {relative, resolve, dirname, isAbsolute, basename, join, extname} from 'pathe'
+import {readFileSync, existsSync} from 'fs'
+import {transformVueSFC} from 'uniapp-render-compiler'
+import {parse as parseSFC} from '@vue/compiler-sfc'
 
 export interface UniRenderOptions {
     /** 是否开启调试日志 */
@@ -74,7 +74,7 @@ function transformPageVue(code: string, id: string, root: string, debug: boolean
     if (debug) {
         console.log(`[vite-plugin-uniapp-render] ✓ 已转换(page): ${relative(process.cwd(), id)}`)
     }
-    return { code: result, map: null }
+    return {code: result, map: null}
 }
 
 /**
@@ -107,7 +107,9 @@ function getPagePaths(root: string): Set<string> {
             }
         }
 
-        console.log('[vite-plugin-uniapp-render] Found pages:', Array.from(cachedPagePaths))
+        if (singletonDebug) {
+            console.log('[vite-plugin-uniapp-render] Found pages:', Array.from(cachedPagePaths))
+        }
     } catch (e: any) {
         console.error('[vite-plugin-uniapp-render] Failed to parse pages.json:', e.message)
     }
@@ -115,8 +117,13 @@ function getPagePaths(root: string): Set<string> {
     return cachedPagePaths
 }
 
+
+let singletonDebug = false
+
 export function uniRender(options: UniRenderOptions = {}): Plugin {
-    const { debug = false } = options
+    const {debug = false} = options
+
+    singletonDebug = debug
 
     let root = ''
     // 缓存非 Page 的 .vue 文件转换结果
@@ -238,7 +245,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 const fs = await import('fs')
                 if (fs.existsSync(originalVuePath)) {
                     const code = fs.readFileSync(originalVuePath, 'utf-8')
-                    const { descriptor } = parseSFC(code, { filename: originalVuePath })
+                    const {descriptor} = parseSFC(code, {filename: originalVuePath})
                     const styles = descriptor.styles.map(s => s.content).join('\n')
                     if (styles.trim()) {
                         transformedCssCache.set(originalVuePath, styles)
@@ -270,7 +277,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             const code = fs.readFileSync(originalPath, 'utf-8')
 
             // 解析 SFC 获取 style 块
-            const { descriptor } = parseSFC(code, { filename: originalPath })
+            const {descriptor} = parseSFC(code, {filename: originalPath})
             const styles = descriptor.styles.map(s => s.content).join('\n')
 
             // 缓存 CSS

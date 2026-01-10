@@ -13,7 +13,7 @@ export default defineConfig(async ({ mode }) => {
   if (mode === 'mp-h5') {
     return {
       plugins: [
-        uniRender({ debug: true }),
+        uniRender(),
         uni()
       ],
       server: {
@@ -36,7 +36,7 @@ export default defineConfig(async ({ mode }) => {
   // 默认 h5 模式
   return {
     plugins: [
-      uniRender({ debug: true }),
+      uniRender(),
       uni()
     ],
     server: {
