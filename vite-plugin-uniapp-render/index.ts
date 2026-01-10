@@ -312,8 +312,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
         },
 
         /**
-         * 只转换 Page .vue 文件
-         * 非 Page .vue 在 resolveId 中已被重定向为虚拟模块，由 load 处理
+         * 只转换 Page .vue 文件（逐步调试）
          */
         transform(code, id) {
             if (extname(id) !== '.vue') return null
@@ -323,11 +322,16 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             // 只处理 Page 组件
             if (!isPageComponent(id, root)) return null
 
+            if (debug) {
+                console.log(`[vite-plugin-uniapp-render] 开始处理 Page: ${relative(process.cwd(), id)}`)
+            }
+
             const result = transformVueSFC(code, true) // isPage = true
             if (!result) return null
 
             if (debug) {
                 console.log(`[vite-plugin-uniapp-render] ✓ 已转换(page): ${relative(process.cwd(), id)}`)
+                console.log(`[vite-plugin-uniapp-render] 转换后代码:\n${result}`)
             }
 
             return { code: result, map: null }

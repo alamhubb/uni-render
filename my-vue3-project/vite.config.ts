@@ -36,7 +36,7 @@ export default defineConfig(async ({ mode }) => {
   // 默认 h5 模式
   return {
     plugins: [
-      uniRender({ debug: true }),
+      // uniRender({ debug: true }),  // 暂时禁用
       uni()
     ],
     server: {
