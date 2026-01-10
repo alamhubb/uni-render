@@ -63,15 +63,16 @@ type TransformResult = { code: string; map: null } | null
  * 处理 Page Vue 文件
  */
 function transformPageVue(code: string, id: string, root: string, debug: boolean): TransformResult {
-    if (!isPageComponent(id, root)) return null
+    // 确认是 Page 组件，否则逻辑有问题
+    if (!isPageComponent(id, root)) {
+        throw new Error(`[vite-plugin-uniapp-render] 意外的非 Page 组件: ${id}`)
+    }
 
     const result = transformVueSFC(code, true)
     if (!result) return null
 
     if (debug) {
         console.log(`[vite-plugin-uniapp-render] ✓ 已转换(page): ${relative(process.cwd(), id)}`)
-        console.log('[vite-plugin-uniapp-render] 转换后代码:')
-        console.log(result)
     }
     return { code: result, map: null }
 }
@@ -163,7 +164,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 }
 
                 // 排除 RenderComponent.vue（我们自己的组件，不需要转换）
-                if (source.includes('uniapp-render') && source.includes('RenderComponent')) {
+                if (basename(source) === 'RenderComponent.vue') {
                     return null
                 }
 
@@ -314,6 +315,8 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
          */
         transform(code, id) {
             if (extname(id) !== '.vue') return null
+            if (basename(id) === 'App.vue') return null
+            if (basename(id) === 'RenderComponent.vue') return null
             return transformPageVue(code, id, root, debug)
         }
     }
