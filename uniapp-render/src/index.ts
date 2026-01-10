@@ -76,6 +76,7 @@ export {
     guardReactiveProps,
     toHandlers,
     cloneVNode,
+    toDisplayString,  // 模板编译需要
 
     // 响应式工具
     isRef,

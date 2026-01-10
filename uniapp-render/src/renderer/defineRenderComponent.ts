@@ -88,7 +88,7 @@ export function defineRenderComponent(options: RenderComponentOptions) {
                 { deep: true }
             )
 
-            // 6. 组件卸载时清理资源
+            // 6. 组件卸载时清理资源（暂时注释看看效果）
             onUnmounted(() => {
                 unmount()
             })
