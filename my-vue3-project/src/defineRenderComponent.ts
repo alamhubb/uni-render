@@ -54,5 +54,6 @@ export function defineRenderComponent(component: any) {
     console.log('[defineRenderComponent] render 完成，node:', node.value)
 
     // 返回渲染结果
-    return { node, unmount }
+    return InnerComponent
+    // return { node, unmount }
 }
