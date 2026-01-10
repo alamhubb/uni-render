@@ -319,8 +319,8 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
     finalMagic.append('\n')
 
     if (isPage) {
-        // Page 组件：包装在函数里
-        finalMagic.append('function createComponent2Render() {\n')
+        // Page 组件：使用自执行函数包装（不用 defineRenderComponent）
+        finalMagic.append('export default (function createComponent2Render() {\n')
         for (const line of scriptParts.body.split('\n')) {
             finalMagic.append('  ' + line + '\n')
         }
@@ -331,9 +331,13 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
         finalMagic.append('\n')
         finalMagic.append('  __sfc__.render = render\n')
         finalMagic.append('  return __sfc__\n')
-        finalMagic.append('}\n\n')
-        finalMagic.append("import { defineRenderComponent } from 'uniapp-render'\n")
-        finalMagic.append('export default defineRenderComponent(createComponent2Render())\n')
+        finalMagic.append('})()\n')
+
+        // 原始包装逻辑（使用 defineRenderComponent）：
+        // finalMagic.append('function createComponent2Render() {\n')
+        // ...
+        // finalMagic.append("import { defineRenderComponent } from 'uniapp-render'\n")
+        // finalMagic.append('export default defineRenderComponent(createComponent2Render())\n')
     } else {
         // 非 Page 组件：只合并，不包装
         finalMagic.append(scriptParts.body + '\n\n')
@@ -352,16 +356,22 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
 function buildTransformedSFC(blocks: SFCBlock, transformedScript: string, isPage: boolean): string {
     const styleParts = blocks.styles.join('\n\n')
 
-    // Page 组件：添加 <render-component> template
+    // Page 组件：不使用 template，只有 script（因为有 render 函数）
     if (isPage) {
-        return `<template>
-  <render-component :node="node" />
-</template>
-
-<script${blocks.scriptAttrs}>
+        return `<script${blocks.scriptAttrs}>
 ${transformedScript}
 </script>
 ${styleParts ? '\n' + styleParts : ''}`
+
+        // 原始逻辑（完整包装版）：
+        // return `<template>
+        //   <render-component :node="node" />
+        // </template>
+        // 
+        // <script${blocks.scriptAttrs}>
+        // ${transformedScript}
+        // </script>
+        // ${styleParts ? '\n' + styleParts : ''}`
     }
 
     // 非 Page 组件：返回纯 TS 代码（不需要 .vue 格式，由虚拟模块处理）
