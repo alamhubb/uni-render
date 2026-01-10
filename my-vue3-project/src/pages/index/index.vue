@@ -8,10 +8,10 @@ export default defineComponent({
       // Logo 区域
       h('view', {}, [
         h('navigator', { url: 'https://vite.dev', class: 'logo-link' }, [
-          h('image', { src: '/static/vite.svg', class: 'logo' })
+          h('image', { src: '/static/logo.png', class: 'logo' })
         ]),
         h('navigator', { url: 'https://vuejs.org/', class: 'logo-link' }, [
-          h('image', { src: '/static/vue.svg', class: 'logo vue' })
+          h('image', { src: '/static/logo.png', class: 'logo vue' })
         ])
           ,123
       ]),
