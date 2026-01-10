@@ -1,12 +1,11 @@
 {
     "name": "uniapp-render-compiler",
-    "version": "0.1.0",
+    "version": "0.0.1-alpha.1",
     "type": "module",
     "description": "Compiler for uniapp-render plugin",
     "main": "./src/index.ts",
     "module": "./src/index.ts",
     "types": "./src/index.ts",
-    "monorepo": "./src/index.ts",
     "exports": {
         ".": {
             "import": "./src/index.ts",
@@ -19,12 +18,11 @@
         "src"
     ],
     "dependencies": {
-        "@vue/compiler-sfc": "3.4.21",
-        "@vue/shared": "3.4.21",
-        "slime-ast": "^0.2.83",
-        "slime-generator": "^0.2.83",
-        "slime-parser": "^0.2.83",
-        "slime-xml": "^0.2.83"
+        "magic-string": "^0.30.0",
+        "oxc-parser": "^0.107.0"
+    },
+    "peerDependencies": {
+        "@vue/compiler-sfc": "^3.0.0"
     },
     "license": "MIT"
 }

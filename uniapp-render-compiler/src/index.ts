@@ -2,17 +2,97 @@
  * uniapp-render-compiler
  * 
  * 使用 @vue/compiler-sfc 解析 Vue SFC 文件
- * 使用 Slime AST 转换 script 内容
+ * 使用 OXC + magic-string 进行高性能代码转换
+ * 
+ * - Page 组件：替换 import 来源 + 替换 defineComponent → defineRenderComponent
+ * - 非 Page 组件：只替换 import 来源
  */
 
-import { parse as parseSFC, compileScript, compileTemplate, SFCScriptCompileOptions } from '@vue/compiler-sfc'
-import { SlimeParser, SlimeCstToAst } from 'slime-parser'
-import { SlimeGenerator } from 'slime-generator'
-import { SlimeAstTypeName, SlimeAstCreateUtils } from 'slime-ast'
+import { parse as parseSFC, compileScript, compileTemplate } from '@vue/compiler-sfc'
+import { parseSync, Visitor } from 'oxc-parser'
+import MagicString from 'magic-string'
 
 interface SFCBlock {
     scriptAttrs: string
     styles: string[]
+}
+
+/**
+ * 快速替换脚本中的 import from 'vue' → import from 'uniapp-render'
+ * 使用 OXC + magic-string，性能极高
+ * 适用于非 Page 组件
+ */
+export function replaceVueImports(code: string): string {
+    const result = parseSync('file.ts', code)
+    if (result.errors.length > 0) return code
+
+    const s = new MagicString(code)
+    let hasChange = false
+
+    for (const imp of result.module.staticImports) {
+        if (imp.moduleRequest.value === 'vue') {
+            hasChange = true
+            // moduleRequest.start/end 包含引号位置，所以替换内容也需要带引号
+            s.overwrite(imp.moduleRequest.start, imp.moduleRequest.end, "'uniapp-render'")
+        }
+    }
+
+    return hasChange ? s.toString() : code
+}
+
+/**
+ * 转换脚本（Page 组件）
+ * 替换 import + 替换 defineComponent → defineRenderComponent
+ */
+export function transformScriptForPage(code: string): string {
+    const result = parseSync('file.ts', code)
+    if (result.errors.length > 0) return code
+
+    const s = new MagicString(code)
+    let hasDefineComponent = false
+    let vueImportNode: any = null
+    const vueSpecifiers: string[] = []
+
+    // 1. 使用 Visitor 遍历 AST
+    const visitor = new Visitor({
+        // 收集 vue 导入的 specifiers
+        ImportDeclaration(node: any) {
+            if (node.source?.value === 'vue') {
+                vueImportNode = node
+                for (const spec of node.specifiers || []) {
+                    if (spec.type === 'ImportSpecifier' && spec.imported?.name) {
+                        vueSpecifiers.push(spec.imported.name)
+                    }
+                }
+            }
+        },
+        // 检查是否有 defineComponent 调用
+        CallExpression(node: any) {
+            if (node.callee?.type === 'Identifier' && node.callee.name === 'defineComponent') {
+                hasDefineComponent = true
+                s.overwrite(node.callee.start, node.callee.end, 'defineRenderComponent')
+            }
+        }
+    })
+    visitor.visit(result.program)
+
+    // 2. 如果有 vue 导入，需要处理
+    if (vueImportNode) {
+        if (hasDefineComponent) {
+            // 替换 defineComponent → defineRenderComponent 并更新导入
+            const newSpecifiers = vueSpecifiers
+                .filter(s => s !== 'defineComponent')
+                .concat('defineRenderComponent')
+                .sort()
+            const newImport = `import { ${newSpecifiers.join(', ')} } from 'uniapp-render'`
+            s.overwrite(vueImportNode.start, vueImportNode.end, newImport)
+        } else {
+            // 只替换模块名
+            s.overwrite(vueImportNode.source.start + 1, vueImportNode.source.end - 1, 'uniapp-render')
+        }
+    }
+
+    return s.toString()
 }
 
 /**
@@ -47,8 +127,9 @@ export function transformVueSFC(vueCode: string, isPage: boolean = false): strin
 
     // 情况2：只有 script（render 函数形式）
     if (scriptContent) {
-        const transformedScript = transformScript(scriptContent, isPage)
-        if (!transformedScript) return null
+        const transformedScript = isPage
+            ? transformScriptForPage(scriptContent)
+            : replaceVueImports(scriptContent)
         return buildTransformedSFC({ scriptAttrs, styles }, transformedScript, isPage)
     }
 
@@ -102,7 +183,6 @@ function transformScriptWithTemplate(scriptContent: string, descriptor: any, isP
  */
 function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): string {
     // 1. 处理 Script 代码
-    // 我们需要把 export default defineComponent(...) 替换为 const __sfc__ = defineComponent(...)
     let newScriptCode = scriptCode
 
     // 查找 export default
@@ -113,8 +193,6 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
     }
 
     // 2. 处理 Render 代码
-    // compileTemplate 生成的代码包含 import { ... } from "vue" 和 export function render
-    // 我们需要把 export function render 改为 function render
     let newRenderCode = renderCode.replace('export function render', 'function render')
 
     // 3. 清理 imports
@@ -168,137 +246,6 @@ export default __sfc__`
     return result
 }
 
-/**
- * 使用 Slime 转换 script
- * 
- * 策略（参考 OVS 的实现，纯 AST 操作）：
- * 1. 收集所有 from 'vue' 和 from 'uniapp-render' 的导入项
- * 2. 合并到一个 from 'uniapp-render' 导入（直接操作 AST）
- * 3. 如果是 Page，把 export default defineComponent({...}) 改为 export default defineRenderComponent({...})
- *    如果是 Component，只替换 import，保持 defineComponent 不变
- */
-function transformScript(scriptContent: string, isPage: boolean): string | null {
-    const parser = new SlimeParser(scriptContent)
-    const cst = parser.Program()
-
-    if (!cst || !parser.parsedTokens || parser.parsedTokens.length === 0) {
-        return null
-    }
-
-    const cstToAst = new SlimeCstToAst()
-    const ast = cstToAst.toProgram(cst) as any
-    if (!ast) return null
-
-    // 后处理：处理导入合并和 defineComponent 替换
-    const body = processImportsAndExports(ast.body, isPage)
-    if (!body) return null
-
-    ast.body = body
-
-    // 生成代码
-    const result = SlimeGenerator.generator(ast, parser.parsedTokens)
-    return result.code
-}
-
-/**
- * 处理导入合并和 defineComponent 替换
- * 参考 OVS 的 ensureRequiredImports 实现
- * 
- * @param isPage 如果是 Page，替换 defineComponent 为 defineRenderComponent
- *               如果是 Component，只替换 import 来源
- */
-function processImportsAndExports(body: any[], isPage: boolean): any[] | null {
-    // 1. 分离 import 语句和其他语句
-    const imports: any[] = []
-    const nonImports: any[] = []
-
-    for (const stmt of body) {
-        if (stmt.type === SlimeAstTypeName.ImportDeclaration) {
-            imports.push(stmt)
-        } else {
-            nonImports.push(stmt)
-        }
-    }
-
-    // 2. 收集所有需要从 uniapp-render 导入的 specifiers
-    const allSpecifiers = new Set<string>()
-    const importsToRemove: any[] = []
-
-    for (const imp of imports) {
-        const source = imp.source?.value
-        if (source === 'vue' || source === 'uniapp-render') {
-            // 收集 specifiers
-            if (imp.specifiers) {
-                for (const specItem of imp.specifiers) {
-                    const spec = specItem.specifier || specItem
-                    if (spec.type === SlimeAstTypeName.ImportSpecifier) {
-                        const name = spec.imported?.name
-                        if (name) {
-                            allSpecifiers.add(name)
-                        }
-                    }
-                }
-            }
-            // 标记这个导入需要删除
-            importsToRemove.push(imp)
-        }
-    }
-
-    // 3. 只有 Page 才替换 defineComponent → defineRenderComponent
-    let foundDefineComponent = false
-    if (isPage) {
-        for (const stmt of nonImports) {
-            if (stmt.type === SlimeAstTypeName.ExportDefaultDeclaration) {
-                const declaration = stmt.declaration
-                if (declaration?.type === SlimeAstTypeName.CallExpression &&
-                    declaration.callee?.type === SlimeAstTypeName.Identifier &&
-                    declaration.callee.name === 'defineComponent') {
-
-                    declaration.callee.name = 'defineRenderComponent'
-                    if (declaration.callee.raw) {
-                        declaration.callee.raw = 'defineRenderComponent'
-                    }
-                    if (declaration.callee.loc?.value) {
-                        declaration.callee.loc.value = 'defineRenderComponent'
-                    }
-                    foundDefineComponent = true
-                }
-            }
-        }
-
-        if (!foundDefineComponent) {
-            return null
-        }
-
-        // 4. 调整 specifiers：添加 defineRenderComponent，移除 defineComponent
-        allSpecifiers.add('defineRenderComponent')
-        allSpecifiers.delete('defineComponent')
-    }
-    // Component 的情况：不替换 defineComponent，保持原样
-    // 只需要把 import from 'vue' 改为 import from 'uniapp-render'
-
-    // 5. 过滤掉需要移除的 imports，保留其他 imports
-    const remainingImports = imports.filter(imp => !importsToRemove.includes(imp))
-
-    // 6. 创建合并后的导入语句（纯 AST 操作）
-    const newSpecifiers = Array.from(allSpecifiers).sort().map(name => ({
-        specifier: {
-            type: SlimeAstTypeName.ImportSpecifier,
-            imported: SlimeAstCreateUtils.createIdentifier(name),
-            local: SlimeAstCreateUtils.createIdentifier(name)
-        }
-    }))
-
-    const mergedImport = {
-        type: SlimeAstTypeName.ImportDeclaration,
-        specifiers: newSpecifiers,
-        source: SlimeAstCreateUtils.createStringLiteral('uniapp-render')
-    }
-
-    // 7. 返回：合并的导入 + 其他导入 + 非导入语句
-    return [mergedImport, ...remainingImports, ...nonImports]
-}
-
 function buildTransformedSFC(blocks: SFCBlock, transformedScript: string, isPage: boolean): string {
     const styleParts = blocks.styles.join('\n\n')
 
@@ -315,7 +262,5 @@ ${styleParts ? '\n' + styleParts : ''}`
     }
 
     // 非 Page 组件：输出纯 .ts 格式（移除 <script> 标签）
-    // 这样 UniApp 不会把它当作 .vue 处理
-    // 注意：CSS 由插件层面通过虚拟模块处理，这里只输出脚本部分
     return transformedScript
 }

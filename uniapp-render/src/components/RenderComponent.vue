@@ -76,19 +76,11 @@ export default defineComponent({
      * 统一事件处理函数
      */
     function handleEvent(e: any, eventType: string) {
-      if (!nodeToRender.value?.props) {
-        return
-      }
+      if (!nodeToRender.value?.props) return
 
-      // 从 props 获取事件 ID（格式：data-eid-{eventType}）
       const eventId = nodeToRender.value.props[`data-eid-${eventType}`]
+      if (!eventId || typeof eventId !== 'string') return
 
-      if (!eventId || typeof eventId !== 'string') {
-        // 没有 eventId 可能是事件冒泡到父级元素，静默返回
-        return
-      }
-
-      // 使用事件系统触发回调
       renderEvent(eventId, e)
     }
 

@@ -7,11 +7,11 @@
  * 转换逻辑委托给 uniapp-render-compiler
  */
 
-import type {Plugin} from 'vite'
-import {relative, resolve, dirname, isAbsolute, basename, join, extname} from 'pathe'
-import {readFileSync, existsSync} from 'fs'
-import {transformVueSFC} from 'uniapp-render-compiler'
-import {parse as parseSFC} from '@vue/compiler-sfc'
+import type { Plugin } from 'vite'
+import { relative, resolve, dirname, isAbsolute, basename, join, extname } from 'pathe'
+import { readFileSync, existsSync } from 'fs'
+import { transformVueSFC } from 'uniapp-render-compiler'
+import { parse as parseSFC } from '@vue/compiler-sfc'
 
 export interface UniRenderOptions {
     /** 是否开启调试日志 */
@@ -74,7 +74,7 @@ function transformPageVue(code: string, id: string, root: string, debug: boolean
     if (debug) {
         console.log(`[vite-plugin-uniapp-render] ✓ 已转换(page): ${relative(process.cwd(), id)}`)
     }
-    return {code: result, map: null}
+    return { code: result, map: null }
 }
 
 /**
@@ -121,7 +121,7 @@ function getPagePaths(root: string): Set<string> {
 let singletonDebug = false
 
 export function uniRender(options: UniRenderOptions = {}): Plugin {
-    const {debug = false} = options
+    const { debug = false } = options
 
     singletonDebug = debug
 
@@ -245,7 +245,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 const fs = await import('fs')
                 if (fs.existsSync(originalVuePath)) {
                     const code = fs.readFileSync(originalVuePath, 'utf-8')
-                    const {descriptor} = parseSFC(code, {filename: originalVuePath})
+                    const { descriptor } = parseSFC(code, { filename: originalVuePath })
                     const styles = descriptor.styles.map(s => s.content).join('\n')
                     if (styles.trim()) {
                         transformedCssCache.set(originalVuePath, styles)
@@ -277,7 +277,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             const code = fs.readFileSync(originalPath, 'utf-8')
 
             // 解析 SFC 获取 style 块
-            const {descriptor} = parseSFC(code, {filename: originalPath})
+            const { descriptor } = parseSFC(code, { filename: originalPath })
             const styles = descriptor.styles.map(s => s.content).join('\n')
 
             // 缓存 CSS
@@ -288,18 +288,19 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 }
             }
 
-            // 转换为 .ts
+            // 使用 transformVueSFC 处理非 Page 组件
             const result = transformVueSFC(code, false) // isPage = false
             if (!result) {
                 console.error(`[vite-plugin-uniapp-render] 转换失败: ${originalPath}`)
                 return null
             }
 
-            // 如果有 CSS，在 .ts 开头添加 import（使用 virtual: 前缀）
+            // 构建最终结果（纯 .ts 文件）
             let finalResult = result
+
+            // 如果有 CSS，在开头添加 import
             if (styles.trim()) {
-                // 使用 virtual: 前缀 + .css 后缀，后面会在 resolveId 中转换为 \0 前缀
-                finalResult = `import '${CSS_VIRTUAL_IMPORT_PREFIX}${originalPath}.css'\n${result}`
+                finalResult = `import '${CSS_VIRTUAL_IMPORT_PREFIX}${originalPath}.css'\n${finalResult}`
             }
 
             if (debug) {

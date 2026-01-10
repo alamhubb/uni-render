@@ -1,12 +1,11 @@
 {
   "name": "uniapp-render",
-  "version": "0.1.0",
+  "version": "0.0.1-alpha.1",
   "type": "module",
   "description": "让 UniApp 支持 Vue 渲染函数(h函数)开发",
   "main": "./src/index.ts",
   "module": "./src/index.ts",
   "types": "./src/index.ts",
-  "monorepo": "./src/index.ts",
   "exports": {
     ".": {
       "import": "./src/index.ts",
@@ -27,17 +26,14 @@
     "miniapp"
   ],
   "peerDependencies": {
-    "vue": "^3.0.0"
+    "vue": "^3.0.0",
+    "@vue/runtime-core": "^3.0.0"
   },
   "devDependencies": {
     "typescript": "^5.0.0",
     "vite": "^5.0.0",
-    "vue": "^3.4.0"
+    "vue": "^3.4.0",
+    "@vue/runtime-core": "^3.4.0"
   },
-  "license": "MIT",
-  "dependencies": {
-    "@vue/reactivity": "3.4.21",
-    "@vue/runtime-core": "3.4.21",
-    "@vue/shared": "3.4.21"
-  }
+  "license": "MIT"
 }

@@ -10,61 +10,30 @@
  * - 小程序: 使用 getApp().globalData
  */
 
-// 扩展全局类型
-declare global {
-    interface Window {
-        __uniapp_render__?: {
-            eventRegistry: Map<string, Function>
-            scopeRegistry: Map<string, Set<string>>
-            eventCounter: number
-            scopeCounter: number
-        }
-    }
-}
+// 声明 UniApp 全局 API
+declare function getApp(): { globalData: Record<string, any> } | undefined
 
 // 获取全局存储
 function getGlobalStorage() {
-    // H5 环境
-    if (typeof window !== 'undefined') {
-        if (!window.__uniapp_render__) {
-            window.__uniapp_render__ = {
-                eventRegistry: new Map<string, Function>(),
-                scopeRegistry: new Map<string, Set<string>>(),
-                eventCounter: 0,
-                scopeCounter: 0
-            }
-        }
-        return window.__uniapp_render__
+    if (typeof getApp !== 'function') {
+        throw new Error('[uniapp-render] getApp 不存在，请确保在 UniApp 环境中运行')
     }
 
-    // 小程序环境
-    try {
-        const app = getApp()
-        if (app && app.globalData) {
-            if (!app.globalData.__uniapp_render__) {
-                app.globalData.__uniapp_render__ = {
-                    eventRegistry: new Map<string, Function>(),
-                    scopeRegistry: new Map<string, Set<string>>(),
-                    eventCounter: 0,
-                    scopeCounter: 0
-                }
-            }
-            return app.globalData.__uniapp_render__
-        }
-    } catch (e) {
-        // getApp() 可能失败
+    const app = getApp()
+    if (!app?.globalData) {
+        throw new Error('[uniapp-render] globalData 不存在，请确保 App.vue 中定义了 globalData')
     }
 
-    // 降级：模块级存储（可能有多实例问题）
-    return _fallback
-}
+    if (!app.globalData.__uniapp_render__) {
+        app.globalData.__uniapp_render__ = {
+            eventRegistry: new Map<string, Function>(),
+            scopeRegistry: new Map<string, Set<string>>(),
+            eventCounter: 0,
+            scopeCounter: 0
+        }
+    }
 
-// 降级存储
-const _fallback = {
-    eventRegistry: new Map<string, Function>(),
-    scopeRegistry: new Map<string, Set<string>>(),
-    eventCounter: 0,
-    scopeCounter: 0
+    return app.globalData.__uniapp_render__
 }
 
 /**
@@ -121,7 +90,7 @@ export function clearEventScope(scopeId: string): void {
     const eventIds = storage.scopeRegistry.get(scopeId)
     if (eventIds) {
         // 从全局表中删除该作用域的所有事件
-        eventIds.forEach(id => storage.eventRegistry.delete(id))
+        eventIds.forEach((id: string) => storage.eventRegistry.delete(id))
         // 删除作用域记录
         storage.scopeRegistry.delete(scopeId)
     }
