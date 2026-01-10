@@ -17,6 +17,9 @@ interface SFCBlock {
     styles: string[]
 }
 
+// OXC 解析器使用的虚拟文件名（用于确定解析器类型和错误报告）
+const VIRTUAL_TS_FILE = 'virtual.ts'
+
 /**
  * 快速替换脚本中的 import from 'vue' → import from 'uniapp-render'
  * 使用 OXC + magic-string，性能极高
@@ -111,7 +114,8 @@ export function transformVueSFC(vueCode: string, isPage: boolean = false): strin
     // 快速返回：没有 script 也没有 template
     if (!scriptContent && !hasTemplate) return null
 
-    const scriptAttrs = descriptor.script?.lang ? ` lang="${descriptor.script.lang}"` : ''
+    // 强制使用 lang="ts"，因为 compileScript 输出的代码可能包含 TS 语法
+    const scriptAttrs = ' lang="ts"'
     const styles = descriptor.styles.map(s => `<style${s.scoped ? ' scoped' : ''}>${s.content}</style>`)
 
     // 情况1：有 template - 需要将 template 转换为 render 函数
@@ -179,77 +183,176 @@ function transformScriptWithTemplate(scriptContent: string, descriptor: any, isP
 }
 
 /**
- * 合并 Script 和 Render 代码
+ * 使用 AST 重命名冲突的变量名
+ * 避免与 UniApp 编译器注入的变量冲突
+ */
+const RENAME_IDENTIFIERS = ['_resolveComponent', '_openBlock', '_createElementBlock']
+const RENAME_SUFFIX = '2Render'
+
+function renameConflictingIdentifiers(code: string): string {
+    const result = parseSync('file.ts', code)
+    if (result.errors.length > 0) return code
+
+    const s = new MagicString(code)
+    let hasChange = false
+
+    // 收集 ImportSpecifier 中 local 的位置（不需要重复处理）
+    const importLocalPositions = new Set<string>()
+
+    const visitor = new Visitor({
+        // 处理导入语句中的 as 重命名
+        ImportSpecifier(node: any) {
+            if (RENAME_IDENTIFIERS.includes(node.local?.name)) {
+                s.overwrite(node.local.start, node.local.end, node.local.name + RENAME_SUFFIX)
+                hasChange = true
+                importLocalPositions.add(`${node.local.start}-${node.local.end}`)
+            }
+        },
+        // 处理函数调用处
+        CallExpression(node: any) {
+            if (node.callee?.type === 'Identifier' && RENAME_IDENTIFIERS.includes(node.callee.name)) {
+                const posKey = `${node.callee.start}-${node.callee.end}`
+                if (!importLocalPositions.has(posKey)) {
+                    s.overwrite(node.callee.start, node.callee.end, node.callee.name + RENAME_SUFFIX)
+                    hasChange = true
+                }
+            }
+        }
+    })
+    visitor.visit(result.program)
+
+    return hasChange ? s.toString() : code
+}
+
+/**
+ * 合并 Script 和 Render 代码（全部使用 AST）
  */
 function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): string {
-    // 1. 处理 Script 代码
-    let newScriptCode = scriptCode
+    // 1. 使用 AST 处理 Script 代码：export default → const __sfc__ =
+    const scriptResult = parseSync('script.ts', scriptCode)
+    const scriptMagic = new MagicString(scriptCode)
+    let hasExportDefault = false
 
-    // 查找 export default
-    if (newScriptCode.includes('export default')) {
-        newScriptCode = newScriptCode.replace('export default', 'const __sfc__ =')
-    } else {
-        newScriptCode += '\nconst __sfc__ = {};'
-    }
-
-    // 2. 处理 Render 代码
-    let newRenderCode = renderCode.replace('export function render', 'function render')
-
-    // 3. 清理 imports
-    const allImports: string[] = []
-
-    // 辅助函数：分离 import
-    const splitImports = (code: string) => {
-        const lines = code.split('\n')
-        const imports: string[] = []
-        const body: string[] = []
-        lines.forEach(line => {
-            if (line.trim().startsWith('import ') || line.trim().startsWith('import{')) {
-                imports.push(line)
-            } else {
-                body.push(line)
+    const scriptVisitor = new Visitor({
+        ExportDefaultDeclaration(node: any) {
+            hasExportDefault = true
+            // 替换 export default 为 const __sfc__ =
+            scriptMagic.overwrite(node.start, node.declaration.start, 'const __sfc__ = ')
+        },
+        // 替换 vue → uniapp-render
+        ImportDeclaration(node: any) {
+            if (node.source?.value === 'vue') {
+                scriptMagic.overwrite(node.source.start, node.source.end, "'uniapp-render'")
             }
-        })
-        return { imports, body: body.join('\n') }
+        }
+    })
+    if (scriptResult.errors.length === 0) {
+        scriptVisitor.visit(scriptResult.program)
     }
 
-    const scriptParts = splitImports(newScriptCode)
-    const renderParts = splitImports(newRenderCode)
+    let newScriptCode = scriptMagic.toString()
+    if (!hasExportDefault) {
+        const appendMagic = new MagicString(newScriptCode)
+        appendMagic.append('\nconst __sfc__ = {};')
+        newScriptCode = appendMagic.toString()
+    }
 
-    allImports.push(...scriptParts.imports)
-    allImports.push(...renderParts.imports)
+    // 2. 使用 AST 处理 Render 代码：export function render → function render
+    const renderResult = parseSync('render.ts', renderCode)
+    const renderMagic = new MagicString(renderCode)
 
-    // 4. 将所有 from 'vue' 或 from "vue" 替换为 from 'uniapp-render'
-    const processedImports = allImports.map(imp =>
-        imp.replace(/from ['"]vue['"]/g, "from 'uniapp-render'")
-    )
-
-    // 组合
-    let result = `
-${processedImports.join('\n')}
-
-${scriptParts.body}
-
-${renderParts.body}
-
-__sfc__.render = render
-
-${isPage ?
-            `// Page 组件使用 defineRenderComponent，并添加 <render-component> template
-import { defineRenderComponent } from 'uniapp-render'
-export default defineRenderComponent(__sfc__)`
-            :
-            `// Component 组件直接导出
-export default __sfc__`
+    const renderVisitor = new Visitor({
+        ExportNamedDeclaration(node: any) {
+            // 处理 export function render
+            if (node.declaration?.type === 'FunctionDeclaration' &&
+                node.declaration.id?.name === 'render') {
+                // 移除 export 关键字
+                renderMagic.overwrite(node.start, node.declaration.start, '')
+            }
+        },
+        // 替换 vue → uniapp-render
+        ImportDeclaration(node: any) {
+            if (node.source?.value === 'vue') {
+                renderMagic.overwrite(node.source.start, node.source.end, "'uniapp-render'")
+            }
         }
-`
+    })
+    if (renderResult.errors.length === 0) {
+        renderVisitor.visit(renderResult.program)
+    }
+
+    const newRenderCode = renderMagic.toString()
+
+    // 3. 使用 AST 分离 imports 和 body
+    const extractImportsAndBody = (code: string): { imports: string[], body: string } => {
+        const result = parseSync('file.ts', code)
+        if (result.errors.length > 0) {
+            return { imports: [], body: code }
+        }
+
+        const magic = new MagicString(code)
+        const imports: string[] = []
+
+        for (const stmt of result.program.body) {
+            if (stmt.type === 'ImportDeclaration') {
+                imports.push(code.slice(stmt.start, stmt.end))
+                magic.remove(stmt.start, stmt.end)
+            }
+        }
+
+        return { imports, body: magic.toString().trim() }
+    }
+
+    const scriptParts = extractImportsAndBody(newScriptCode)
+    const renderParts = extractImportsAndBody(newRenderCode)
+
+    // 4. 合并 imports（已在 visitor 中处理了 vue → uniapp-render）
+    const allImports = [...scriptParts.imports, ...renderParts.imports]
+
+    // 5. 使用 magic-string 组合最终代码
+    const finalMagic = new MagicString('')
+
+    // imports
+    for (const imp of allImports) {
+        finalMagic.append(imp + '\n')
+    }
+    finalMagic.append('\n')
+
+    if (isPage) {
+        // Page 组件：包装在函数里
+        finalMagic.append('function createComponent2Render() {\n')
+        for (const line of scriptParts.body.split('\n')) {
+            finalMagic.append('  ' + line + '\n')
+        }
+        finalMagic.append('\n')
+        for (const line of renderParts.body.split('\n')) {
+            finalMagic.append('  ' + line + '\n')
+        }
+        finalMagic.append('\n')
+        finalMagic.append('  __sfc__.render = render\n')
+        finalMagic.append('  return __sfc__\n')
+        finalMagic.append('}\n\n')
+        finalMagic.append("import { defineRenderComponent } from 'uniapp-render'\n")
+        finalMagic.append('export default defineRenderComponent(createComponent2Render())\n')
+    } else {
+        // 非 Page 组件：只合并，不包装
+        finalMagic.append(scriptParts.body + '\n\n')
+        finalMagic.append(renderParts.body + '\n\n')
+        finalMagic.append('__sfc__.render = render\n')
+        finalMagic.append('export default __sfc__\n')
+    }
+
+    let result = finalMagic.toString()
+    // 6. 重命名冲突的标识符
+    result = renameConflictingIdentifiers(result)
+
     return result
 }
 
 function buildTransformedSFC(blocks: SFCBlock, transformedScript: string, isPage: boolean): string {
     const styleParts = blocks.styles.join('\n\n')
 
-    // Page 组件：保持 .vue 格式，添加 <render-component> template
+    // Page 组件：添加 <render-component> template
     if (isPage) {
         return `<template>
   <render-component :node="node" />
@@ -261,6 +364,6 @@ ${transformedScript}
 ${styleParts ? '\n' + styleParts : ''}`
     }
 
-    // 非 Page 组件：输出纯 .ts 格式（移除 <script> 标签）
+    // 非 Page 组件：返回纯 TS 代码（不需要 .vue 格式，由虚拟模块处理）
     return transformedScript
 }
