@@ -21,7 +21,6 @@ export default defineConfig(async ({ mode }) => {
       },
       resolve: {
         alias: [
-          { find: 'uniapp-render', replacement: resolve(__dirname, '../uniapp-render/src/index.ts') },
           { find: 'uniapp-render-compiler', replacement: resolve(__dirname, '../uniapp-render-compiler/src/index.ts') }
         ]
       },
@@ -45,7 +44,6 @@ export default defineConfig(async ({ mode }) => {
     },
     resolve: {
       alias: [
-        { find: 'uniapp-render', replacement: resolve(__dirname, '../uniapp-render/src/index.ts') },
         { find: 'uniapp-render-compiler', replacement: resolve(__dirname, '../uniapp-render-compiler/src/index.ts') }
       ]
     },
