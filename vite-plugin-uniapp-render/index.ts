@@ -85,13 +85,41 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
          * 转换代码
          */
         transform(code, id) {
-            // 只处理 .vue 文件
-            if (!id.endsWith('.vue')) {
+            // 排除 node_modules 中的文件（包括 uniapp-render 包）
+            if (id.includes('node_modules')) {
                 return null
             }
 
-            // 排除 node_modules 中的文件（包括 uniapp-render 包）
-            if (id.includes('node_modules')) {
+            // 处理 .ts 文件：只替换 import from 'vue'
+            if (id.endsWith('.ts')) {
+                // 只处理 pages/ 或 components/ 目录下的 .ts 文件
+                // 不处理 main.ts、App.vue 所在目录等
+                const inTargetDir = includeDirs.some(dir =>
+                    id.includes(`/${dir}/`) || id.includes(`\\${dir}\\`)
+                )
+                if (!inTargetDir) {
+                    return null
+                }
+
+                // 简单替换：import from 'vue' → import from 'uniapp-render'
+                if (code.includes("from 'vue'") || code.includes('from "vue"')) {
+                    const result = code
+                        .replace(/from ['"]vue['"]/g, "from 'uniapp-render'")
+
+                    if (debug) {
+                        console.log(`[vite-plugin-uniapp-render] ✓ 已转换(.ts): ${relative(process.cwd(), id)}`)
+                    }
+
+                    return {
+                        code: result,
+                        map: null
+                    }
+                }
+                return null
+            }
+
+            // 处理 .vue 文件
+            if (!id.endsWith('.vue')) {
                 return null
             }
 
@@ -136,3 +164,4 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
 }
 
 export default uniRender
+

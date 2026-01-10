@@ -47,9 +47,11 @@ export function transformVueSFC(vueCode: string, isPage: boolean = false): strin
             return buildTransformedSFC({ scriptAttrs, styles }, transformedScript, isPage)
         }
 
-        // 情况2：只有 script（render 函数形式）- 只有 page 才需要转换
-        if (scriptContent && isPage) {
-            const transformedScript = transformScript(scriptContent)
+        // 情况2：只有 script（render 函数形式）
+        // - Page: 需要用 defineRenderComponent 包装，添加 template
+        // - Component: 只需要替换 import from 'vue' 为 import from 'uniapp-render'
+        if (scriptContent) {
+            const transformedScript = transformScript(scriptContent, isPage)
             if (!transformedScript) return null
             return buildTransformedSFC({ scriptAttrs, styles }, transformedScript, isPage)
         }
@@ -194,9 +196,10 @@ export default __sfc__`
  * 策略（参考 OVS 的实现，纯 AST 操作）：
  * 1. 收集所有 from 'vue' 和 from 'uniapp-render' 的导入项
  * 2. 合并到一个 from 'uniapp-render' 导入（直接操作 AST）
- * 3. 把 export default defineComponent({...}) 改为 export default defineRenderComponent({...})
+ * 3. 如果是 Page，把 export default defineComponent({...}) 改为 export default defineRenderComponent({...})
+ *    如果是 Component，只替换 import，保持 defineComponent 不变
  */
-function transformScript(scriptContent: string): string | null {
+function transformScript(scriptContent: string, isPage: boolean): string | null {
     try {
         const parser = new SlimeParser(scriptContent)
         const cst = parser.Program()
@@ -210,7 +213,7 @@ function transformScript(scriptContent: string): string | null {
         if (!ast) return null
 
         // 后处理：处理导入合并和 defineComponent 替换
-        const body = processImportsAndExports(ast.body)
+        const body = processImportsAndExports(ast.body, isPage)
         if (!body) return null
 
         ast.body = body
@@ -228,8 +231,11 @@ function transformScript(scriptContent: string): string | null {
 /**
  * 处理导入合并和 defineComponent 替换
  * 参考 OVS 的 ensureRequiredImports 实现
+ * 
+ * @param isPage 如果是 Page，替换 defineComponent 为 defineRenderComponent
+ *               如果是 Component，只替换 import 来源
  */
-function processImportsAndExports(body: any[]): any[] | null {
+function processImportsAndExports(body: any[], isPage: boolean): any[] | null {
     // 1. 分离 import 语句和其他语句
     const imports: any[] = []
     const nonImports: any[] = []
@@ -267,36 +273,40 @@ function processImportsAndExports(body: any[]): any[] | null {
         }
     }
 
-    // 3. 查找并替换 defineComponent → defineRenderComponent
+    // 3. 只有 Page 才替换 defineComponent → defineRenderComponent
     let foundDefineComponent = false
-    for (const stmt of nonImports) {
-        if (stmt.type === SlimeAstTypeName.ExportDefaultDeclaration) {
-            const declaration = stmt.declaration
-            if (declaration?.type === SlimeAstTypeName.CallExpression &&
-                declaration.callee?.type === SlimeAstTypeName.Identifier &&
-                declaration.callee.name === 'defineComponent') {
+    if (isPage) {
+        for (const stmt of nonImports) {
+            if (stmt.type === SlimeAstTypeName.ExportDefaultDeclaration) {
+                const declaration = stmt.declaration
+                if (declaration?.type === SlimeAstTypeName.CallExpression &&
+                    declaration.callee?.type === SlimeAstTypeName.Identifier &&
+                    declaration.callee.name === 'defineComponent') {
 
-                console.log('[compiler] Found defineComponent, replacing...')
-                declaration.callee.name = 'defineRenderComponent'
-                if (declaration.callee.raw) {
-                    declaration.callee.raw = 'defineRenderComponent'
+                    console.log('[compiler] Found defineComponent, replacing...')
+                    declaration.callee.name = 'defineRenderComponent'
+                    if (declaration.callee.raw) {
+                        declaration.callee.raw = 'defineRenderComponent'
+                    }
+                    if (declaration.callee.loc?.value) {
+                        declaration.callee.loc.value = 'defineRenderComponent'
+                    }
+                    foundDefineComponent = true
                 }
-                if (declaration.callee.loc?.value) {
-                    declaration.callee.loc.value = 'defineRenderComponent'
-                }
-                foundDefineComponent = true
             }
         }
-    }
 
-    if (!foundDefineComponent) {
-        console.log('[compiler] No defineComponent found')
-        return null
-    }
+        if (!foundDefineComponent) {
+            console.log('[compiler] No defineComponent found')
+            return null
+        }
 
-    // 4. 调整 specifiers：添加 defineRenderComponent，移除 defineComponent
-    allSpecifiers.add('defineRenderComponent')
-    allSpecifiers.delete('defineComponent')
+        // 4. 调整 specifiers：添加 defineRenderComponent，移除 defineComponent
+        allSpecifiers.add('defineRenderComponent')
+        allSpecifiers.delete('defineComponent')
+    }
+    // Component 的情况：不替换 defineComponent，保持原样
+    // 只需要把 import from 'vue' 改为 import from 'uniapp-render'
 
     // 5. 过滤掉需要移除的 imports，保留其他 imports
     const remainingImports = imports.filter(imp => !importsToRemove.includes(imp))
