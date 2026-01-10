@@ -10,33 +10,10 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig(async ({ mode }) => {
   // mp-h5 mode: run in browser (without vite-plugin-mp for now)
-  if (mode === 'mp-h5') {
-    return {
-      plugins: [
-        uniRender({ debug: true }),
-        uni()
-      ],
-      server: {
-        host: '192.168.1.7',
-      },
-      resolve: {
-        alias: [
-          { find: 'uniapp-render-compiler', replacement: resolve(__dirname, '../uniapp-render-compiler/src/index.ts') }
-        ]
-      },
-      optimizeDeps: {
-        exclude: [
-          'uniapp-render',
-          'uniapp-render-compiler'
-        ]
-      }
-    };
-  }
-
   // 默认 h5 模式
   return {
     plugins: [
-      // uniRender({ debug: true }),  // 暂时禁用
+      uniRender({ debug: true }),  // 暂时禁用
       uni()
     ],
     server: {

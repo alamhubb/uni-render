@@ -315,26 +315,29 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
          * 只转换 Page .vue 文件（逐步调试）
          */
         transform(code, id) {
-            if (extname(id) !== '.vue') return null
-            if (basename(id) === 'App.vue') return null
-            if (basename(id) === 'RenderComponent.vue') return null
+            // 暂时禁用所有处理
+            return null
 
-            // 只处理 Page 组件
-            if (!isPageComponent(id, root)) return null
+            // if (extname(id) !== '.vue') return null
+            // if (basename(id) === 'App.vue') return null
+            // if (basename(id) === 'RenderComponent.vue') return null
 
-            if (debug) {
-                console.log(`[vite-plugin-uniapp-render] 开始处理 Page: ${relative(process.cwd(), id)}`)
-            }
+            // // 只处理 Page 组件
+            // if (!isPageComponent(id, root)) return null
 
-            const result = transformVueSFC(code, true) // isPage = true
-            if (!result) return null
+            // if (debug) {
+            //     console.log(`[vite-plugin-uniapp-render] 开始处理 Page: ${relative(process.cwd(), id)}`)
+            // }
 
-            if (debug) {
-                console.log(`[vite-plugin-uniapp-render] ✓ 已转换(page): ${relative(process.cwd(), id)}`)
-                console.log(`[vite-plugin-uniapp-render] 转换后代码:\n${result}`)
-            }
+            // const result = transformVueSFC(code, true) // isPage = true
+            // if (!result) return null
 
-            return { code: result, map: null }
+            // if (debug) {
+            //     console.log(`[vite-plugin-uniapp-render] ✓ 已转换(page): ${relative(process.cwd(), id)}`)
+            //     console.log(`[vite-plugin-uniapp-render] 转换后代码:\n${result}`)
+            // }
+
+            // return { code: result, map: null }
         }
     }
 }
