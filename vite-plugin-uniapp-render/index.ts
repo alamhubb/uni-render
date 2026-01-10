@@ -22,6 +22,7 @@ export interface UniRenderOptions {
 const PLUGIN_VERSION = 'v2.0.1'  // 插件版本号
 const SRC_DIR = 'src'
 const PAGES_JSON = 'pages.json'
+const VIRTUAL_EXT = '.render.temp'  // 虚拟模块扩展名
 
 // 需要替换 import from 'vue' 的脚本文件扩展名
 const SCRIPT_EXTS = new Set(['.ts', '.js', '.mjs', '.cjs'])
@@ -179,7 +180,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                     if (debug) {
                         console.log(`[vite-plugin-uniapp-render] 重定向非 Page .vue: ${source} -> 虚拟模块`)
                     }
-                    return VIRTUAL_PREFIX + changeExt(fullPath, '.vue', '.ts')
+                    return VIRTUAL_PREFIX + changeExt(fullPath, '.vue', VIRTUAL_EXT)
                 }
 
                 return null
@@ -190,12 +191,9 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             //   - importer 有标准扩展名（.ts, .js, .vue 等，排除虚拟模块）
             //   - importer 在 src 目录下
             //   - importer 不在 node_modules
-            //   - importer 不在 uniapp-render 或 uniapp-render-compiler 包内部
             //   - importer 不是入口文件或 App.vue
             if (source === 'vue' && importer &&
                 !importer.includes('node_modules') &&
-                !importer.includes('uniapp-render/src') &&  // 排除 uniapp-render 包内部
-                !importer.includes('uniapp-render-compiler/src') &&  // 排除编译器包内部
                 isInSrcDir(importer)) {
                 const importerExt = extname(importer)
                 const importerName = basename(importer)
@@ -261,14 +259,14 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 return ''
             }
 
-            // 处理 .vue -> .ts 虚拟模块
-            if (!id.startsWith(VIRTUAL_PREFIX) || extname(id) !== '.ts') {
+            // 处理 .vue -> .render.temp 虚拟模块
+            if (!id.startsWith(VIRTUAL_PREFIX) || !id.endsWith(VIRTUAL_EXT)) {
                 return null
             }
 
             // 从虚拟模块 ID 恢复原始 .vue 路径
-            const tsPath = id.slice(VIRTUAL_PREFIX.length)
-            const originalPath = changeExt(tsPath, '.ts', '.vue')
+            const tempPath = id.slice(VIRTUAL_PREFIX.length)
+            const originalPath = changeExt(tempPath, VIRTUAL_EXT, '.vue')
 
             // 检查缓存（使用原始路径作为 key）
             if (transformedVueCache.has(originalPath)) {
