@@ -18,9 +18,9 @@ const count = ref(0)
 ```
 
 **插件自动帮你处理**：
-- 将 `import 'vue'` 重定向到 `'uniapp-render'`
-- 普通组件转换为 render 函数形式
-- Page 组件保留 UniApp 格式
+- 在 compiler 中将 `import 'vue'` 转换为 `import 'uniapp-render'`
+- 非 Page 组件：转换为纯 TypeScript + 渲染函数
+- Page 组件：使用 `<render-component :node="node" />` 模板 + `defineRenderComponent` 包装
 
 ## 设计理念
 
@@ -30,9 +30,16 @@ UniApp 的 Vue SFC 编译器对某些标准 Vue 特性支持有限。本插件�
 
 | 组件类型 | 处理策略 | 原因 |
 |---------|---------|------|
-| **Page 组件** | 在 `transform` 钩子中修改 `<script>`，保留 `.vue` 格式 | UniApp 需要处理 Page 的 template、路由、生命周期 |
-| **普通组件** | 通过虚拟模块转换为纯 TS + render 函数 | 绕过 UniApp SFC 编译限制 |
-| **脚本文件** | 重定向 `import 'vue'` → `'uniapp-render'` | 统一运行时 API |
+| **Page 组件** | 保持 `.vue` 格式，使用 `<render-component>` 模板 + `defineRenderComponent` | UniApp 需要处理 Page 的路由、生命周期 |
+| **非 Page 组件** | 通过虚拟模块转换为 `.render.temp` + `.css` | 完全绕过 UniApp SFC 编译 |
+| **纯脚本文件** | 在 resolveId 中重定向 `vue → uniapp-render` | UniApp 不会在脚本中注入代码 |
+| **App.vue** | 不处理 | 保持原始 Vue 行为 |
+
+### 渲染函数处理
+
+无论 Page 还是非 Page，渲染函数的获取逻辑是统一的：
+- **有渲染函数**：直接使用用户的渲染函数
+- **只有 template**：使用 `@vue/compiler-sfc` 编译成渲染函数
 
 ### 核心原则
 
@@ -63,18 +70,27 @@ import './Component.vue'
 **为什么要用虚拟模块？**  
 一旦返回虚拟 `.ts` ID，Vite 就认为这是 TypeScript 文件，UniApp 的 Vue 插件不会介入，从而绕过 SFC 编译限制。
 
-#### 1.2 处理 `vue` → `uniapp-render` 重定向
+#### 1.2 处理 `vue` → `uniapp-render` 重定向（纯脚本文件）
 
 ```typescript
+// 在 .ts/.js 文件中
 import { ref, h } from 'vue'
 ```
 
 - **判断条件**：
   - `source === 'vue'`
-  - importer 在 `src` 目录下
+  - importer 是纯脚本文件（`.ts, .js, .mjs, .cjs`）
   - importer 不在 `node_modules`
-  - importer 不是入口文件（`main.ts` 等）或 `App.vue`
-- **行为**：返回 `'uniapp-render'`，统一运行时 API
+  - importer 不是入口文件（`main.ts` 等）
+- **行为**：重定向到 `uniapp-render/src/index.ts`
+
+**为什么只处理纯脚本文件，不处理 .vue？**
+
+UniApp 编译 `.vue` 文件的 `<template>` 时，会注入 `import { resolveDynamicComponent } from 'vue'`。如果我们在 resolveId 中拦截所有 `'vue'` 导入，UniApp 注入的代码也会被重定向，导致使用错误的 Vue 运行时 API。
+
+因此：
+- **纯脚本文件**：在 resolveId 中重定向（UniApp 不会注入代码）
+- **`.vue` 文件**：在 compiler 的 `transformVueSFC` 中处理（只影响用户代码）
 
 #### 1.3 处理 CSS 虚拟模块
 
@@ -149,29 +165,45 @@ import 'virtual:unirender-css:/path/to/Component.vue.css'
 ### 完整流程图
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  用户代码: import './Component.vue'                          │
-└─────────────────────────────────────────────────────────────┘
-                        │
-                        ▼
-                  ┌──────────┐
-                  │ resolveId │
-                  └──────────┘
-                        │
-        ┌───────────────┼───────────────┐
-        ▼               ▼               ▼
-   Page .vue      非Page .vue      import 'vue'
-   返回 null      返回 \0xxx.ts   返回 'uniapp-render'
-        │               │
-        ▼               ▼
-   transform       load 钩子
-  修改 <script>   生成 TS 代码
-  保留 .vue       + CSS import
-        │               │
-        └───────┬───────┘
-                ▼
-         UniApp/Vite 继续处理
+                    ┌─────────────────────────────────────────┐
+                    │            用户代码导入                    │
+                    └─────────────────────────────────────────┘
+                                        │
+                                        ▼
+                                  ┌──────────┐
+                                  │ resolveId │
+                                  └──────────┘
+                                        │
+        ┌───────────────┬───────────────┼───────────────┐
+        ▼               ▼               ▼               ▼
+   Page .vue       非Page .vue    import 'vue'     App.vue
+   返回 null       → .render.temp  (.ts/.js 文件)   不处理
+        │               │         → uniapp-render       │
+        ▼               ▼               │               │
+   transform       load 钩子          │               │
+   ┌──────────────┐ ┌──────────────┐   │               │
+   │ compiler:    │ │ compiler:    │   │               │
+   │ - 渲染函数   │ │ - 渲染函数   │   │               │
+   │ - vue→uniapp │ │ - vue→uniapp │   │               │
+   │ + template   │ │ + CSS import │   │               │
+   │ + defineRC   │ └──────────────┘   │               │
+   └──────────────┘         │          │               │
+        │                   │          │               │
+        ▼                   │          │               │
+   UniApp 编译              │          │               │
+   \<render-component\>       │          │               │
+        │                   │          │               │
+        └───────────────────┴──────────┴───────────────┘
+                                        │
+                                        ▼
+                                 最终代码输出
 ```
+
+**说明**：
+- **Page .vue**：保持 .vue 格式，使用 `defineRenderComponent` + `<render-component>` 模板
+- **非 Page .vue**：转为 `.render.temp` 虚拟模块，绕过 UniApp 编译
+- **纯脚本文件**：直接在 resolveId 中重定向 `vue → uniapp-render`
+- **App.vue**：不处理（保持原始 Vue 行为）
 
 ## 安装
 
@@ -242,26 +274,40 @@ export default defineRenderComponent({
 
 **输入（pages/index/index.vue）**：
 ```vue
-<script setup lang="ts">
-import { ref } from 'vue'
-const count = ref(0)
-</script>
+<script lang="ts">
+import { defineComponent, ref, h } from 'vue'
 
-<template>
-  <view>{{ count }}</view>
-</template>
+export default defineComponent({
+  setup() {
+    const count = ref(0)
+    return () => h('view', {}, [
+      h('text', {}, `count: ${count.value}`),
+      h('button', { onClick: () => count.value++ }, '+1')
+    ])
+  }
+})
+</script>
 ```
 
 **transform 钩子处理后**（仍是 `.vue` 格式）：
 ```vue
-<script setup lang="ts">
-import { ref } from 'uniapp-render'  // ← 只改这里
-const count = ref(0)
-</script>
-
 <template>
-  <view>{{ count }}</view>
+  <render-component :node="node" />
 </template>
+
+<script lang="ts">
+import { defineRenderComponent, ref, h } from 'uniapp-render'
+
+export default defineRenderComponent({
+  setup() {
+    const count = ref(0)
+    return () => h('view', {}, [
+      h('text', {}, `count: ${count.value}`),
+      h('button', { onClick: () => count.value++ }, '+1')
+    ])
+  }
+})
+</script>
 ```
 
 ## 注意事项
@@ -270,9 +316,10 @@ const count = ref(0)
 2. **pages.json 缓存**：启动时读取一次，修改后需重启 Vite
 3. **文件排除**：
    - `node_modules` 不处理
-   - `App.vue` 不重定向 `'vue'`
-   - 入口文件（`main.ts` 等）不重定向
+   - `App.vue` 不处理
+   - 入口文件（`main.ts` 等）不处理
 4. **虚拟模块标识**：`\0` 前缀是 Vite 内部约定，用户无需关心
+5. **vue → uniapp-render 转换**：在 compiler 中进行，不影响 UniApp 注入的代码
 
 ## 与 uniapp-render 的关系
 
