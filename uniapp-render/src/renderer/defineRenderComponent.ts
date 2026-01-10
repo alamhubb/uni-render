@@ -17,7 +17,8 @@ import type { Component } from '@vue/runtime-core'
 
 // 【调试】模块加载标识
 const DEFINE_RENDER_MODULE_ID = Math.random().toString(36).substring(2, 8)
-console.log('[defineRenderComponent.ts] 模块加载，ID =', DEFINE_RENDER_MODULE_ID)
+const VERSION = 'v2.0.0' // 版本号用于确认最新代码
+console.log(`[defineRenderComponent.ts] 模块加载，ID = ${DEFINE_RENDER_MODULE_ID}, ${VERSION}`)
 
 export interface RenderComponentOptions {
     setup: (props?: any, ctx?: any) => () => any

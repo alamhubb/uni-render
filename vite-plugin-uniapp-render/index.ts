@@ -8,29 +8,89 @@
  */
 
 import type { Plugin } from 'vite'
-import { relative, resolve, dirname } from 'path'
+import { relative, resolve, dirname, isAbsolute, basename, join, extname, normalize } from 'pathe'
 import { readFileSync, existsSync } from 'fs'
 import { transformVueSFC } from 'uniapp-render-compiler'
+import { parse as parseSFC } from '@vue/compiler-sfc'
 
 export interface UniRenderOptions {
     /** 是否开启调试日志 */
     debug?: boolean
-    /** 要处理的目录，默认 ['pages', 'components'] */
-    includeDirs?: string[]
 }
 
-// 缓存 pages.json 中的 page 路径
+// ========== 常量 ==========
+const SRC_DIR = 'src'
+const PAGES_JSON = 'pages.json'
+
+// 需要替换 import from 'vue' 的脚本文件扩展名
+const SCRIPT_EXTS = new Set(['.ts', '.js', '.mjs', '.cjs'])
+
+// 入口文件（需要排除，保留原始 vue）
+const ENTRY_FILES = new Set(['main.ts', 'main.js', 'main.mjs', 'main.cjs'])
+
+// ========== 缓存 ==========
 let cachedPagePaths: Set<string> | null = null
+let cachedRoot: string = ''
+
+// ========== 辅助函数 ==========
+
+/**
+ * 更改文件扩展名
+ */
+function changeExt(filePath: string, fromExt: string, toExt: string): string {
+    const dir = dirname(filePath)
+    const name = basename(filePath, fromExt)
+    return join(dir, name + toExt)
+}
+
+/**
+ * 检查文件是否在 src 目录下
+ */
+function isInSrcDir(id: string): boolean {
+    return normalize(id).includes('/src/')
+}
+
+/**
+ * 检查 .vue 文件是否为 Page 组件
+ */
+function isPageComponent(vuePath: string, root: string): boolean {
+    const pagePaths = getPagePaths(root)
+    const srcDir = resolve(root, SRC_DIR)
+    const relativePath = changeExt(relative(srcDir, vuePath), '.vue', '')
+    return pagePaths.has(relativePath)
+}
+
+// ========== 处理器函数 ==========
+
+type TransformResult = { code: string; map: null } | null
+
+/**
+ * 处理 Page Vue 文件
+ */
+function transformPageVue(code: string, id: string, root: string, debug: boolean): TransformResult {
+    if (!isPageComponent(id, root)) return null
+
+    const result = transformVueSFC(code, true)
+    if (!result) return null
+
+    if (debug) {
+        console.log(`[vite-plugin-uniapp-render] ✓ 已转换(page): ${relative(process.cwd(), id)}`)
+        console.log('[vite-plugin-uniapp-render] 转换后代码:')
+        console.log(result)
+    }
+    return { code: result, map: null }
+}
 
 /**
  * 解析 pages.json，获取所有 page 路径
  */
 function getPagePaths(root: string): Set<string> {
-    if (cachedPagePaths) return cachedPagePaths
+    if (cachedPagePaths && cachedRoot === root) return cachedPagePaths
 
     cachedPagePaths = new Set()
+    cachedRoot = root
 
-    const pagesJsonPath = resolve(root, 'src/pages.json')
+    const pagesJsonPath = resolve(root, SRC_DIR, PAGES_JSON)
     if (!existsSync(pagesJsonPath)) {
         console.warn('[vite-plugin-uniapp-render] pages.json not found at:', pagesJsonPath)
         return cachedPagePaths
@@ -60,12 +120,19 @@ function getPagePaths(root: string): Set<string> {
 }
 
 export function uniRender(options: UniRenderOptions = {}): Plugin {
-    const {
-        debug = false,
-        includeDirs = ['pages', 'components']
-    } = options
+    const { debug = false } = options
 
     let root = ''
+    // 缓存非 Page 的 .vue 文件转换结果
+    const transformedVueCache = new Map<string, string>()
+    // 缓存非 Page 的 .vue 文件的 CSS
+    const transformedCssCache = new Map<string, string>()
+    // 虚拟模块前缀
+    const VIRTUAL_PREFIX = '\0uniapp-render:'
+    // CSS 虚拟模块前缀（用于 import 语句）
+    const CSS_VIRTUAL_IMPORT_PREFIX = 'virtual:unirender-css:'
+    // CSS 虚拟模块内部 ID 前缀（\0 开头，Vite 内部使用）
+    const CSS_VIRTUAL_ID_PREFIX = '\0unirender-css:'
 
     return {
         name: 'vite-plugin-uniapp-render',
@@ -75,90 +142,176 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             root = config.root
             // 重置缓存，以便 HMR 时重新读取
             cachedPagePaths = null
+            transformedVueCache.clear()
         },
 
-        // 注意：不使用 resolveId hook。
-        // 原因：resolveId 会影响所有 import from 'vue'，包括 UniApp 编译模板时生成的。
-        // 我们只需要替换用户代码中的 import，这在 transform 阶段由 compiler 完成。
-
         /**
-         * 转换代码
+         * 拦截模块解析
+         * 1. 将非 Page 的 .vue 文件重定向到虚拟模块
+         * 2. 将 'vue' 重定向到 'uniapp-render'（仅限 src 目录下的非入口文件）
+         * 3. 处理 CSS 虚拟模块引用
          */
-        transform(code, id) {
-            // 排除 node_modules 中的文件（包括 uniapp-render 包）
-            if (id.includes('node_modules')) {
-                return null
-            }
-
-            // 处理 .ts 文件：只替换 import from 'vue'
-            if (id.endsWith('.ts')) {
-                // 只处理 pages/ 或 components/ 目录下的 .ts 文件
-                // 不处理 main.ts、App.vue 所在目录等
-                const inTargetDir = includeDirs.some(dir =>
-                    id.includes(`/${dir}/`) || id.includes(`\\${dir}\\`)
-                )
-                if (!inTargetDir) {
+        resolveId(source, importer) {
+            // ========== 1. 处理 .vue 文件导入 ==========
+            if (extname(source) === '.vue') {
+                // 排除 App.vue（UniApp 入口文件）
+                if (basename(source) === 'App.vue') {
                     return null
                 }
 
-                // 简单替换：import from 'vue' → import from 'uniapp-render'
-                if (code.includes("from 'vue'") || code.includes('from "vue"')) {
-                    const result = code
-                        .replace(/from ['"]vue['"]/g, "from 'uniapp-render'")
+                // 解析完整路径
+                let fullPath = source
+                if (importer && !isAbsolute(source)) {
+                    fullPath = resolve(dirname(importer), source)
+                }
 
+                // Page 组件由 transform hook 处理，非 Page 重定向到虚拟模块
+                if (!isPageComponent(fullPath, root)) {
                     if (debug) {
-                        console.log(`[vite-plugin-uniapp-render] ✓ 已转换(.ts): ${relative(process.cwd(), id)}`)
+                        console.log(`[vite-plugin-uniapp-render] 重定向非 Page .vue: ${source} -> 虚拟模块`)
                     }
-
-                    return {
-                        code: result,
-                        map: null
-                    }
+                    return VIRTUAL_PREFIX + changeExt(fullPath, '.vue', '.ts')
                 }
+
                 return null
             }
 
-            // 处理 .vue 文件
-            if (!id.endsWith('.vue')) {
-                return null
+            // ========== 2. 处理 vue → uniapp-render 重定向 ==========
+            // 条件：
+            //   - importer 有标准扩展名（.ts, .js, .vue 等，排除虚拟模块）
+            //   - importer 在 src 目录下
+            //   - importer 不在 node_modules
+            //   - importer 不在 uniapp-render 或 uniapp-render-compiler 包内部
+            //   - importer 不是入口文件或 App.vue
+            if (source === 'vue' && importer &&
+                !importer.includes('node_modules') &&
+                !importer.includes('uniapp-render/src') &&  // 排除 uniapp-render 包内部
+                !importer.includes('uniapp-render-compiler/src') &&  // 排除编译器包内部
+                isInSrcDir(importer)) {
+                const importerExt = extname(importer)
+                const importerName = basename(importer)
+
+                // 只处理有标准扩展名的文件
+                if ((SCRIPT_EXTS.has(importerExt) || importerExt === '.vue') &&
+                    !ENTRY_FILES.has(importerName) &&
+                    importerName !== 'App.vue') {
+                    if (debug) {
+                        console.log(`[vite-plugin-uniapp-render] 重定向 vue → uniapp-render (from: ${importerName})`)
+                    }
+                    return 'uniapp-render'
+                }
             }
 
-            // 检查是否在需要处理的目录中
-            const shouldProcess = includeDirs.some(dir =>
-                id.includes(`/${dir}/`) || id.includes(`\\${dir}\\`)
-            )
-
-            if (!shouldProcess) {
-                return null
-            }
-
-            // 获取相对路径，用于匹配 pages.json
-            // id: D:/project/.../src/pages/index/index.vue
-            // pages.json: pages/index/index
-            const relativePath = relative(resolve(root, 'src'), id)
-                .replace(/\\/g, '/')  // Windows 路径转换
-                .replace(/\.vue$/, '') // 移除 .vue 后缀
-
-            // 判断是否为 page（在 pages.json 中配置）
-            const pagePaths = getPagePaths(root)
-            const isPage = pagePaths.has(relativePath)
-
-            // 使用 compiler 转换
-            const result = transformVueSFC(code, isPage)
-
-            if (result) {
+            // ========== 3. 处理 CSS 虚拟模块 ==========
+            // virtual:unirender-css:xxx.css -> \0unirender-css:xxx.css
+            if (source.startsWith(CSS_VIRTUAL_IMPORT_PREFIX) && source.endsWith('.css')) {
+                const cssPath = source.slice(CSS_VIRTUAL_IMPORT_PREFIX.length)
                 if (debug) {
-                    console.log(`[vite-plugin-uniapp-render] ✓ 已转换${isPage ? '(page)' : '(component)'}: ${relative(process.cwd(), id)}`)
-                    console.log('[vite-plugin-uniapp-render] 转换后代码:')
-                    console.log(result)
+                    console.log(`[vite-plugin-uniapp-render] 解析 CSS 虚拟模块: ${cssPath}`)
                 }
-                return {
-                    code: result,
-                    map: null
-                }
+                return CSS_VIRTUAL_ID_PREFIX + cssPath
             }
 
             return null
+        },
+
+        /**
+         * 加载虚拟模块（非 Page 的 .vue 转换后的 .ts 代码，以及 CSS）
+         */
+        async load(id) {
+            // 处理 CSS 虚拟模块（\0unirender-css:....css 开头）
+            if (id.startsWith(CSS_VIRTUAL_ID_PREFIX) && extname(id) === '.css') {
+                // 移除前缀和后缀 .css
+                const originalVuePath = id.slice(CSS_VIRTUAL_ID_PREFIX.length, -4)
+
+                // 检查缓存
+                if (transformedCssCache.has(originalVuePath)) {
+                    if (debug) {
+                        console.log(`[vite-plugin-uniapp-render] 加载 CSS: ${relative(process.cwd(), originalVuePath)}`)
+                    }
+                    return transformedCssCache.get(originalVuePath)
+                }
+
+                // CSS 会在加载 .vue 时被缓存，如果没有就尝试读取
+                const fs = await import('fs')
+                if (fs.existsSync(originalVuePath)) {
+                    const code = fs.readFileSync(originalVuePath, 'utf-8')
+                    const { descriptor } = parseSFC(code, { filename: originalVuePath })
+                    const styles = descriptor.styles.map(s => s.content).join('\n')
+                    if (styles.trim()) {
+                        transformedCssCache.set(originalVuePath, styles)
+                        if (debug) {
+                            console.log(`[vite-plugin-uniapp-render] 读取 CSS: ${relative(process.cwd(), originalVuePath)}`)
+                        }
+                        return styles
+                    }
+                }
+                return ''
+            }
+
+            // 处理 .vue -> .ts 虚拟模块
+            if (!id.startsWith(VIRTUAL_PREFIX) || extname(id) !== '.ts') {
+                return null
+            }
+
+            // 从虚拟模块 ID 恢复原始 .vue 路径
+            const tsPath = id.slice(VIRTUAL_PREFIX.length)
+            const originalPath = changeExt(tsPath, '.ts', '.vue')
+
+            // 检查缓存（使用原始路径作为 key）
+            if (transformedVueCache.has(originalPath)) {
+                return transformedVueCache.get(originalPath)
+            }
+
+            // 读取原始 .vue 文件
+            const fs = await import('fs')
+            const code = fs.readFileSync(originalPath, 'utf-8')
+
+            // 解析 SFC 获取 style 块
+            const { descriptor } = parseSFC(code, { filename: originalPath })
+            const styles = descriptor.styles.map(s => s.content).join('\n')
+
+            // 缓存 CSS
+            if (styles.trim()) {
+                transformedCssCache.set(originalPath, styles)
+                if (debug) {
+                    console.log(`[vite-plugin-uniapp-render] 缓存 CSS: ${relative(process.cwd(), originalPath)}`)
+                }
+            }
+
+            // 转换为 .ts
+            const result = transformVueSFC(code, false) // isPage = false
+            if (!result) {
+                console.error(`[vite-plugin-uniapp-render] 转换失败: ${originalPath}`)
+                return null
+            }
+
+            // 如果有 CSS，在 .ts 开头添加 import（使用 virtual: 前缀）
+            let finalResult = result
+            if (styles.trim()) {
+                // 使用 virtual: 前缀 + .css 后缀，后面会在 resolveId 中转换为 \0 前缀
+                finalResult = `import '${CSS_VIRTUAL_IMPORT_PREFIX}${originalPath}.css'\n${result}`
+            }
+
+            if (debug) {
+                console.log(`[vite-plugin-uniapp-render] ✓ 已转换(component→.ts): ${relative(process.cwd(), originalPath)}`)
+            }
+
+            // 缓存结果
+            transformedVueCache.set(originalPath, finalResult)
+            return finalResult
+        },
+
+        /**
+         * 转换代码（只处理 Page .vue 文件）
+         * 脚本文件的 vue → uniapp-render 由 resolveId 处理
+         */
+        transform(code, id) {
+            // 快速排除
+            if (id.includes('node_modules')) return null
+            if (extname(id) !== '.vue') return null
+
+            return transformPageVue(code, id, root, debug)
         }
     }
 }

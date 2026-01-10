@@ -1,63 +1,162 @@
 # uniapp-render
 
-让 UniApp 支持 Vue 渲染函数 (h 函数) 开发
+将 Vue 渲染函数组件转换为 UniApp 兼容格式的工具链。
 
-## ✨ 特性
+## 核心概念
 
-- 🚀 **零配置** - 安装插件即可使用渲染函数
-- 🔄 **自动转换** - 自动识别并转换渲染函数组件
-- 📦 **兼容性强** - 支持现有 Vue 3 渲染函数代码
-- 🎯 **零侵入** - 无需修改业务代码
+本项目的目标是让开发者能够使用 Vue 的 `h` 函数（渲染函数）来编写 UniApp 组件，而不是使用 UniApp 的模板语法。
 
-## 📦 安装
+通过自定义渲染器 (`@vue/runtime-core`)，我们将 VNode 树转换为 `RenderNode` 数据结构，然后由 `RenderComponent` 渲染到真正的 UniApp 组件。
 
-```bash
-npm install uniapp-render vite-plugin-uniapp-render
+## 文件处理规则
+
+### vite-plugin-uniapp-render 处理规则
+
+| 文件类型 | 输出格式 | 处理方式 |
+|---------|---------|---------|
+| `main.ts` | 不处理 | UniApp 入口文件，需要真正的 `vue` |
+| 其他 `.ts` 文件 | `.ts` | 替换 `import from 'vue'` → `import from 'uniapp-render'` |
+| Page `.vue` (pages.json 配置) | `.vue` | `transform` hook：编译 + `defineRenderComponent` + `<render-component>` template |
+| 非 Page `.vue` | **虚拟模块 `.ts`** | `resolveId` 拦截 → 虚拟模块 → 纯 `.ts` + CSS 虚拟模块 |
+
+### 详细说明
+
+#### 1. `main.ts` - 不处理
+UniApp 的入口文件，需要使用真正的 `vue` 包（`createSSRApp`）。
+
+#### 2. 其他 `.ts` 文件
+所有 `src/` 目录下的 `.ts` 文件（除 `main.ts`）都会被处理：
+- 将 `import { xxx } from 'vue'` 替换为 `import { xxx } from 'uniapp-render'`
+
+#### 3. Page 组件（`.vue`）
+在 `pages.json` 中配置的页面组件：
+- 保持 `.vue` 格式
+- template 会被编译为渲染函数
+- 使用 `defineRenderComponent` 包装
+- 添加 `<render-component :node="node" />` 作为新的 template
+
+#### 4. 非 Page 组件（虚拟模块）
+不在 `pages.json` 中配置的 `.vue` 文件（包括 node_modules 中的）：
+- **`resolveId` hook 拦截**：将 `.vue` 导入重定向到虚拟模块 ID（`\0uniapp-render:xxx.ts`）
+- **`load` hook 返回**：编译后的纯 `.ts` 代码
+- **CSS 虚拟模块**：样式提取为独立虚拟模块（`virtual:unirender-css:xxx.vue.css`）
+- UniApp 不会处理虚拟模块（以 `\0` 开头）
+
+### `.vue` 文件两步处理
+
+1. **合并 template 和 script**：
+   - 有 template + 无渲染函数 → template 转为 render 函数
+   - 有 template + 有渲染函数 → 抛弃 template，保留渲染函数
+   - 无 template + 有渲染函数 → 直接用渲染函数
+
+2. **输出格式**：
+   - Page → `.vue`（带 `<render-component>` template）
+   - Component → `.ts`（纯 TypeScript）
+
+## 项目结构
+
+```
+uniapp-render/
+├── uniapp-render/           # 核心运行时库
+│   ├── src/
+│   │   ├── index.ts         # 导出所有 API
+│   │   ├── renderer/        # 自定义渲染器
+│   │   │   ├── customRenderer.ts    # 基于 @vue/runtime-core 的渲染器
+│   │   │   ├── defineRenderComponent.ts  # Page 组件包装器
+│   │   │   └── render.ts    # 渲染入口
+│   │   ├── components/      # 运行时组件
+│   │   │   └── RenderComponent.vue  # 递归渲染 RenderNode
+│   │   └── event/           # 事件系统
+│
+├── uniapp-render-compiler/  # 编译时转换器
+│   └── src/
+│       └── index.ts         # SFC 转换逻辑
+│
+├── vite-plugin-uniapp-render/  # Vite 插件
+│   └── index.ts             # 文件处理入口
+│
+└── my-vue3-project/         # 示例项目
 ```
 
-## 🔧 配置
+## 虚拟模块架构
 
-在 `vite.config.ts` 中添加插件：
+### 为什么使用虚拟模块？
+UniApp 的 Vite 插件会处理所有 `.vue` 文件。为了让非 Page 组件使用我们的 custom renderer 而不是 UniApp，我们使用虚拟模块绕过 UniApp 的处理。
+
+### 虚拟模块 ID 规范
+
+| 类型 | import 语句 | 内部虚拟模块 ID |
+|-----|------------|----------------|
+| 组件 TS | `import XXX from './HelloWorld.vue'` | `\0uniapp-render:D:/.../HelloWorld.ts` |
+| 组件 CSS | `import 'virtual:unirender-css:xxx.vue.css'` | `\0unirender-css:xxx.vue.css` |
+
+- `\0` 前缀是 Vite 虚拟模块约定
+- 使用完整绝对路径，避免冲突
+- `.ts` / `.css` 后缀让 Vite 正确识别模块类型
+
+## 使用方式
+
+### 1. 安装依赖
+
+```bash
+npm install uniapp-render uniapp-render-compiler vite-plugin-uniapp-render
+```
+
+### 2. 配置 vite.config.ts
 
 ```typescript
-import { defineConfig } from 'vite'
-import uni from '@dcloudio/vite-plugin-uni'
-import { uniRender } from 'vite-plugin-uniapp-render'
+import uniRender from 'vite-plugin-uniapp-render'
 
 export default defineConfig({
-    plugins: [
-        uniRender(),  // ⚠️ 必须放在 uni() 之前
-        uni()
-    ]
+  plugins: [
+    uniRender({ debug: true }),  // 可选：打印转换日志
+    // ... 其他插件
+  ]
 })
 ```
 
-## 📝 使用示例
+### 3. 编写组件
 
-创建渲染函数组件（无需 `<template>`）：
-
+**Page 组件（.vue）**
 ```vue
-<script setup lang="ts">
-import { ref, h, defineComponent } from 'vue'
+<script lang="ts">
+import { h, ref, defineComponent } from 'vue'
+import HelloWorld from './components/HelloWorld'
 
 export default defineComponent({
-    setup() {
-        const count = ref(0)
-        
-        return () => h('view', { class: 'container' }, [
-            h('text', {}, `计数: ${count.value}`),
-            h('button', { onClick: () => count.value++ }, '+1')
-        ])
-    }
+  setup() {
+    return () => h('view', {}, [
+      h(HelloWorld, { msg: 'Hello' })
+    ])
+  }
 })
 </script>
 ```
 
-插件会自动：
-1. 检测到这是渲染函数组件（无 template）
-2. 将 `from 'vue'` 转换为 `from 'uniapp-render'`
-3. 添加 `<render-component :node="node" />` 模板
+**Component 组件（.ts）**
+```typescript
+import { h, ref, defineComponent } from 'vue'
 
-## 📄 License
+export default defineComponent({
+  props: {
+    msg: { type: String, required: true }
+  },
+  setup(props) {
+    const count = ref(0)
+    return () => h('view', {}, [
+      h('text', {}, props.msg),
+      h('button', { onClick: () => count.value++ }, `count: ${count.value}`)
+    ])
+  }
+})
+```
 
-MIT
+## 注意事项
+
+1. **Component 样式**：非 Page 的 `.vue` 组件样式通过 CSS 虚拟模块处理，会自动注入到页面中。
+
+2. **响应式系统**：确保 `ref`、`reactive` 等 API 从 `uniapp-render`（实际是 `@vue/runtime-core`）导入，这样响应式更新才能正确工作。
+
+3. **事件处理**：使用 `onClick`、`onInput` 等 Vue 风格的事件名，会自动转换为 UniApp 的事件格式。
+
+4. **node_modules**：node_modules 中的 `.vue` 文件也会被处理（通过虚拟模块），确保第三方 Vue 组件也能正常工作。

@@ -1,6 +1,6 @@
 <script lang="ts">
 import { h, ref, defineComponent } from 'vue'
-import HelloWorld from './components/HelloWorld'
+import HelloWorld from './components/HelloWorld.vue'
 
 export default defineComponent({
   setup() {

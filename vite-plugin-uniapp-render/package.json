@@ -24,11 +24,12 @@
         "miniapp"
     ],
     "dependencies": {
+        "pathe": "^2.0.3",
         "uniapp-render-compiler": "../uniapp-render-compiler"
     },
     "peerDependencies": {
-        "vite": "^5.0.0 || ^6.0.0",
-        "uniapp-render": "*"
+        "uniapp-render": "*",
+        "vite": "^5.0.0 || ^6.0.0"
     },
     "license": "MIT"
 }

@@ -335,7 +335,7 @@ function processImportsAndExports(body: any[], isPage: boolean): any[] | null {
 function buildTransformedSFC(blocks: SFCBlock, transformedScript: string, isPage: boolean): string {
     const styleParts = blocks.styles.join('\n\n')
 
-    // Page 组件：添加 <render-component> template
+    // Page 组件：保持 .vue 格式，添加 <render-component> template
     if (isPage) {
         return `<template>
   <render-component :node="node" />
@@ -347,9 +347,11 @@ ${transformedScript}
 ${styleParts ? '\n' + styleParts : ''}`
     }
 
-    // 普通组件：只有 script 和 style
-    return `<script${blocks.scriptAttrs}>
-${transformedScript}
-</script>
-${styleParts ? '\n' + styleParts : ''}`
+    // 非 Page 组件：输出纯 .ts 格式（移除 <script> 标签）
+    // 这样 UniApp 不会把它当作 .vue 处理
+    // 注意：样式目前无法保留，用户需要使用全局样式或内联样式
+    if (styleParts) {
+        console.warn('[compiler] 警告：非 Page 组件转换为 .ts 后，<style> 块将被忽略。请使用全局样式或内联样式。')
+    }
+    return transformedScript
 }
