@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import { uniRender } from "../vite-plugin-uniapp-render/index";
+import { uniRender } from "../vite-plugin-uniapp-render/index.ts";
 import { createRequire } from "module";
 import { resolve } from "path";
 import { fileURLToPath } from "url";
@@ -21,6 +21,7 @@ export default defineConfig(async ({ mode }) => {
       },
       resolve: {
         alias: [
+          { find: 'uniapp-render', replacement: resolve(__dirname, '../uniapp-render/src/index.ts') },
           { find: 'uniapp-render-compiler', replacement: resolve(__dirname, '../uniapp-render-compiler/src/index.ts') }
         ]
       },
@@ -36,7 +37,7 @@ export default defineConfig(async ({ mode }) => {
   // 默认 h5 模式
   return {
     plugins: [
-      uniRender({ debug: true }),
+      // uniRender({ debug: true }),
       uni()
     ],
     server: {
@@ -44,6 +45,7 @@ export default defineConfig(async ({ mode }) => {
     },
     resolve: {
       alias: [
+        { find: 'uniapp-render', replacement: resolve(__dirname, '../uniapp-render/src/index.ts') },
         { find: 'uniapp-render-compiler', replacement: resolve(__dirname, '../uniapp-render-compiler/src/index.ts') }
       ]
     },

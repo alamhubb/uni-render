@@ -19,6 +19,7 @@ export interface UniRenderOptions {
 }
 
 // ========== 常量 ==========
+const PLUGIN_VERSION = 'v2.0.1'  // 插件版本号
 const SRC_DIR = 'src'
 const PAGES_JSON = 'pages.json'
 
@@ -134,11 +135,15 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
     // CSS 虚拟模块内部 ID 前缀（\0 开头，Vite 内部使用）
     const CSS_VIRTUAL_ID_PREFIX = '\0unirender-css:'
 
+    // 插件加载日志
+    console.log(`[vite-plugin-uniapp-render] ✨ 插件函数已调用 ${PLUGIN_VERSION}`)
+
     return {
         name: 'vite-plugin-uniapp-render',
         enforce: 'pre', // 在 UniApp 之前执行
 
         configResolved(config) {
+            console.log(`[vite-plugin-uniapp-render] 插件已加载 ${PLUGIN_VERSION}`)
             root = config.root
             // 重置缓存，以便 HMR 时重新读取
             cachedPagePaths = null
@@ -152,6 +157,10 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
          * 3. 处理 CSS 虚拟模块引用
          */
         resolveId(source, importer) {
+            // 全局调试
+            if (debug && source.includes('uniapp-render')) {
+                console.log(`[vite-plugin-uniapp-render][DEBUG] resolveId:`, { source, importer })
+            }
             // ========== 1. 处理 .vue 文件导入 ==========
             if (extname(source) === '.vue') {
                 // 排除 App.vue（UniApp 入口文件）
@@ -195,12 +204,15 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 if ((SCRIPT_EXTS.has(importerExt) || importerExt === '.vue') &&
                     !ENTRY_FILES.has(importerName) &&
                     importerName !== 'App.vue') {
+                    // 直接返回 uniapp-render 入口的绝对路径
+                    const uniappRenderEntry = join(dirname(root), 'uniapp-render/src/index.ts')
                     if (debug) {
-                        console.log(`[vite-plugin-uniapp-render] 重定向 vue → uniapp-render (from: ${importerName})`)
+                        console.log(`[vite-plugin-uniapp-render] 重定向 vue → ${uniappRenderEntry} (from: ${importerName})`)
                     }
-                    return 'uniapp-render'
+                    return uniappRenderEntry
                 }
             }
+
 
             // ========== 3. 处理 CSS 虚拟模块 ==========
             // virtual:unirender-css:xxx.css -> \0unirender-css:xxx.css
