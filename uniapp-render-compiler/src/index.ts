@@ -358,22 +358,16 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
 function buildTransformedSFC(blocks: SFCBlock, transformedScript: string, isPage: boolean): string {
     const styleParts = blocks.styles.join('\n\n')
 
-    // Page 组件：不使用 template，只有 script（因为有 render 函数）
+    // Page 组件：使用 <render-component> 模板
     if (isPage) {
-        return `<script${blocks.scriptAttrs}>
+        return `<template>
+  <render-component :node="node" />
+</template>
+
+<script${blocks.scriptAttrs}>
 ${transformedScript}
 </script>
 ${styleParts ? '\n' + styleParts : ''}`
-
-        // 原始逻辑（完整包装版）：
-        // return `<template>
-        //   <render-component :node="node" />
-        // </template>
-        // 
-        // <script${blocks.scriptAttrs}>
-        // ${transformedScript}
-        // </script>
-        // ${styleParts ? '\n' + styleParts : ''}`
     }
 
     // 非 Page 组件：返回纯 TS 代码（不需要 .vue 格式，由虚拟模块处理）

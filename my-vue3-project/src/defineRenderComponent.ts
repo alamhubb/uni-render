@@ -1,10 +1,11 @@
 /**
  * defineRenderComponent - 本地测试版
  * 
- * 简单包装：创建 InnerComponent + 调用 render()
+ * 返回一个 Vue 组件，setup 返回 { node }
  */
 
 import { render } from 'uniapp-render'
+import { ref, onUnmounted } from 'vue'
 
 export function defineRenderComponent(component: any) {
     console.log('[defineRenderComponent] 收到组件:', component)
@@ -33,27 +34,37 @@ export function defineRenderComponent(component: any) {
             // 如果有单独的 render 属性，使用它
             if (originalRender) {
                 console.log('[defineRenderComponent] 使用单独的 render 属性')
-                // 创建一个代理上下文，包含 setup 返回的数据
                 return () => {
                     const _ctx = { ...setupResult }
                     return originalRender.call(_ctx, _ctx, [])
                 }
             }
 
-            // 都没有，返回空渲染函数
             console.warn('[defineRenderComponent] 组件既没有返回渲染函数，也没有 render 属性')
             return () => null
         }
     }
 
-    console.log('[defineRenderComponent] 开始调用 render()')
+    // 返回一个 Vue 组件，setup 返回 { node }
+    return {
+        setup() {
+            console.log('[defineRenderComponent] 开始调用 render()')
 
-    // 调用 Custom Renderer 的 render()
-    const { node, unmount } = render(InnerComponent)
+            // 调用 Custom Renderer 的 render()
+            const { node: nodeInternal, unmount } = render(InnerComponent)
 
-    console.log('[defineRenderComponent] render 完成，node:', node.value)
+            console.log('[defineRenderComponent] render 完成，node:', nodeInternal.value)
 
-    // 返回渲染结果
-    return InnerComponent
-    // return { node, unmount }
+            // 创建响应式 node
+            const node = ref(nodeInternal.value)
+
+            // 组件卸载时清理
+            onUnmounted(() => {
+                unmount()
+            })
+
+            // 返回 node 给模板使用
+            return { node }
+        }
+    }
 }
