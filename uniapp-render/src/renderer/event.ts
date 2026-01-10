@@ -10,10 +10,6 @@
  * - 小程序: 使用 getApp().globalData
  */
 
-// 【调试】模块级别随机标识符 - 用于验证模块实例是否一致
-const MODULE_ID = Math.random().toString(36).substring(2, 8)
-console.log('[event.ts] 模块加载，MODULE_ID =', MODULE_ID)
-
 // 扩展全局类型
 declare global {
     interface Window {
@@ -90,12 +86,10 @@ export function createEventScope(): string {
  * @returns 事件 ID
  */
 export function registerEvent(handler: Function, scopeId?: string): string {
-    console.log('[registerEvent] MODULE_ID =', MODULE_ID)
     const storage = getGlobalStorage()
     storage.eventCounter++
     const eventId = `__mp_evt_${storage.eventCounter}__`
     storage.eventRegistry.set(eventId, handler)
-    console.log('[registerEvent] registered', eventId, 'registry size:', storage.eventRegistry.size)
 
     // 如果提供了作用域，记录到组件事件表
     if (scopeId && storage.scopeRegistry.has(scopeId)) {
@@ -111,15 +105,10 @@ export function registerEvent(handler: Function, scopeId?: string): string {
  * @param event 原始事件对象
  */
 export function renderEvent(eventId: string, event?: any): void {
-    console.log('[renderEvent] MODULE_ID =', MODULE_ID, 'eventId =', eventId)
     const storage = getGlobalStorage()
-    console.log('[renderEvent] registry size:', storage.eventRegistry.size, 'has handler:', storage.eventRegistry.has(eventId))
     const handler = storage.eventRegistry.get(eventId)
     if (handler) {
-        console.log('[renderEvent] executing handler')
         handler(event)
-    } else {
-        console.warn('[renderEvent] ⚠️ handler not found!')
     }
 }
 

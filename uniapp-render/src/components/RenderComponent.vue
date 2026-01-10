@@ -76,34 +76,23 @@ export default defineComponent({
      * 统一事件处理函数
      */
     function handleEvent(e: any, eventType: string) {
-      console.log('[handleEvent] called', { eventType, hasProps: !!nodeToRender.value?.props })
-
       if (!nodeToRender.value?.props) {
-        console.warn('[handleEvent] ⚠️ nodeToRender.value.props is null')
         return
       }
 
-      // 从 data-eid-{eventType} 获取事件 ID
+      // 从 props 获取事件 ID（格式：data-eid-{eventType}）
       const eventId = nodeToRender.value.props[`data-eid-${eventType}`]
-      console.log('[handleEvent] eventId:', eventId, typeof eventId)
 
       if (!eventId || typeof eventId !== 'string') {
         // 没有 eventId 可能是事件冒泡到父级元素，静默返回
         return
       }
 
-      // 使用新的事件系统
-      console.log('[handleEvent] calling renderEvent with', eventId)
+      // 使用事件系统触发回调
       renderEvent(eventId, e)
     }
 
     function onTap(e: any) {
-      console.log('[RenderComponent] onTap called', {
-        nodeId: nodeToRender.value?.id,
-        nodeType: nodeToRender.value?.type,
-        props: nodeToRender.value?.props,
-        hasEid: nodeToRender.value?.props?.['data-eid-tap']
-      })
       handleEvent(e, 'tap')
     }
 
