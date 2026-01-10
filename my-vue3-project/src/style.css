@@ -43,6 +43,7 @@ body {
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
+  margin: 0.67em 0;
 }
 
 p {
@@ -60,9 +61,11 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
+
 button:hover {
   border-color: #646cff;
 }
+
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
@@ -80,7 +83,7 @@ uni-button::after {
 }
 
 uni-button:focus,
-uni-button:focus-visible{
+uni-button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
