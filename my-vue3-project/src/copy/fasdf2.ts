@@ -9,7 +9,7 @@ import {
     createElementBlock as _createElementBlock2Render
 } from "/node_modules/uniapp-render/src/index.ts?v=c8008cc5";
 
-const _sfc_main = function createComponent2Render() {
+function createComponent2Render() {
     const __sfc__ = _defineComponent({
         setup(__props, {expose: __expose}) {
             __expose();
@@ -50,7 +50,11 @@ const _sfc_main = function createComponent2Render() {
 
     __sfc__.render = render;
     return __sfc__;
-}();
+}
+
+import {defineRenderComponent} from "/node_modules/uniapp-render/src/index.ts?v=c8008cc5";
+
+const _sfc_main = defineRenderComponent(createComponent2Render());
 import "/src/pages/index/index.vue?vue&type=style&index=0&scoped=83a5a03c&lang.css";
 
 _sfc_main.__hmrId = "83a5a03c";
