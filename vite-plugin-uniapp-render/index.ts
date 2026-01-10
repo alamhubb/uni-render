@@ -130,16 +130,15 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
     // CSS 虚拟模块内部 ID 前缀（\0 开头，Vite 内部使用）
     const CSS_VIRTUAL_ID_PREFIX = '\0unirender-css:'
 
-    // 插件加载日志
-    console.log(`[vite-plugin-uniapp-render] ✨ 插件函数已调用 ${PLUGIN_VERSION}`)
-
     return {
         name: 'vite-plugin-uniapp-render',
         enforce: 'pre', // 在 UniApp 之前执行
 
         configResolved(config) {
-            console.log(`[vite-plugin-uniapp-render] 插件已加载 ${PLUGIN_VERSION}`)
             root = config.root
+            if (debug) {
+                console.log(`[vite-plugin-uniapp-render] 插件已加载 ${PLUGIN_VERSION}`)
+            }
             // 重置缓存，以便 HMR 时重新读取
             cachedPagePaths = null
             transformedVueCache.clear()
@@ -152,10 +151,6 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
          * 3. 处理 CSS 虚拟模块引用
          */
         resolveId(source, importer) {
-            // 全局调试
-            if (debug && source.includes('uniapp-render')) {
-                console.log(`[vite-plugin-uniapp-render][DEBUG] resolveId:`, { source, importer })
-            }
             // ========== 1. 处理 .vue 文件导入 ==========
             if (extname(source) === '.vue') {
                 // 排除 App.vue（UniApp 入口文件）

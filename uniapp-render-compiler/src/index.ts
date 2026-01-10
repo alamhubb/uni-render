@@ -23,46 +23,36 @@ interface SFCBlock {
  * @returns 转换后的代码，如果不需要转换返回 null
  */
 export function transformVueSFC(vueCode: string, isPage: boolean = false): string | null {
-    try {
-        const { descriptor } = parseSFC(vueCode, { filename: 'anonymous.vue' })
+    const { descriptor } = parseSFC(vueCode, { filename: 'anonymous.vue' })
 
-        const hasTemplate = descriptor.template?.content?.trim()
-        const scriptContent = descriptor.script?.content
+    const hasTemplate = descriptor.template?.content?.trim()
+    const scriptContent = descriptor.script?.content
 
-        // 快速返回：没有 script 也没有 template
-        if (!scriptContent && !hasTemplate) return null
+    // 快速返回：没有 script 也没有 template
+    if (!scriptContent && !hasTemplate) return null
 
-        const scriptAttrs = descriptor.script?.lang ? ` lang="${descriptor.script.lang}"` : ''
-        const styles = descriptor.styles.map(s => `<style${s.scoped ? ' scoped' : ''}>${s.content}</style>`)
+    const scriptAttrs = descriptor.script?.lang ? ` lang="${descriptor.script.lang}"` : ''
+    const styles = descriptor.styles.map(s => `<style${s.scoped ? ' scoped' : ''}>${s.content}</style>`)
 
-        // 情况1：有 template - 需要将 template 转换为 render 函数
-        if (hasTemplate && descriptor.template?.ast) {
-            console.log(`[compiler] 处理有 template 的${isPage ? 'page' : 'component'}`)
-            const transformedScript = transformScriptWithTemplate(
-                scriptContent || '',
-                descriptor,
-                isPage
-            )
-            if (!transformedScript) return null
-            return buildTransformedSFC({ scriptAttrs, styles }, transformedScript, isPage)
-        }
-
-        // 情况2：只有 script（render 函数形式）
-        // - Page: 需要用 defineRenderComponent 包装，添加 template
-        // - Component: 只需要替换 import from 'vue' 为 import from 'uniapp-render'
-        if (scriptContent) {
-            const transformedScript = transformScript(scriptContent, isPage)
-            if (!transformedScript) return null
-            return buildTransformedSFC({ scriptAttrs, styles }, transformedScript, isPage)
-        }
-
-        return null
-    } catch (e: any) {
-        console.error('[compiler] Full error:', e)
-        console.error('[compiler] Stack:', e.stack)
-        console.warn(`[uniapp-render-compiler] 转换失败: ${e.message}`)
-        return null
+    // 情况1：有 template - 需要将 template 转换为 render 函数
+    if (hasTemplate && descriptor.template?.ast) {
+        const transformedScript = transformScriptWithTemplate(
+            scriptContent || '',
+            descriptor,
+            isPage
+        )
+        if (!transformedScript) return null
+        return buildTransformedSFC({ scriptAttrs, styles }, transformedScript, isPage)
     }
+
+    // 情况2：只有 script（render 函数形式）
+    if (scriptContent) {
+        const transformedScript = transformScript(scriptContent, isPage)
+        if (!transformedScript) return null
+        return buildTransformedSFC({ scriptAttrs, styles }, transformedScript, isPage)
+    }
+
+    return null
 }
 
 /**
@@ -70,53 +60,41 @@ export function transformVueSFC(vueCode: string, isPage: boolean = false): strin
  * 使用 @vue/compiler-sfc 的 compileScript 和 compileTemplate
  */
 function transformScriptWithTemplate(scriptContent: string, descriptor: any, isPage: boolean): string | null {
+    const id = 'uni-render'
+
+    // 1. 编译 Script
+    let compiledScript: any
     try {
-        console.log('[compiler] 使用官方 compileScript + compileTemplate 处理')
-        const id = 'uni-render' // 简单的 ID
-
-        // 1. 编译 Script
-        let compiledScript: any
-        try {
-            // 如果只有 template 没有 script，compileScript 需要从 descriptor 中获取
-            // 实际上 descriptor 包含了 script 和 scriptSetup
-            compiledScript = compileScript(descriptor, {
-                id,
-                inlineTemplate: false
-            })
-        } catch (e: any) {
-            // 如果没有 script 标签，可能需要手动构造一个空的导出
-            if (!descriptor.script && !descriptor.scriptSetup) {
-                compiledScript = { content: 'import { defineComponent } from "vue";\nexport default defineComponent({});' }
-            } else {
-                throw e
-            }
-        }
-
-        // 2. 编译 Template
-        let renderCode = ''
-        if (descriptor.template) {
-            const compiledTemplate = compileTemplate({
-                source: descriptor.template.content,
-                filename: 'anonymous.vue',
-                id,
-                compilerOptions: {
-                    mode: 'module'
-                    // 暂时不做标签转换，保留原生 HTML 标签
-                }
-            })
-            renderCode = compiledTemplate.code
-        }
-
-        // 3. 合并代码
-        const scriptCode = compiledScript.content
-        const finalCode = mergeCode(scriptCode, renderCode, isPage)
-
-        return finalCode
-
+        compiledScript = compileScript(descriptor, {
+            id,
+            inlineTemplate: false
+        })
     } catch (e: any) {
-        console.error('[compiler] transformScriptWithTemplate 失败:', e.message)
-        return null
+        // 如果没有 script 标签，手动构造一个空的导出
+        if (!descriptor.script && !descriptor.scriptSetup) {
+            compiledScript = { content: 'import { defineComponent } from "vue";\nexport default defineComponent({});' }
+        } else {
+            throw e
+        }
     }
+
+    // 2. 编译 Template
+    let renderCode = ''
+    if (descriptor.template) {
+        const compiledTemplate = compileTemplate({
+            source: descriptor.template.content,
+            filename: 'anonymous.vue',
+            id,
+            compilerOptions: {
+                mode: 'module'
+            }
+        })
+        renderCode = compiledTemplate.code
+    }
+
+    // 3. 合并代码
+    const scriptCode = compiledScript.content
+    return mergeCode(scriptCode, renderCode, isPage)
 }
 
 /**
@@ -200,32 +178,26 @@ export default __sfc__`
  *    如果是 Component，只替换 import，保持 defineComponent 不变
  */
 function transformScript(scriptContent: string, isPage: boolean): string | null {
-    try {
-        const parser = new SlimeParser(scriptContent)
-        const cst = parser.Program()
+    const parser = new SlimeParser(scriptContent)
+    const cst = parser.Program()
 
-        if (!cst || !parser.parsedTokens || parser.parsedTokens.length === 0) {
-            return null
-        }
-
-        const cstToAst = new SlimeCstToAst()
-        const ast = cstToAst.toProgram(cst) as any
-        if (!ast) return null
-
-        // 后处理：处理导入合并和 defineComponent 替换
-        const body = processImportsAndExports(ast.body, isPage)
-        if (!body) return null
-
-        ast.body = body
-
-        // 生成代码
-        const result = SlimeGenerator.generator(ast, parser.parsedTokens)
-        console.log('[compiler] Generated code:', result.code.substring(0, 300))
-        return result.code
-    } catch (e: any) {
-        console.warn(`[uniapp-render-compiler] 解析失败: ${e.message}`)
+    if (!cst || !parser.parsedTokens || parser.parsedTokens.length === 0) {
         return null
     }
+
+    const cstToAst = new SlimeCstToAst()
+    const ast = cstToAst.toProgram(cst) as any
+    if (!ast) return null
+
+    // 后处理：处理导入合并和 defineComponent 替换
+    const body = processImportsAndExports(ast.body, isPage)
+    if (!body) return null
+
+    ast.body = body
+
+    // 生成代码
+    const result = SlimeGenerator.generator(ast, parser.parsedTokens)
+    return result.code
 }
 
 /**
@@ -263,7 +235,6 @@ function processImportsAndExports(body: any[], isPage: boolean): any[] | null {
                         const name = spec.imported?.name
                         if (name) {
                             allSpecifiers.add(name)
-                            console.log(`[compiler] collected: ${name} from ${source}`)
                         }
                     }
                 }
@@ -283,7 +254,6 @@ function processImportsAndExports(body: any[], isPage: boolean): any[] | null {
                     declaration.callee?.type === SlimeAstTypeName.Identifier &&
                     declaration.callee.name === 'defineComponent') {
 
-                    console.log('[compiler] Found defineComponent, replacing...')
                     declaration.callee.name = 'defineRenderComponent'
                     if (declaration.callee.raw) {
                         declaration.callee.raw = 'defineRenderComponent'
@@ -297,7 +267,6 @@ function processImportsAndExports(body: any[], isPage: boolean): any[] | null {
         }
 
         if (!foundDefineComponent) {
-            console.log('[compiler] No defineComponent found')
             return null
         }
 
@@ -326,8 +295,6 @@ function processImportsAndExports(body: any[], isPage: boolean): any[] | null {
         source: SlimeAstCreateUtils.createStringLiteral('uniapp-render')
     }
 
-    console.log('[compiler] Merged specifiers:', Array.from(allSpecifiers).sort().join(', '))
-
     // 7. 返回：合并的导入 + 其他导入 + 非导入语句
     return [mergedImport, ...remainingImports, ...nonImports]
 }
@@ -349,9 +316,6 @@ ${styleParts ? '\n' + styleParts : ''}`
 
     // 非 Page 组件：输出纯 .ts 格式（移除 <script> 标签）
     // 这样 UniApp 不会把它当作 .vue 处理
-    // 注意：样式目前无法保留，用户需要使用全局样式或内联样式
-    if (styleParts) {
-        console.warn('[compiler] 警告：非 Page 组件转换为 .ts 后，<style> 块将被忽略。请使用全局样式或内联样式。')
-    }
+    // 注意：CSS 由插件层面通过虚拟模块处理，这里只输出脚本部分
     return transformedScript
 }
