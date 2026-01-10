@@ -98,46 +98,14 @@ function transformScriptWithTemplate(scriptContent: string, descriptor: any, isP
                 filename: 'anonymous.vue',
                 id,
                 compilerOptions: {
-                    mode: 'module',
-                    nodeTransforms: [
-                        (node: any) => {
-                            if (node.type === 1) { // ELEMENT
-                                const tagMap: Record<string, string> = {
-                                    'div': 'view',
-                                    'span': 'text',
-                                    'p': 'view',
-                                    'h1': 'text',
-                                    'h2': 'text',
-                                    'h3': 'text',
-                                    'h4': 'text',
-                                    'h5': 'text',
-                                    'h6': 'text',
-                                    'a': 'navigator',
-                                    'img': 'image',
-                                    'button': 'button',
-                                    'ul': 'view',
-                                    'li': 'view'
-                                }
-                                if (tagMap[node.tag]) {
-                                    node.tag = tagMap[node.tag]
-                                }
-                            }
-                        }
-                    ]
+                    mode: 'module'
+                    // 暂时不做标签转换，保留原生 HTML 标签
                 }
             })
             renderCode = compiledTemplate.code
         }
 
         // 3. 合并代码
-        // 我们利用 SlimeParser 来解析并重新组织代码
-        // 目标结构：
-        //   Imports (Vue, etc)
-        //   const __sfc__ = defineComponent(...)
-        //   function render(...) { ... }
-        //   __sfc__.render = render
-        //   export default __sfc__
-
         const scriptCode = compiledScript.content
         const finalCode = mergeCode(scriptCode, renderCode, isPage)
 
@@ -193,9 +161,14 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
     allImports.push(...scriptParts.imports)
     allImports.push(...renderParts.imports)
 
+    // 4. 将所有 from 'vue' 或 from "vue" 替换为 from 'uniapp-render'
+    const processedImports = allImports.map(imp =>
+        imp.replace(/from ['"]vue['"]/g, "from 'uniapp-render'")
+    )
+
     // 组合
     let result = `
-${allImports.join('\n')}
+${processedImports.join('\n')}
 
 ${scriptParts.body}
 
@@ -203,12 +176,13 @@ ${renderParts.body}
 
 __sfc__.render = render
 
-// Page 组件需要 defineRenderComponent
 ${isPage ?
-            `import { defineRenderComponent } from 'uniapp-render'
+            `// Page 组件使用 defineRenderComponent，并添加 <render-component> template
+import { defineRenderComponent } from 'uniapp-render'
 export default defineRenderComponent(__sfc__)`
             :
-            `export default __sfc__`
+            `// Component 组件直接导出
+export default __sfc__`
         }
 `
     return result

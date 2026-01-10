@@ -1,18 +1,19 @@
 /**
  * defineRenderComponent
  *
- * 专门用于渲染函数组件的包装器
+ * 专门用于渲染函数组件包装器
+ * 负责和 UniApp 交互，使用 <render-component :node="node" /> 模板
  * 自动处理 render() 调用和响应式桥接
  */
 
 // ⚠️ 关键：分别导入
 // - watch: 从 @vue/runtime-core，监听 Custom Renderer 的响应式变化
 // - ref, defineComponent: 从 vue（UniApp），模板使用和组件定义
-import {watch} from '@vue/runtime-core'
-import {ref as vueRef, defineComponent, nextTick, onUnmounted} from 'vue'
-import {render} from './render'
+import { watch } from '@vue/runtime-core'
+import { ref as vueRef, defineComponent, nextTick, onUnmounted } from 'vue'
+import { render } from './render'
 
-import type {Component} from '@vue/runtime-core'
+import type { Component } from '@vue/runtime-core'
 
 // 【调试】模块加载标识
 const DEFINE_RENDER_MODULE_ID = Math.random().toString(36).substring(2, 8)
@@ -30,13 +31,13 @@ export interface RenderComponentOptions {
  * 自动处理：
  * 1. 调用 render() 获取 RenderNode
  * 2. 桥接 runtime-core 和 uni-h5-vue 的响应式系统
- * 3. 返回 node 供模板使用
+ * 3. 返回 node 供模板使用（配合 <render-component :node="node" />）
  *
  * @example
  * ```typescript
- * import { defineComponent, ref, h } from 'uniapp-render'
+ * import { defineRenderComponent, ref, h } from 'uniapp-render'
  *
- * export default defineComponent({
+ * export default defineRenderComponent({
  *   setup() {
  *     const count = ref(0)
  *     return () => h('view', {}, [
@@ -48,7 +49,7 @@ export interface RenderComponentOptions {
  * ```
  */
 export function defineRenderComponent(options: RenderComponentOptions) {
-    const {setup: originalSetup, name, props: componentProps} = options
+    const { setup: originalSetup, name, props: componentProps } = options
 
     // 使用 Vue 的 defineComponent 包装
     return defineComponent({
@@ -70,7 +71,7 @@ export function defineRenderComponent(options: RenderComponentOptions) {
             }
 
             // 3. 使用 render() 获取 RenderNode
-            const {node: nodeInternal, unmount} = render(InnerComponent)
+            const { node: nodeInternal, unmount } = render(InnerComponent)
             console.log('[defineRenderComponent] nodeInternal created')
 
             // 4. 创建响应式引用，供模板使用
@@ -84,7 +85,7 @@ export function defineRenderComponent(options: RenderComponentOptions) {
                     console.log('[defineRenderComponent] nodeInternal changed, updating node')
                     node.value = newVal
                 },
-                {deep: true}
+                { deep: true }
             )
 
             // 6. 组件卸载时清理资源
@@ -93,7 +94,7 @@ export function defineRenderComponent(options: RenderComponentOptions) {
             })
 
             // 7. 返回 node 给模板使用
-            return {node}
+            return { node }
         }
     })
 }

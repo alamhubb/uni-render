@@ -13,6 +13,7 @@
 export {
     // 核心 API
     h,
+    defineComponent,  // Component 级别直接使用
 
     // 响应式 API
     ref,
@@ -95,12 +96,8 @@ export {
 // ============================================
 // 我们覆盖的 API
 // ============================================
-// 导出 defineRenderComponent 为 defineComponent
-// 当 vite-plugin 通过 resolveId 将 'vue' 重定向到 'uniapp-render' 时
-// 用户的 `import { defineComponent } from 'vue'` 会使用这个
-export { defineRenderComponent as defineComponent } from './renderer/defineRenderComponent'
 
-// 同时导出原名，供需要显式使用的场景
+// 渲染函数组件：和 UniApp 交互，使用 <render-component :node="node" />
 export { defineRenderComponent } from './renderer/defineRenderComponent'
 
 // ============================================
