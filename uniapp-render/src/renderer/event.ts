@@ -20,10 +20,16 @@ function getGlobalStorage() {
     }
 
     const app = getApp()
-    if (!app?.globalData) {
-        throw new Error('[uniapp-render] globalData 不存在，请确保 App.vue 中定义了 globalData')
+    if (!app) {
+        throw new Error('[uniapp-render] getApp() 返回 undefined')
     }
 
+    // 自动创建 globalData
+    if (!app.globalData) {
+        app.globalData = {}
+    }
+
+    // 创建 uniapp-render 存储
     if (!app.globalData.__uniapp_render__) {
         app.globalData.__uniapp_render__ = {
             eventRegistry: new Map<string, Function>(),
