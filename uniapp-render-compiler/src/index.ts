@@ -28,6 +28,10 @@ export interface TransformResult {
 // OXC 解析器使用的虚拟文件名（用于确定解析器类型和错误报告）
 const VIRTUAL_TS_FILE = 'virtual.ts'
 
+// 渲染模块路径（vue 导入会被替换为这个路径）
+const RENDER_MODULE = '@/unirender'
+
+
 /**
  * 快速替换脚本中的 import from 'vue' → import from 'uniapp-render'
  * 使用 OXC + magic-string，性能极高
@@ -44,7 +48,7 @@ export function replaceVueImports(code: string): string {
         if (imp.moduleRequest.value === 'vue') {
             hasChange = true
             // moduleRequest.start/end 包含引号位置，所以替换内容也需要带引号
-            s.overwrite(imp.moduleRequest.start, imp.moduleRequest.end, "'uniapp-render'")
+            s.overwrite(imp.moduleRequest.start, imp.moduleRequest.end, `'${RENDER_MODULE}'`)
         }
     }
 
@@ -95,11 +99,11 @@ export function transformScriptForPage(code: string): string {
                 .filter(s => s !== 'defineComponent')
                 .concat('defineRenderComponent')
                 .sort()
-            const newImport = `import { ${newSpecifiers.join(', ')} } from 'uniapp-render'`
+            const newImport = `import { ${newSpecifiers.join(', ')} } from '${RENDER_MODULE}'`
             s.overwrite(vueImportNode.start, vueImportNode.end, newImport)
         } else {
             // 只替换模块名
-            s.overwrite(vueImportNode.source.start + 1, vueImportNode.source.end - 1, 'uniapp-render')
+            s.overwrite(vueImportNode.source.start + 1, vueImportNode.source.end - 1, RENDER_MODULE)
         }
     }
 
@@ -268,7 +272,7 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
         // 替换 vue → uniapp-render
         ImportDeclaration(node: any) {
             if (node.source?.value === 'vue') {
-                scriptMagic.overwrite(node.source.start, node.source.end, "'uniapp-render'")
+                scriptMagic.overwrite(node.source.start, node.source.end, `'${RENDER_MODULE}'`)
             }
         }
     })
@@ -299,7 +303,7 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
         // 替换 vue → uniapp-render
         ImportDeclaration(node: any) {
             if (node.source?.value === 'vue') {
-                renderMagic.overwrite(node.source.start, node.source.end, "'uniapp-render'")
+                renderMagic.overwrite(node.source.start, node.source.end, `'${RENDER_MODULE}'`)
             }
         }
     })
