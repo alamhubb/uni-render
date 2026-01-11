@@ -7,11 +7,11 @@
  * 转换逻辑委托给 uniapp-render-compiler
  */
 
-import type {Plugin} from 'vite'
-import {relative, resolve, dirname, isAbsolute, basename, join, extname, normalize} from 'pathe'
-import {readFileSync, existsSync} from 'fs'
-import {transformVueSFC, transformVueSFCWithStyles, RENDER_MODULE} from 'uniapp-render-compiler'
-import {parse as parseSFC} from '@vue/compiler-sfc'
+import type { Plugin } from 'vite'
+import { relative, resolve, dirname, isAbsolute, basename, join, extname, normalize } from 'pathe'
+import { readFileSync, existsSync } from 'fs'
+import { transformVueSFC, transformVueSFCWithStyles, RENDER_MODULE } from 'uniapp-render-compiler'
+import { parse as parseSFC } from '@vue/compiler-sfc'
 
 export interface UniRenderOptions {
     /** 是否开启调试日志 */
@@ -80,7 +80,7 @@ function transformPageVue(code: string, id: string, root: string, debug: boolean
         console.log(`[vite-plugin-uniapp-render] ✓ 已转换(page): ${relative(process.cwd(), id)}`)
         console.log(`[vite-plugin-uniapp-render] Page 转换后代码:\n${result}`)
     }
-    return {code: result, map: null}
+    return { code: result, map: null }
 }
 
 /**
@@ -127,7 +127,7 @@ function getPagePaths(root: string): Set<string> {
 let singletonDebug = false
 
 export function uniRender(options: UniRenderOptions = {}): Plugin {
-    const {debug = false} = options
+    const { debug = false } = options
 
     singletonDebug = debug
 
@@ -233,7 +233,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                     if (debug) {
                         console.log(`[vite-plugin-uniapp-render] 重定向 vue → ${RENDER_MODULE} (from: ${importerName})`)
                     }
-                    return {id: RENDER_MODULE, external: false}
+                    return { id: RENDER_MODULE, external: false }
                 }
             }
 
@@ -272,7 +272,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 const fs = await import('fs')
                 if (fs.existsSync(originalVuePath)) {
                     const code = fs.readFileSync(originalVuePath, 'utf-8')
-                    const {descriptor} = parseSFC(code, {filename: originalVuePath})
+                    const { descriptor } = parseSFC(code, { filename: originalVuePath })
                     const styles = descriptor.styles.map(s => s.content).join('\n')
                     if (styles.trim()) {
                         transformedCssCache.set(originalVuePath, styles)
@@ -300,7 +300,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 const code = fs.readFileSync(originalPath, 'utf-8')
 
                 // 解析 SFC 获取 style 块
-                const {descriptor} = parseSFC(code, {filename: originalPath})
+                const { descriptor } = parseSFC(code, { filename: originalPath })
                 const styles = descriptor.styles.map(s => s.content).join('\n')
 
                 // 缓存 CSS
@@ -323,7 +323,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
 
                 // 使用 esbuild 转换 TS → JS
                 const esbuild = await import('esbuild')
-                const {code: jsCode} = await esbuild.transform(finalTsCode, {
+                const { code: jsCode } = await esbuild.transform(finalTsCode, {
                     loader: 'ts',
                     target: 'esnext'
                 })
@@ -342,13 +342,9 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
         },
 
         /**
-         * 暂时禁用 Page .vue 转换
+         * 处理 Page .vue 组件转换
          */
         transform(code, id) {
-            // 暂时禁用 Page 组件转换
-            return null
-
-            /*
             if (extname(id) !== '.vue') return null
             if (basename(id) === 'App.vue') return null
             if (basename(id) === 'RenderComponent.vue') return null
@@ -384,13 +380,12 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             }
 
             return { code: finalCode, map: null }
-            */
         },
 
         /**
          * 处理 HMR - 当 .vue 文件变化时，清除缓存并使虚拟模块失效
          */
-        handleHotUpdate({file, server}) {
+        handleHotUpdate({ file, server }) {
             if (!file.endsWith('.vue')) return
 
             // 检查是否是我们处理的 .vue 文件（非 Page 组件）

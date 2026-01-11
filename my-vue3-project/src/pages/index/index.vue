@@ -1,30 +1,19 @@
 <template>
-  <render-component :node="node"></render-component>
+  <div>
+    <div>
+      <a href="https://vite.dev" target="_blank">
+        <img src="/static/vite.svg" class="logo" alt="Vite logo" />
+      </a>
+      <a href="https://vuejs.org/" target="_blank">
+        <img src="/static/vue.svg" class="logo vue" alt="Vue logo" />
+      </a>
+    </div>
+    <div style="margin-top: 20px; text-align: center;">
+      <p style="color: #42b883;">Hello UniApp Render!</p>
+    </div>
+  </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, h } from 'uniapp-render'
+<script setup lang="ts">
 import './index.css'
-import { defineRenderComponent } from 'uniapp-render'
-import HelloWorld from './components/HelloWorld.vue'
-
-// 定义组件
-const MyComponent = defineComponent({
-  setup() {
-    return () => h('div', {}, [
-      h('div', {}, [
-        h('a', { href: 'https://vite.dev', target: '_blank' }, [
-          h('img', { src: '/static/vite.svg', class: 'logo', alt: 'Vite logo' })
-        ]),
-        h('a', { href: 'https://vuejs.org/', target: '_blank' }, [
-          h('img', { src: '/static/vue.svg', class: 'logo vue', alt: 'Vue logo' })
-        ])
-      ]),
-      h(HelloWorld, { msg: 'Vite + Vue' })
-    ])
-  }
-})
-
-// 使用 defineRenderComponent 包装
-export default defineRenderComponent(MyComponent)
 </script>
