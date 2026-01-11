@@ -6,7 +6,7 @@
 import { defineComponent, ref } from 'vue'
 import { h } from 'uniapp-render'
 import './index.css'
-import HelloWorld from './components/HelloWorld'
+import HelloWorld from './components/HelloWorld.vue'
 
 // 手动编写渲染函数组件
 const MyComponent = defineComponent({

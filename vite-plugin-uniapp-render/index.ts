@@ -312,9 +312,13 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
         },
 
         /**
-         * 只转换 Page .vue 文件（调试模式：只做拼接，不包装）
+         * 暂时禁用 Page .vue 转换
          */
         transform(code, id) {
+            // 暂时禁用 Page 组件转换
+            return null
+
+            /*
             if (extname(id) !== '.vue') return null
             if (basename(id) === 'App.vue') return null
             if (basename(id) === 'RenderComponent.vue') return null
@@ -350,6 +354,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             }
 
             return { code: finalCode, map: null }
+            */
         }
     }
 }
