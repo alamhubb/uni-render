@@ -27,7 +27,7 @@ const PLUGIN_VERSION = 'v2.0.1'  // 插件版本号
 const SRC_DIR = 'src'
 const PAGES_JSON = 'pages.json'
 const VIRTUAL_EXT = '.render.temp.ts'  // 虚拟模块扩展名
-const UNIRENDER_PATH = 'uniapp-render'  // unirender 目录路径模式（用于 normalize 后的路径匹配）
+const EXCLUDE_RENDER_COMPONENT = 'uniapp-render/src/components/RenderComponent'  // 排除 RenderComponent.vue（该组件不需要转换）
 
 // 需要替换 import from 'vue' 的纯脚本文件扩展名（不包括 .vue）
 const SCRIPT_EXTS = new Set(['.ts', '.js', '.mjs', '.cjs'])
@@ -171,6 +171,10 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
 
             // ========== 2. 非 Page .vue 重定向到虚拟模块 ==========
             if (extname(source) === '.vue') {
+                if (debug) {
+                    console.log(`[vite-plugin-uniapp-render] resolveId 收到 .vue: ${source}, importer: ${importer}`)
+                }
+
                 if (basename(source) === 'App.vue') return null
 
                 let fullPath = source
@@ -178,17 +182,31 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                     fullPath = resolve(dirname(importer), source)
                 }
 
-                // 排除 unirender 目录（unirender 库本身需要使用原生 Vue）
-                if (normalize(fullPath).includes(UNIRENDER_PATH)) {
+                if (debug) {
+                    console.log(`[vite-plugin-uniapp-render] .vue 完整路径: ${fullPath}`)
+                }
+
+                // 排除 RenderComponent.vue（该组件使用标准 Vue SFC，不需要转换）
+                const normalizedPath = normalize(fullPath)
+                if (normalizedPath.includes(EXCLUDE_RENDER_COMPONENT)) {
+                    if (debug) {
+                        console.log(`[vite-plugin-uniapp-render] 排除 RenderComponent.vue`)
+                    }
                     return null
                 }
 
                 // 非 Page 组件重定向到虚拟模块（.ts 扩展名）
-                if (!isPageComponent(fullPath, root)) {
+                const isPage = isPageComponent(fullPath, root)
+                if (debug) {
+                    console.log(`[vite-plugin-uniapp-render] 是否为 Page: ${isPage}`)
+                }
+
+                if (!isPage) {
+                    const virtualId = VIRTUAL_PREFIX + changeExt(fullPath, '.vue', VIRTUAL_EXT)
                     if (debug) {
-                        console.log(`[vite-plugin-uniapp-render] 重定向非 Page .vue: ${source} -> 虚拟模块`)
+                        console.log(`[vite-plugin-uniapp-render] 重定向非 Page .vue: ${source} -> ${virtualId}`)
                     }
-                    return VIRTUAL_PREFIX + changeExt(fullPath, '.vue', VIRTUAL_EXT)
+                    return virtualId
                 }
                 return null
             }
@@ -205,9 +223,9 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 const importerName = basename(importer)
 
                 // 排除 unirender 目录本身（它需要使用原生 vue）
-                if (normalize(importer).includes(UNIRENDER_PATH)) {
-                    return null
-                }
+                // if (normalize(importer).includes(UNIRENDER_PATH)) {
+                //     return null
+                // }
 
                 // 只处理纯脚本文件，排除 .vue 和入口文件
                 if (SCRIPT_EXTS.has(importerExt) &&
