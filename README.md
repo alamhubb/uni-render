@@ -160,3 +160,41 @@ export default defineComponent({
 3. **事件处理**：使用 `onClick`、`onInput` 等 Vue 风格的事件名，会自动转换为 UniApp 的事件格式。
 
 4. **node_modules**：node_modules 中的 `.vue` 文件也会被处理（通过虚拟模块），确保第三方 Vue 组件也能正常工作。
+
+## 标签映射表
+
+### customRenderer 标签转换（第一层）
+
+在 Custom Renderer 中，HTML 标签会被转换为 UniApp 兼容的标签类型：
+
+| HTML 标签 | → UniApp 类型 | 说明 |
+|---------|--------------|-----|
+| `div` | `view` | 块级容器 |
+| `p` | `view` | 段落，作为块级元素处理 |
+| `span` | `text` | 行内文本 |
+| `img` | `image` | 图片 |
+| `a` | `navigator` | 链接/导航 |
+| `code` | `text` | 代码文本 |
+| `h1`~`h6` | 原样保留 | 进入默认处理，渲染为 view |
+| `view` | `view` | 保持不变 |
+| `text` | `text` | 保持不变 |
+| `image` | `image` | 保持不变 |
+| `button` | `button` | 保持不变 |
+| `input` | `input` | 保持不变 |
+| `navigator` | `navigator` | 保持不变 |
+| 其他 | 原样保留 | 进入 RenderComponent 默认处理 |
+
+### RenderComponent 渲染（第二层）
+
+RenderComponent 根据节点的 `type` 值渲染对应的 UniApp 组件：
+
+| type 值 | 渲染为 | 特殊处理 |
+|--------|-------|---------|
+| `view` | `<view>` | 支持 tap、longpress 事件 |
+| `text` | `<text>` | 支持文本内容和子节点 |
+| `#text` | `<text>` | 纯文本节点 |
+| `button` | `<button>` | 支持 type 属性 |
+| `input` | `<input>` | 支持 input、focus、blur 事件 |
+| `image` | `<image>` | 默认 mode="scaleToFill" |
+| 其他（默认） | `<view>` | 未知类型统一渲染为 view |
+

@@ -39,6 +39,15 @@
       :src="nodeToRender.props?.src" :mode="nodeToRender.props?.mode || 'scaleToFill'" :data-id="nodeToRender.id"
       @tap="onTap" />
 
+    <!-- navigator 导航/链接 -->
+    <navigator v-else-if="nodeToRender.type === 'navigator'" :id="nodeToRender.props?.id"
+      :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style"
+      :url="nodeToRender.props?.href || nodeToRender.props?.url"
+      :target="nodeToRender.props?.target === '_blank' ? 'miniProgram' : 'self'" :data-id="nodeToRender.id">
+      <text v-if="nodeToRender.text">{{ nodeToRender.text }}</text>
+      <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
+    </navigator>
+
     <!-- 默认：当作 view 处理 -->
     <view v-else :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style"
       :data-id="nodeToRender.id" @tap="onTap">

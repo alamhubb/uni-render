@@ -7,6 +7,12 @@ page {
   min-height: 100%;
 }
 
+#app {
+  max-width: 1280px;
+  margin: 0 auto;
+  text-align: center;
+}
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -93,12 +99,6 @@ uni-button:hover {
 
 .card {
   padding: 2em;
-}
-
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  text-align: center;
 }
 
 @media (prefers-color-scheme: light) {

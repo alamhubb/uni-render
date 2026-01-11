@@ -46,9 +46,10 @@ const EVENT_MAP: Record<string, string> = {
 const TAG_MAP: Record<string, string> = {
     'div': 'view',
     'span': 'text',
-    'p': 'text',
+    'p': 'view',
     'img': 'image',
     'a': 'navigator',
+    'code': 'text',
     // 保持不变的标签
     'view': 'view',
     'text': 'text',
