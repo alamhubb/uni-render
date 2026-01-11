@@ -6,7 +6,7 @@
 import { defineComponent, h } from '@/unirender'
 import './index.css'
 import { defineRenderComponent } from '@/unirender'
-import HelloWorld from './components/HelloWorld'
+import HelloWorld from './components/HelloWorld.vue'
 
 // 定义组件
 const MyComponent = defineComponent({
