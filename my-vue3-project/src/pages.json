@@ -2,7 +2,7 @@
 	"easycom": {
 		"autoscan": true,
 		"custom": {
-			"render-component": "@/unirender/RenderComponent.vue"
+			"render-component": "@/unirender/RenderComponent"
 		}
 	},
 	"pages": [
