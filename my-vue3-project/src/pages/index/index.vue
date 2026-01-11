@@ -1,39 +1,40 @@
-<template>
-  <render-component :node="node" />
-</template>
-
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
-import { h } from 'uniapp-render'
+import { defineComponent, h } from 'vue'
 
-// 手动编写渲染函数组件
-const MyComponent = defineComponent({
+// 使用官方 Vue 的渲染函数，但用 UniApp 的组件标签
+export default defineComponent({
+  name: 'IndexPage',
   setup() {
-    // 返回渲染函数
-    return () => h('div', {}, [
-      h('div', {}, [
-        h('a', { href: 'https://vite.dev', target: '_blank' }, [
-          h('img', { src: '/static/vite.svg', class: 'logo', alt: 'Vite logo' })
+    // 直接返回渲染函数，使用 UniApp 组件
+    return () => h('view', {}, [
+      h('view', {}, [
+        h('view', {}, [
+          h('image', {
+            src: '/static/vite.svg',
+            class: 'logo',
+            mode: 'scaleToFill'
+          })
         ]),
-        h('a', { href: 'https://vuejs.org/', target: '_blank' }, [
-          h('img', { src: '/static/vue.svg', class: 'logo vue', alt: 'Vue logo' })
+        h('view', {}, [
+          h('image', {
+            src: '/static/vue.svg',
+            class: 'logo vue',
+            mode: 'scaleToFill'
+          })
         ])
       ]),
-      h('div', { style: 'margin-top: 20px; text-align: center;' }, [
-        h('p', { style: 'color: #42b883;' }, 'Hello UniApp Render!')
+      h('view', { style: 'margin-top: 20px; text-align: center;' }, [
+        h('text', { style: 'color: #42b883;' }, 'Hello UniApp Render!')
       ])
     ])
   }
 })
-
-// 使用 defineRenderComponent 包装
-import { defineRenderComponent } from '@/unirender'
-export default defineRenderComponent(MyComponent)
 </script>
 
 <style>
 .logo {
-  height: 6em;
+  width: 100px;
+  height: 100px;
   padding: 1.5em;
   will-change: filter;
   transition: filter 300ms;
