@@ -6,7 +6,7 @@
 
 import { render } from './render'
 import { watch } from '@vue/runtime-core'
-import { ref as vueRef, onUnmounted } from '@dcloudio/uni-h5-vue'
+import { ref as vueRef, onUnmounted } from 'vue'
 
 console.log('[defineRenderComponent.ts] 本地版本已加载！')
 
