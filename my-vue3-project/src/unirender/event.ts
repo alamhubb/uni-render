@@ -1,45 +1,71 @@
 /**
  * 事件注册模块
- * 
+ *
  * 双 Map 架构：
  * 1. eventRegistry: eventId → handler（全局事件表）
  * 2. scopeRegistry: scopeId → Set<eventId>（组件/页面事件表）
- * 
+ *
  * 使用全局对象确保单例，避免模块重复打包导致的事件丢失
  * - H5: 使用 window
  * - 小程序: 使用 getApp().globalData
  */
 
 // 声明 UniApp 全局 API
-declare function getApp(): { globalData: Record<string, any> } | undefined
+declare function getApp(options?: { allowDefault?: boolean }): { globalData: Record<string, any> } | undefined
+
+// 声明 window 上的存储类型
+declare global {
+    interface Window {
+        __uniapp_render__?: {
+            eventRegistry: Map<string, Function>
+            scopeRegistry: Map<string, Set<string>>
+            eventCounter: number
+            scopeCounter: number
+        }
+    }
+}
+
+// 默认存储结构
+function createDefaultStorage() {
+    return {
+        eventRegistry: new Map<string, Function>(),
+        scopeRegistry: new Map<string, Set<string>>(),
+        eventCounter: 0,
+        scopeCounter: 0
+    }
+}
 
 // 获取全局存储
 function getGlobalStorage() {
-    if (typeof getApp !== 'function') {
-        throw new Error('[uniapp-render] getApp 不存在，请确保在 UniApp 环境中运行')
-    }
-
-    const app = getApp()
-    if (!app) {
-        throw new Error('[uniapp-render] getApp() 返回 undefined')
-    }
-
-    // 自动创建 globalData
-    if (!app.globalData) {
-        app.globalData = {}
-    }
-
-    // 创建 uniapp-render 存储
-    if (!app.globalData.__uniapp_render__) {
-        app.globalData.__uniapp_render__ = {
-            eventRegistry: new Map<string, Function>(),
-            scopeRegistry: new Map<string, Set<string>>(),
-            eventCounter: 0,
-            scopeCounter: 0
+    // 1. 优先尝试 UniApp 的 getApp()
+    if (typeof getApp === 'function') {
+        try {
+            const app = getApp({ allowDefault: true })
+            if (app) {
+                // 自动创建 globalData
+                if (!app.globalData) {
+                    app.globalData = {}
+                }
+                if (!app.globalData.__uniapp_render__) {
+                    app.globalData.__uniapp_render__ = createDefaultStorage()
+                }
+                return app.globalData.__uniapp_render__
+            }
+        } catch {
+            // getApp 调用失败，回退到 window
         }
     }
 
-    return app.globalData.__uniapp_render__
+    // 2. H5 环境回退：使用 window 上的全局对象
+    if (typeof window !== 'undefined') {
+        if (!window.__uniapp_render__) {
+            window.__uniapp_render__ = createDefaultStorage()
+        }
+        return window.__uniapp_render__
+    }
+
+    // 3. 其他环境：抛出错误
+    throw new Error('[uniapp-render] 无法获取全局存储，不支持的运行环境')
 }
 
 /**
