@@ -17,6 +17,14 @@ interface SFCBlock {
     styles: string[]
 }
 
+/**
+ * 转换结果，包含代码和样式
+ */
+export interface TransformResult {
+    code: string
+    styles: string  // 纯 CSS 内容（无 <style> 标签）
+}
+
 // OXC 解析器使用的虚拟文件名（用于确定解析器类型和错误报告）
 const VIRTUAL_TS_FILE = 'virtual.ts'
 
@@ -106,6 +114,18 @@ export function transformScriptForPage(code: string): string {
  * @returns 转换后的代码，如果不需要转换返回 null
  */
 export function transformVueSFC(vueCode: string, isPage: boolean = false): string | null {
+    const result = transformVueSFCWithStyles(vueCode, isPage)
+    return result?.code ?? null
+}
+
+/**
+ * 转换 Vue SFC 文件，返回代码和样式
+ * 
+ * @param vueCode - Vue SFC 代码
+ * @param isPage - 是否为 page 页面（pages/ 目录下的组件）
+ * @returns 转换结果，包含 code 和 styles
+ */
+export function transformVueSFCWithStyles(vueCode: string, isPage: boolean = false): TransformResult | null {
     const { descriptor } = parseSFC(vueCode, { filename: 'anonymous.vue' })
 
     const hasTemplate = descriptor.template?.content?.trim()
@@ -116,7 +136,10 @@ export function transformVueSFC(vueCode: string, isPage: boolean = false): strin
 
     // 强制使用 lang="ts"，因为 compileScript 输出的代码可能包含 TS 语法
     const scriptAttrs = ' lang="ts"'
-    const styles = descriptor.styles.map(s => `<style${s.scoped ? ' scoped' : ''}>${s.content}</style>`)
+    // 提取纯 CSS 内容（无 <style> 标签）
+    const styles = descriptor.styles.map(s => s.content).join('\n')
+    // 旧格式（带 <style> 标签），用于兼容
+    const styleBlocks = descriptor.styles.map(s => `<style${s.scoped ? ' scoped' : ''}>${s.content}</style>`)
 
     // 情况1：有 template - 需要将 template 转换为 render 函数
     if (hasTemplate && descriptor.template?.ast) {
@@ -126,7 +149,8 @@ export function transformVueSFC(vueCode: string, isPage: boolean = false): strin
             isPage
         )
         if (!transformedScript) return null
-        return buildTransformedSFC({ scriptAttrs, styles }, transformedScript, isPage)
+        const code = buildTransformedSFC({ scriptAttrs, styles: styleBlocks }, transformedScript, isPage)
+        return { code, styles }
     }
 
     // 情况2：只有 script（render 函数形式）
@@ -134,7 +158,8 @@ export function transformVueSFC(vueCode: string, isPage: boolean = false): strin
         const transformedScript = isPage
             ? transformScriptForPage(scriptContent)
             : replaceVueImports(scriptContent)
-        return buildTransformedSFC({ scriptAttrs, styles }, transformedScript, isPage)
+        const code = buildTransformedSFC({ scriptAttrs, styles: styleBlocks }, transformedScript, isPage)
+        return { code, styles }
     }
 
     return null
@@ -357,11 +382,7 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
 }
 
 function buildTransformedSFC(blocks: SFCBlock, transformedScript: string, isPage: boolean): string {
-    const styleParts = blocks.styles.join('\n\n')
-    console.log('[buildTransformedSFC] styles 数量:', blocks.styles.length)
-    console.log('[buildTransformedSFC] styleParts:', styleParts.substring(0, 200))
-
-    // Page 组件：使用 <render-component> 模板
+    // Page 组件：使用 <render-component> 模板，不拼接 <style> 块（CSS 通过虚拟模块导入）
     if (isPage) {
         return `<template>
   <render-component :node="node" />
@@ -369,8 +390,7 @@ function buildTransformedSFC(blocks: SFCBlock, transformedScript: string, isPage
 
 <script${blocks.scriptAttrs}>
 ${transformedScript}
-</script>
-${styleParts ? '\n' + styleParts : ''}`
+</script>`
     }
 
     // 非 Page 组件：返回纯 TS 代码（不需要 .vue 格式，由虚拟模块处理）

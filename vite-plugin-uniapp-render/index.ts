@@ -10,7 +10,7 @@
 import type { Plugin } from 'vite'
 import { relative, resolve, dirname, isAbsolute, basename, join, extname } from 'pathe'
 import { readFileSync, existsSync } from 'fs'
-import { transformVueSFC } from 'uniapp-render-compiler'
+import { transformVueSFC, transformVueSFCWithStyles } from 'uniapp-render-compiler'
 import { parse as parseSFC } from '@vue/compiler-sfc'
 
 export interface UniRenderOptions {
@@ -326,15 +326,30 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 console.log(`[vite-plugin-uniapp-render] 开始处理 Page: ${relative(process.cwd(), id)}`)
             }
 
-            const result = transformVueSFC(code, true) // isPage = true
+            const result = transformVueSFCWithStyles(code, true) // isPage = true
             if (!result) return null
+
+            // 缓存 CSS
+            if (result.styles.trim()) {
+                transformedCssCache.set(id, result.styles)
+            }
+
+            // 在 <script> 标签后添加 CSS 虚拟模块导入
+            let finalCode = result.code
+            if (result.styles.trim()) {
+                // 在 <script> 开始标签后插入 CSS 导入
+                finalCode = finalCode.replace(
+                    /(<script[^>]*>)/,
+                    `$1\nimport '${CSS_VIRTUAL_IMPORT_PREFIX}${id}.css'`
+                )
+            }
 
             if (debug) {
                 console.log(`[vite-plugin-uniapp-render] ✓ 已转换(page): ${relative(process.cwd(), id)}`)
-                console.log(`[vite-plugin-uniapp-render] 转换后代码:\n${result}`)
+                console.log(`[vite-plugin-uniapp-render] 转换后代码:\n${finalCode}`)
             }
 
-            return { code: result, map: null }
+            return { code: finalCode, map: null }
         }
     }
 }
