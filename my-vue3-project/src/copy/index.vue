@@ -27,7 +27,7 @@ const MyComponent = defineComponent({
 })
 
 // 使用 defineRenderComponent 包装
-import { defineRenderComponent } from '@/unirender'
+import { defineRenderComponent } from 'uniapp-render'
 export default defineRenderComponent(MyComponent)
 </script>
 

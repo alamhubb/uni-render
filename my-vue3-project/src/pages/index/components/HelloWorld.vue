@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {ref} from '@/unirender'
+import {ref} from 'vue'
 
 defineProps<{ msg: string }>()
 

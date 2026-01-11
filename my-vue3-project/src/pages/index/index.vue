@@ -3,9 +3,9 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, h } from '@/unirender'
+import { defineComponent, h } from 'uniapp-render'
 import './index.css'
-import { defineRenderComponent } from '@/unirender'
+import { defineRenderComponent } from 'uniapp-render'
 import HelloWorld from './components/HelloWorld.vue'
 
 // 定义组件
