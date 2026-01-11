@@ -8,6 +8,8 @@ import { render } from 'uniapp-render'
 import { ref, watch } from 'uniapp-render'
 import { ref as vueRef, onUnmounted } from '@dcloudio/uni-h5-vue'
 
+console.log('[defineRenderComponent.ts] 模块已加载！')
+
 export function defineRenderComponent(component: any) {
     console.log('[defineRenderComponent] 收到组件:', component)
 

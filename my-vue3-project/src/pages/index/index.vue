@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// import HelloWorld from './components/HelloWorld.vue'
+// 暂时不使用响应式
 </script>
 
 <template>
@@ -12,7 +12,10 @@
         <img src="/static/vue.svg" class="logo vue" alt="Vue logo" />
       </a>
     </div>
-    <!-- <HelloWorld msg="Vite + Vue" /> -->
+    
+    <div style="margin-top: 20px; text-align: center;">
+      <p style="color: #42b883;">Hello UniApp Render!</p>
+    </div>
   </div>
 </template>
 

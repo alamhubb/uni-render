@@ -8,91 +8,18 @@
  */
 
 // ============================================
-// Vue 标准 API（和 @dcloudio/uni-h5-vue 一致）
+// Vue 标准 API（导出 @vue/runtime-core 所有内容）
 // ============================================
+export * from '@vue/runtime-core'
+
+// vModel 指令（从 @vue/runtime-dom 导入）
 export {
-    // 核心 API
-    h,
-    defineComponent,  // Component 级别直接使用
-
-    // 响应式 API
-    ref,
-    reactive,
-    computed,
-    readonly,
-    shallowRef,
-    shallowReactive,
-    toRef,
-    toRefs,
-
-    // 监听器
-    watch,
-    watchEffect,
-
-    // 生命周期钩子
-    onBeforeMount,
-    onMounted,
-    onBeforeUpdate,
-    onUpdated,
-    onBeforeUnmount,
-    onUnmounted,
-
-    // 依赖注入
-    provide,
-    inject,
-
-    // 其他工具
-    nextTick,
-    getCurrentInstance,
-
-    // Block 相关 (模板编译需要)
-    createBlock,
-    openBlock,
-    createVNode,
-    createTextVNode,
-    createCommentVNode,
-    createElementBlock,
-    createElementVNode,
-    Fragment,
-    Text,
-    Comment,
-
-    // 组件解析 (模板编译需要)
-    resolveComponent,
-    resolveDirective,
-    resolveDynamicComponent,
-
-    // 指令相关
-    withDirectives,
-
-    // 渲染相关
-    renderSlot,
-    renderList,
-    withCtx,
-    mergeProps,
-    normalizeClass,
-    normalizeStyle,
-    normalizeProps,
-    guardReactiveProps,
-    toHandlers,
-    cloneVNode,
-    toDisplayString,  // 模板编译需要
-
-    // 响应式工具
-    isRef,
-    unref,
-    toValue,
-    isReactive,
-    isReadonly,
-    isProxy,
-    markRaw,
-    toRaw,
-    triggerRef,
-    customRef,
-    shallowReadonly,
-    effectScope,
-    onScopeDispose
-} from '@vue/runtime-core'
+    vModelText,
+    vModelCheckbox,
+    vModelRadio,
+    vModelSelect,
+    vModelDynamic
+} from '@vue/runtime-dom'
 
 // ============================================
 // 我们覆盖的 API
