@@ -34,9 +34,6 @@ export { defineRenderComponent } from './defineRenderComponent'
 export { render } from './render'
 export { renderEvent } from './event'
 
-// 组件
-export { default as RenderComponent } from './RenderComponent.vue'
-
 // ============================================
 // 类型定义
 // ============================================
