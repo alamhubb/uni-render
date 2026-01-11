@@ -127,46 +127,7 @@ function getPagePaths(root: string): Set<string> {
 let singletonDebug = false
 
 export function uniRender(options: UniRenderOptions = {}): Plugin {
-    const { debug = false, skip = false, onlyVueRedirect = false } = options
-
-    // 如果 skip=true，返回空插件
-    if (skip) {
-        return {
-            name: 'vite-plugin-uniapp-render-skip',
-        }
-    }
-
-    // 如果 onlyVueRedirect=true，只启用 vue 重定向
-    if (onlyVueRedirect) {
-        return {
-            name: 'vite-plugin-uniapp-render-vue-redirect',
-            enforce: 'pre',
-            resolveId(source, importer) {
-                // 只处理 vue → unirender 重定向
-                if (source === 'vue' && importer &&
-                    !importer.includes('node_modules')) {
-                    const importerExt = extname(importer)
-                    const importerName = basename(importer)
-
-                    // 排除 unirender 目录本身（它需要使用原生 vue）
-                    if (normalize(importer).includes(UNIRENDER_PATH)) {
-                        return null
-                    }
-
-                    // 只处理纯脚本文件（.ts/.js 等），自动排除 .vue 文件和入口文件
-                    if (SCRIPT_EXTS.has(importerExt) &&
-                        !ENTRY_FILES.has(importerName)) {
-                        if (debug) {
-                            console.log(`[vite-plugin-uniapp-render] 重定向 vue → ${RENDER_MODULE} (from: ${importerName})`)
-                        }
-                        // 返回 RENDER_MODULE，由 Vite 的 alias 解析
-                        return { id: RENDER_MODULE, external: false }
-                    }
-                }
-                return null
-            }
-        }
-    }
+    const { debug = false } = options
 
     singletonDebug = debug
 
