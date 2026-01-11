@@ -155,6 +155,7 @@ const nodeOps: RendererOptions<InternalNode, InternalNode> = {
     },
 
     patchProp(el: InternalNode, key: string, prevValue: any, nextValue: any): void {
+        console.log('[patchProp]', el.type, key, '=', nextValue)
         // 处理事件
         if (key.startsWith('on') && typeof nextValue === 'function') {
             const eventType = key.slice(2).toLowerCase()
