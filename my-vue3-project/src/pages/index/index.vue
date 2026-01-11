@@ -20,10 +20,7 @@ const MyComponent = defineComponent({
           h('img', { src: '/static/vue.svg', class: 'logo vue', alt: 'Vue logo' })
         ])
       ]),
-      h(HelloWorld, { msg: 'Vite + Vue' }),
-      h('div', { style: 'margin-top: 20px; text-align: center;' }, [
-        h('p', { style: 'color: #42b883;' }, 'Hello UniApp Render!')
-      ])
+      h(HelloWorld, { msg: 'Vite + Vue' })
     ])
   }
 })

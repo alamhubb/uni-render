@@ -3,7 +3,7 @@ import {ref} from 'vue'
 
 defineProps<{ msg: string }>()
 
-const count = ref(130)
+const count = ref(140)
 
 console.log(123)
 </script>
@@ -19,12 +19,12 @@ console.log(123)
     </p>
   </div>
 
-  <p>
+  <p style="display: flex;flex-direction: row;justify-content: center">
     Check out
     <a href="https://vuejs.org/guide/quick-start.html#local" target="_blank">create-vue</a>, the official Vue + Vite
     starter
   </p>
-  <p>
+  <p style="display: flex;flex-direction: row">
     Learn more about IDE Support for Vue in the
     <a href="https://vuejs.org/guide/scaling-up/tooling.html#ide-support" target="_blank">Vue Docs Scaling up Guide</a>.
   </p>
