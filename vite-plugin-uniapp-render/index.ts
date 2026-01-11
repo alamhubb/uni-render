@@ -8,14 +8,18 @@
  */
 
 import type { Plugin } from 'vite'
-import { relative, resolve, dirname, isAbsolute, basename, join, extname } from 'pathe'
+import { relative, resolve, dirname, isAbsolute, basename, join, extname, normalize } from 'pathe'
 import { readFileSync, existsSync } from 'fs'
-import { transformVueSFC, transformVueSFCWithStyles } from 'uniapp-render-compiler'
+import { transformVueSFC, transformVueSFCWithStyles, RENDER_MODULE } from 'uniapp-render-compiler'
 import { parse as parseSFC } from '@vue/compiler-sfc'
 
 export interface UniRenderOptions {
     /** 是否开启调试日志 */
     debug?: boolean
+    /** 是否跳过所有处理（用于调试） */
+    skip?: boolean
+    /** 只启用 vue → unirender 重定向（用于调试） */
+    onlyVueRedirect?: boolean
 }
 
 // ========== 常量 ==========
@@ -23,6 +27,7 @@ const PLUGIN_VERSION = 'v2.0.1'  // 插件版本号
 const SRC_DIR = 'src'
 const PAGES_JSON = 'pages.json'
 const VIRTUAL_EXT = '.render.temp.ts'  // 虚拟模块扩展名
+const UNIRENDER_PATH = '/unirender/'  // unirender 目录路径模式（用于 normalize 后的路径匹配）
 
 // 需要替换 import from 'vue' 的纯脚本文件扩展名（不包括 .vue）
 const SCRIPT_EXTS = new Set(['.ts', '.js', '.mjs', '.cjs'])
@@ -122,7 +127,46 @@ function getPagePaths(root: string): Set<string> {
 let singletonDebug = false
 
 export function uniRender(options: UniRenderOptions = {}): Plugin {
-    const { debug = false } = options
+    const { debug = false, skip = false, onlyVueRedirect = false } = options
+
+    // 如果 skip=true，返回空插件
+    if (skip) {
+        return {
+            name: 'vite-plugin-uniapp-render-skip',
+        }
+    }
+
+    // 如果 onlyVueRedirect=true，只启用 vue 重定向
+    if (onlyVueRedirect) {
+        return {
+            name: 'vite-plugin-uniapp-render-vue-redirect',
+            enforce: 'pre',
+            resolveId(source, importer) {
+                // 只处理 vue → unirender 重定向
+                if (source === 'vue' && importer &&
+                    !importer.includes('node_modules')) {
+                    const importerExt = extname(importer)
+                    const importerName = basename(importer)
+
+                    // 排除 unirender 目录本身（它需要使用原生 vue）
+                    if (normalize(importer).includes(UNIRENDER_PATH)) {
+                        return null
+                    }
+
+                    // 只处理纯脚本文件（.ts/.js 等），自动排除 .vue 文件和入口文件
+                    if (SCRIPT_EXTS.has(importerExt) &&
+                        !ENTRY_FILES.has(importerName)) {
+                        if (debug) {
+                            console.log(`[vite-plugin-uniapp-render] 重定向 vue → ${RENDER_MODULE} (from: ${importerName})`)
+                        }
+                        // 返回 RENDER_MODULE，由 Vite 的 alias 解析
+                        return { id: RENDER_MODULE, external: false }
+                    }
+                }
+                return null
+            }
+        }
+    }
 
     singletonDebug = debug
 
@@ -167,11 +211,15 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             // ========== 2. 非 Page .vue 重定向到虚拟模块 ==========
             if (extname(source) === '.vue') {
                 if (basename(source) === 'App.vue') return null
-                if (basename(source) === 'RenderComponent.vue') return null
 
                 let fullPath = source
                 if (importer && !isAbsolute(source)) {
                     fullPath = resolve(dirname(importer), source)
+                }
+
+                // 排除 unirender 目录（unirender 库本身需要使用原生 Vue）
+                if (normalize(fullPath).includes(UNIRENDER_PATH)) {
+                    return null
                 }
 
                 // 非 Page 组件重定向到虚拟模块（.ts 扩展名）
@@ -195,15 +243,18 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 const importerExt = extname(importer)
                 const importerName = basename(importer)
 
+                // 排除 unirender 目录本身（它需要使用原生 vue）
+                if (normalize(importer).includes(UNIRENDER_PATH)) {
+                    return null
+                }
+
                 // 只处理纯脚本文件，排除 .vue 和入口文件
                 if (SCRIPT_EXTS.has(importerExt) &&
                     !ENTRY_FILES.has(importerName)) {
-                    // 直接返回 uniapp-render 入口的绝对路径
-                    const uniappRenderEntry = join(dirname(root), 'uniapp-render/src/index.ts')
                     if (debug) {
-                        console.log(`[vite-plugin-uniapp-render] 重定向 vue → uniapp-render (from: ${importerName})`)
+                        console.log(`[vite-plugin-uniapp-render] 重定向 vue → ${RENDER_MODULE} (from: ${importerName})`)
                     }
-                    return uniappRenderEntry
+                    return { id: RENDER_MODULE, external: false }
                 }
             }
 

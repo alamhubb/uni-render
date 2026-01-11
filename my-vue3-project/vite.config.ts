@@ -14,7 +14,7 @@ export default defineConfig(async ({ mode }) => {
   return {
     plugins: [
       uniRender({ debug: true }),  // 暂时禁用插件，测试手动写法
-      // uni()
+      uni()
     ],
     server: {
       host: '192.168.1.7'
