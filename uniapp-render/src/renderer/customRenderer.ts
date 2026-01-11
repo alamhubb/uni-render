@@ -41,16 +41,40 @@ const EVENT_MAP: Record<string, string> = {
 }
 
 // ============================================
+// HTML 标签到 UniApp 标签的映射
+// ============================================
+const TAG_MAP: Record<string, string> = {
+    'div': 'view',
+    'span': 'text',
+    'p': 'view',
+    'img': 'image',
+    'a': 'navigator',
+    'code': 'text',
+    // 保持不变的标签
+    'view': 'view',
+    'text': 'text',
+    'image': 'image',
+    'button': 'button',
+    'input': 'input',
+    'navigator': 'navigator',
+}
+
+function normalizeTagName(htmlTag: string): string {
+    return TAG_MAP[htmlTag] || htmlTag
+}
+
+// ============================================
 // Custom Renderer 实现
 // ============================================
 let nodeIdCounter = 0
 
 const nodeOps: RendererOptions<InternalNode, InternalNode> = {
     createElement(type: string): InternalNode {
-        console.log('[customRenderer.createElement]', type)
+        const normalizedType = normalizeTagName(type)
+        console.log('[customRenderer.createElement]', type, '->', normalizedType)
         return reactive({
             id: ++nodeIdCounter,
-            type,
+            type: normalizedType,
             props: {},
             children: [],
             _parent: null
@@ -132,6 +156,7 @@ const nodeOps: RendererOptions<InternalNode, InternalNode> = {
     },
 
     patchProp(el: InternalNode, key: string, prevValue: any, nextValue: any): void {
+        console.log('[patchProp]', el.type, key, '=', nextValue)
         // 处理事件
         if (key.startsWith('on') && typeof nextValue === 'function') {
             const eventType = key.slice(2).toLowerCase()
