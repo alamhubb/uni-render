@@ -29,18 +29,6 @@ export default defineConfig(async ({ mode }) => {
       exclude: [
         'uniapp-render-compiler'
       ]
-    },
-    build: {
-      rollupOptions: {
-        output: {
-          // 将 @vue/runtime-core 打包到独立文件，避免被 UniApp 的 Vue 覆盖
-          manualChunks(id: string) {
-            if (id.includes('@vue/runtime-core') || id.includes('@vue/runtime-dom')) {
-              return 'vue-runtime-core'
-            }
-          }
-        }
-      }
     }
   };
 });
