@@ -13,7 +13,7 @@ export default defineConfig(async ({ mode }) => {
   // 默认 h5 模式
   return {
     plugins: [
-      uniRender({ debug: true }),  // 启用插件
+      // uniRender({ debug: true }),  // 暂时禁用插件，测试手动写法
       uni()
     ],
     server: {
