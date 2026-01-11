@@ -18,13 +18,13 @@
     <!-- 纯文本节点 -->
     <text v-else-if="nodeToRender.type === '#text'" :class="attrs.class">{{ nodeToRender.text }}</text>
 
-    <!-- button 按钮 - 使用 view 包装以确保事件触发 -->
-    <view v-else-if="nodeToRender.type === 'button'" :id="nodeToRender.props?.id"
-      :class="[attrs.class, nodeToRender.props?.class, 'uni-btn']" :style="nodeToRender.props?.style"
-      :data-id="nodeToRender.id" @tap="onTap">
+    <!-- button 按钮 -->
+    <button v-else-if="nodeToRender.type === 'button'" :id="nodeToRender.props?.id"
+      :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style"
+      :type="nodeToRender.props?.type || 'default'" :data-id="nodeToRender.id" @tap="onTap">
       <text v-if="nodeToRender.text">{{ nodeToRender.text }}</text>
       <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
-    </view>
+    </button>
 
     <!-- input 输入框 -->
     <input v-else-if="nodeToRender.type === 'input'" :id="nodeToRender.props?.id"
