@@ -5,7 +5,8 @@
  */
 
 import { render } from 'uniapp-render'
-import { ref, onUnmounted } from 'vue'
+import { ref, watch } from 'uniapp-render'
+import { ref as vueRef, onUnmounted } from '@dcloudio/uni-h5-vue'
 
 export function defineRenderComponent(component: any) {
     console.log('[defineRenderComponent] 收到组件:', component)
@@ -54,9 +55,21 @@ export function defineRenderComponent(component: any) {
             const { node: nodeInternal, unmount } = render(InnerComponent)
 
             console.log('[defineRenderComponent] render 完成，node:', nodeInternal.value)
+            console.log('[defineRenderComponent] node.type:', nodeInternal.value?.type)
+            console.log('[defineRenderComponent] node.children:', nodeInternal.value?.children)
 
             // 创建响应式 node
-            const node = ref(nodeInternal.value)
+            const node = vueRef(nodeInternal.value)
+
+            // 监听 nodeInternal 变化，同步到 node
+            watch(
+                () => nodeInternal.value,
+                (newVal) => {
+                    console.log('[defineRenderComponent] node 更新:', newVal)
+                    node.value = newVal
+                },
+                { deep: true }
+            )
 
             // 组件卸载时清理
             onUnmounted(() => {
