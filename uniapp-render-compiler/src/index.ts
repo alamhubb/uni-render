@@ -333,7 +333,7 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
         finalMagic.append('  return __sfc__\n')
         finalMagic.append('}\n\n')
         // 导入本地的 defineRenderComponent（方便测试）
-        finalMagic.append("import { defineRenderComponent } from '@/defineRenderComponent'\n")
+        finalMagic.append("import { defineRenderComponent } from '@/unirender'\n")
         finalMagic.append('export default defineRenderComponent(createComponent2Render())\n')
 
         // 自执行函数版本（不用 defineRenderComponent）：
