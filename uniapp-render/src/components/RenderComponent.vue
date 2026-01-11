@@ -3,67 +3,71 @@
   <template v-if="nodeToRender">
     <!-- view 容器 -->
     <view v-if="nodeToRender.type === 'view'" :id="nodeToRender.props?.id"
-      :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style" :data-id="nodeToRender.id"
-      @tap="onTap" @longpress="onLongPress">
+          :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style"
+          :data-id="nodeToRender.id" @tap="onTap" @longpress="onLongPress">
       <text v-if="nodeToRender.text">{{ nodeToRender.text }}</text>
-      <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
+      <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child"/>
     </view>
 
     <!-- text 文本 -->
     <text v-else-if="nodeToRender.type === 'text'" :id="nodeToRender.props?.id"
-      :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style" @tap="onTap">{{
-        nodeToRender.text }}<render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index"
-        :node="child" /></text>
+          :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style" @tap="onTap">{{
+        nodeToRender.text
+      }}
+      <render-component v-for="(child, index) in nodeToRender.children"
+                        :key="child.id || index" :node="child"/>
+    </text>
 
     <!-- 纯文本节点 -->
     <text v-else-if="nodeToRender.type === '#text'" :class="attrs.class">{{ nodeToRender.text }}</text>
 
     <!-- button 按钮 -->
     <button v-else-if="nodeToRender.type === 'button'" :id="nodeToRender.props?.id"
-      :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style"
-      :type="nodeToRender.props?.type || 'default'" :data-id="nodeToRender.id" @tap="onTap">
+            :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style"
+            :type="nodeToRender.props?.type || 'default'" :data-id="nodeToRender.id" @tap="onTap">
       <text v-if="nodeToRender.text">{{ nodeToRender.text }}</text>
-      <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
+      <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child"/>
     </button>
 
     <!-- input 输入框 -->
     <input v-else-if="nodeToRender.type === 'input'" :id="nodeToRender.props?.id"
-      :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style"
-      :type="nodeToRender.props?.type || 'text'" :value="nodeToRender.props?.value"
-      :placeholder="nodeToRender.props?.placeholder" :disabled="nodeToRender.props?.disabled" :data-id="nodeToRender.id"
-      @input="onInput" @focus="onFocus" @blur="onBlur" />
+           :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style"
+           :type="nodeToRender.props?.type || 'text'" :value="nodeToRender.props?.value"
+           :placeholder="nodeToRender.props?.placeholder" :disabled="nodeToRender.props?.disabled"
+           :data-id="nodeToRender.id" @input="onInput" @focus="onFocus" @blur="onBlur"/>
 
     <!-- image 图片 -->
     <image v-else-if="nodeToRender.type === 'image'" :id="nodeToRender.props?.id"
-      :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style"
-      :src="nodeToRender.props?.src" :mode="nodeToRender.props?.mode || 'scaleToFill'" :data-id="nodeToRender.id"
-      @tap="onTap" />
+           :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style"
+           :src="nodeToRender.props?.src" :mode="nodeToRender.props?.mode || 'scaleToFill'" :data-id="nodeToRender.id"
+           @tap="onTap"/>
 
     <!-- navigator 导航/链接 -->
     <navigator v-else-if="nodeToRender.type === 'navigator'" :id="nodeToRender.props?.id"
-      :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style"
-      :url="nodeToRender.props?.href || nodeToRender.props?.url"
-      :target="nodeToRender.props?.target === '_blank' ? 'miniProgram' : 'self'" :data-id="nodeToRender.id">
+               :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style"
+               :url="nodeToRender.props?.href || nodeToRender.props?.url"
+               :target="nodeToRender.props?.target === '_blank' ? 'miniProgram' : 'self'" :data-id="nodeToRender.id">
       <text v-if="nodeToRender.text">{{ nodeToRender.text }}</text>
-      <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
+      <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child"/>
     </navigator>
 
     <!-- 默认：当作 view 处理 -->
     <view v-else :class="[attrs.class, nodeToRender.props?.class]" :style="nodeToRender.props?.style"
-      :data-id="nodeToRender.id" @tap="onTap">
-      <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child" />
+          :data-id="nodeToRender.id" @tap="onTap">
+      <render-component v-for="(child, index) in nodeToRender.children" :key="child.id || index" :node="child"/>
     </view>
   </template>
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType, computed } from 'vue'
-import { renderEvent } from '../renderer/event'
-import type { RenderNode } from '../renderer/types'
+import {defineComponent, computed} from 'vue'
+import type {PropType} from 'vue'
+import {renderEvent} from './event'
+import type {RenderNode} from './types'
 
 /**
  * RenderComponent - 动态节点渲染组件
- * 
+ *
  * 职责：
  * 1. 接收 RenderNode 数据（纯 JSON，可通过 setData 传递）
  * 2. 递归渲染为 UniApp 原生组件
@@ -78,7 +82,7 @@ export default defineComponent({
       default: null
     }
   },
-  setup(props, { attrs }) {
+  setup(props, {attrs}) {
     const nodeToRender = computed(() => props.node)
 
     /**
