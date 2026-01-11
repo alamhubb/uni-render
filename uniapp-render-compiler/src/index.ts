@@ -1,9 +1,9 @@
 /**
  * uniapp-render-compiler
- * 
+ *
  * 使用 @vue/compiler-sfc 解析 Vue SFC 文件
  * 使用 OXC + magic-string 进行高性能代码转换
- * 
+ *
  * - Page 组件：替换 import 来源 + 替换 defineComponent → defineRenderComponent
  * - 非 Page 组件：只替换 import 来源
  */
@@ -29,7 +29,8 @@ export interface TransformResult {
 const VIRTUAL_TS_FILE = 'virtual.ts'
 
 // 渲染模块路径（vue 导入会被替换为这个路径）
-const RENDER_MODULE = '@/unirender'
+export const RENDER_MODULE = '@/unirender'
+
 
 
 /**
@@ -38,7 +39,7 @@ const RENDER_MODULE = '@/unirender'
  * 适用于非 Page 组件
  */
 export function replaceVueImports(code: string): string {
-    const result = parseSync('file.ts', code)
+    const result = parseSync(VIRTUAL_TS_FILE, code)
     if (result.errors.length > 0) return code
 
     const s = new MagicString(code)
@@ -60,7 +61,7 @@ export function replaceVueImports(code: string): string {
  * 替换 import + 替换 defineComponent → defineRenderComponent
  */
 export function transformScriptForPage(code: string): string {
-    const result = parseSync('file.ts', code)
+    const result = parseSync(VIRTUAL_TS_FILE, code)
     if (result.errors.length > 0) return code
 
     const s = new MagicString(code)
@@ -112,7 +113,7 @@ export function transformScriptForPage(code: string): string {
 
 /**
  * 转换 Vue SFC 文件
- * 
+ *
  * @param vueCode - Vue SFC 代码
  * @param isPage - 是否为 page 页面（pages/ 目录下的组件）
  * @returns 转换后的代码，如果不需要转换返回 null
@@ -124,7 +125,7 @@ export function transformVueSFC(vueCode: string, isPage: boolean = false): strin
 
 /**
  * 转换 Vue SFC 文件，返回代码和样式
- * 
+ *
  * @param vueCode - Vue SFC 代码
  * @param isPage - 是否为 page 页面（pages/ 目录下的组件）
  * @returns 转换结果，包含 code 和 styles
@@ -201,7 +202,8 @@ function transformScriptWithTemplate(scriptContent: string, descriptor: any, isP
             id,
             compilerOptions: {
                 mode: 'module',
-                hoistStatic: false  // 禁用静态提升，生成 VNode 而不是静态 HTML
+                hoistStatic: false,  // 禁用静态提升，生成 VNode 而不是静态 HTML
+                bindingMetadata: compiledScript.bindings  // 传入绑定信息，生成 $setup.xxx 访问方式
             }
         })
         renderCode = compiledTemplate.code
@@ -220,7 +222,7 @@ const RENAME_IDENTIFIERS = ['_resolveComponent', '_openBlock', '_createElementBl
 const RENAME_SUFFIX = '2Render'
 
 function renameConflictingIdentifiers(code: string): string {
-    const result = parseSync('file.ts', code)
+    const result = parseSync(VIRTUAL_TS_FILE, code)
     if (result.errors.length > 0) return code
 
     const s = new MagicString(code)
@@ -259,7 +261,7 @@ function renameConflictingIdentifiers(code: string): string {
  */
 function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): string {
     // 1. 使用 AST 处理 Script 代码：export default → const __sfc__ =
-    const scriptResult = parseSync('script.ts', scriptCode)
+    const scriptResult = parseSync(VIRTUAL_TS_FILE, scriptCode)
     const scriptMagic = new MagicString(scriptCode)
     let hasExportDefault = false
 
@@ -288,7 +290,7 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
     }
 
     // 2. 使用 AST 处理 Render 代码：export function render → function render
-    const renderResult = parseSync('render.ts', renderCode)
+    const renderResult = parseSync(VIRTUAL_TS_FILE, renderCode)
     const renderMagic = new MagicString(renderCode)
 
     const renderVisitor = new Visitor({
@@ -315,7 +317,7 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
 
     // 3. 使用 AST 分离 imports 和 body
     const extractImportsAndBody = (code: string): { imports: string[], body: string } => {
-        const result = parseSync('file.ts', code)
+        const result = parseSync(VIRTUAL_TS_FILE, code)
         if (result.errors.length > 0) {
             return { imports: [], body: code }
         }
