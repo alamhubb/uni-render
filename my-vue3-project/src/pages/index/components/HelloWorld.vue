@@ -1,22 +1,9 @@
-<script lang="ts">
-import { defineComponent, ref } from 'vue'
+<script setup lang="ts">
+import { ref } from 'vue'
 
-export default defineComponent({
-  name: 'HelloWorld',
-  props: {
-    msg: {
-      type: String,
-      required: true
-    }
-  },
-  setup(props) {
-    const count = ref(0)
+defineProps<{ msg: string }>()
 
-    return {
-      count
-    }
-  }
-})
+const count = ref(0)
 </script>
 
 <template>
