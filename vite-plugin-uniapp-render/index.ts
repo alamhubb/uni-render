@@ -406,6 +406,46 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
 
             return { code: finalCode, map: null }
             */
+        },
+
+        /**
+         * 处理 HMR - 当 .vue 文件变化时，清除缓存并使虚拟模块失效
+         */
+        handleHotUpdate({ file, server }) {
+            if (!file.endsWith('.vue')) return
+
+            // 检查是否是我们处理的 .vue 文件（非 Page 组件）
+            if (basename(file) === 'App.vue') return
+            if (basename(file) === 'RenderComponent.vue') return
+            if (isPageComponent(file, root)) return
+
+            // 标准化路径
+            const normalizedPath = file.replace(/\\/g, '/')
+
+            // 清除缓存
+            transformedVueCache.delete(normalizedPath)
+            transformedCssCache.delete(normalizedPath)
+
+            // 计算虚拟模块 ID
+            const virtualId = VIRTUAL_PREFIX + changeExt(normalizedPath, '.vue', VIRTUAL_EXT)
+            const cssVirtualId = CSS_VIRTUAL_IMPORT_PREFIX + normalizedPath + '.css'
+
+            // 使虚拟模块失效
+            const mod = server.moduleGraph.getModuleById(virtualId)
+            const cssMod = server.moduleGraph.getModuleById(cssVirtualId)
+
+            if (mod) {
+                server.moduleGraph.invalidateModule(mod)
+                if (debug) {
+                    console.log(`[vite-plugin-uniapp-render] HMR: 使虚拟模块失效 ${virtualId}`)
+                }
+            }
+            if (cssMod) {
+                server.moduleGraph.invalidateModule(cssMod)
+            }
+
+            // 返回需要更新的模块
+            return mod ? [mod] : undefined
         }
     }
 }
