@@ -1,9 +1,0 @@
-{
-    "name": "uniapp-render-monorepo",
-    "version": "0.1.0",
-    "workspaces": [
-        "uniapp-render",
-        "vite-plugin-uniappvue",
-        "vite-plugin-uniappvue-compiler"
-    ]
-}
