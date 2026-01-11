@@ -4,11 +4,11 @@
  * 返回一个 Vue 组件，setup 返回 { node }
  */
 
-import { render } from 'uniapp-render'
-import { ref, watch } from 'uniapp-render'
+import { render } from './render'
+import { watch } from '@vue/runtime-core'
 import { ref as vueRef, onUnmounted } from '@dcloudio/uni-h5-vue'
 
-console.log('[defineRenderComponent.ts] 模块已加载！')
+console.log('[defineRenderComponent.ts] 本地版本已加载！')
 
 export function defineRenderComponent(component: any) {
     console.log('[defineRenderComponent] 收到组件:', component)
@@ -39,7 +39,10 @@ export function defineRenderComponent(component: any) {
                 console.log('[defineRenderComponent] 使用单独的 render 属性')
                 return () => {
                     const _ctx = { ...setupResult }
-                    return originalRender.call(_ctx, _ctx, [])
+                    const vnode = originalRender.call(_ctx, _ctx, [])
+                    console.log('[defineRenderComponent] render 返回的 VNode:', vnode)
+                    console.log('[defineRenderComponent] VNode.children:', vnode?.children)
+                    return vnode
                 }
             }
 

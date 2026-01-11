@@ -171,7 +171,8 @@ function transformScriptWithTemplate(scriptContent: string, descriptor: any, isP
             filename: 'anonymous.vue',
             id,
             compilerOptions: {
-                mode: 'module'
+                mode: 'module',
+                hoistStatic: false  // 禁用静态提升，生成 VNode 而不是静态 HTML
             }
         })
         renderCode = compiledTemplate.code

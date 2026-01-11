@@ -41,16 +41,39 @@ const EVENT_MAP: Record<string, string> = {
 }
 
 // ============================================
+// HTML 标签到 UniApp 标签的映射
+// ============================================
+const TAG_MAP: Record<string, string> = {
+    'div': 'view',
+    'span': 'text',
+    'p': 'text',
+    'img': 'image',
+    'a': 'navigator',
+    // 保持不变的标签
+    'view': 'view',
+    'text': 'text',
+    'image': 'image',
+    'button': 'button',
+    'input': 'input',
+    'navigator': 'navigator',
+}
+
+function normalizeTagName(htmlTag: string): string {
+    return TAG_MAP[htmlTag] || htmlTag
+}
+
+// ============================================
 // Custom Renderer 实现
 // ============================================
 let nodeIdCounter = 0
 
 const nodeOps: RendererOptions<InternalNode, InternalNode> = {
     createElement(type: string): InternalNode {
-        console.log('[customRenderer.createElement]', type)
+        const normalizedType = normalizeTagName(type)
+        console.log('[customRenderer.createElement]', type, '->', normalizedType)
         return reactive({
             id: ++nodeIdCounter,
-            type,
+            type: normalizedType,
             props: {},
             children: [],
             _parent: null
@@ -188,10 +211,120 @@ const nodeOps: RendererOptions<InternalNode, InternalNode> = {
         }) as unknown as InternalNode
     },
 
-    insertStaticContent(): [InternalNode, InternalNode] {
-        const node = nodeOps.createText('')
-        return [node, node]
+    insertStaticContent(content: string, parent: InternalNode, anchor?: InternalNode | null): [InternalNode, InternalNode] {
+        console.log('[customRenderer.insertStaticContent] content:', content)
+        console.log('[customRenderer.insertStaticContent] parent:', parent.type)
+
+        // 解析 HTML 字符串并创建节点
+        const nodes = parseHtmlToNodes(content)
+        console.log('[customRenderer.insertStaticContent] 解析出节点数:', nodes.length)
+
+        let firstNode: InternalNode | null = null
+        let lastNode: InternalNode | null = null
+
+        for (const node of nodes) {
+            nodeOps.insert(node, parent, anchor)
+            if (!firstNode) firstNode = node
+            lastNode = node
+        }
+
+        // 如果没有解析出节点，返回一个空节点
+        if (!firstNode) {
+            firstNode = nodeOps.createComment('')
+            nodeOps.insert(firstNode, parent, anchor)
+        }
+        if (!lastNode) lastNode = firstNode
+
+        return [firstNode, lastNode]
     }
+}
+
+/**
+ * 简单的 HTML 解析器
+ * 将 HTML 字符串解析为 InternalNode 数组
+ */
+function parseHtmlToNodes(html: string): InternalNode[] {
+    const nodes: InternalNode[] = []
+
+    // 使用正则匹配标签
+    const tagRegex = /<(\/?)([\w-]+)([^>]*)>|([^<]+)/g
+    const stack: InternalNode[] = []
+    let match: RegExpExecArray | null
+
+    while ((match = tagRegex.exec(html)) !== null) {
+        const [, isClosing, tagName, attrs, text] = match
+
+        if (text) {
+            // 文本节点
+            const trimmedText = text.trim()
+            if (trimmedText) {
+                const textNode = reactive({
+                    id: ++nodeIdCounter,
+                    type: '#text',
+                    props: {},
+                    text: trimmedText,
+                    children: [],
+                    _parent: null
+                }) as unknown as InternalNode
+
+                if (stack.length > 0) {
+                    const parent = stack[stack.length - 1]
+                    textNode._parent = parent
+                    parent.children.push(textNode)
+                } else {
+                    nodes.push(textNode)
+                }
+            }
+        } else if (isClosing) {
+            // 关闭标签
+            stack.pop()
+        } else if (tagName) {
+            // 开始标签
+            const node = reactive({
+                id: ++nodeIdCounter,
+                type: tagName,
+                props: parseAttributes(attrs || ''),
+                children: [],
+                _parent: null
+            }) as unknown as InternalNode
+
+            if (stack.length > 0) {
+                const parent = stack[stack.length - 1]
+                node._parent = parent
+                parent.children.push(node)
+            } else {
+                nodes.push(node)
+            }
+
+            // 自闭合标签不入栈
+            const selfClosing = /\/>$/.test(attrs || '') ||
+                ['img', 'br', 'hr', 'input', 'meta', 'link'].includes(tagName.toLowerCase())
+            if (!selfClosing) {
+                stack.push(node)
+            }
+        }
+    }
+
+    return nodes
+}
+
+/**
+ * 解析 HTML 属性字符串
+ */
+function parseAttributes(attrStr: string): Record<string, any> {
+    const props: Record<string, any> = {}
+
+    // 匹配属性: name="value" 或 name='value' 或 name=value 或 name
+    const attrRegex = /([\w-]+)(?:=(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g
+    let match: RegExpExecArray | null
+
+    while ((match = attrRegex.exec(attrStr)) !== null) {
+        const [, name, val1, val2, val3] = match
+        const value = val1 ?? val2 ?? val3 ?? true
+        props[name] = value
+    }
+
+    return props
 }
 
 // ============================================
