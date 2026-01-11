@@ -29,7 +29,7 @@ export interface TransformResult {
 const VIRTUAL_TS_FILE = 'virtual.ts'
 
 // 渲染模块路径（vue 导入会被替换为这个路径）
-export const RENDER_MODULE = '@/unirender'
+export const RENDER_MODULE = 'uniapp-render'
 
 
 
@@ -366,7 +366,7 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
         finalMagic.append('  return __sfc__\n')
         finalMagic.append('}\n\n')
         // 导入本地的 defineRenderComponent（方便测试）
-        finalMagic.append("import { defineRenderComponent } from '@/unirender'\n")
+        finalMagic.append("import { defineRenderComponent } from '" + RENDER_MODULE +"'\n")
         finalMagic.append('export default defineRenderComponent(createComponent2Render())\n')
 
         // 自执行函数版本（不用 defineRenderComponent）：
