@@ -27,7 +27,7 @@ const PLUGIN_VERSION = 'v2.0.1'  // 插件版本号
 const SRC_DIR = 'src'
 const PAGES_JSON = 'pages.json'
 const VIRTUAL_EXT = '.render.temp.ts'  // 虚拟模块扩展名
-const UNIRENDER_PATH = '/unirender/'  // unirender 目录路径模式（用于 normalize 后的路径匹配）
+const UNIRENDER_PATH = 'uniapp-render'  // unirender 目录路径模式（用于 normalize 后的路径匹配）
 
 // 需要替换 import from 'vue' 的纯脚本文件扩展名（不包括 .vue）
 const SCRIPT_EXTS = new Set(['.ts', '.js', '.mjs', '.cjs'])

@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import { uniRender } from "../vite-plugin-uniapp-render/index.ts";
-import vitePluginMp from "../../miniprogram-web/vite-plugin-mp/src/index.ts";
+// import vitePluginMp from "../../miniprogram-web/vite-plugin-mp/src/index.ts";
 import { createRequire } from "module";
 import { resolve } from "path";
 import { fileURLToPath } from "url";
@@ -14,7 +14,7 @@ export default defineConfig(async ({ mode }) => {
   // 默认 h5 模式
   return {
     plugins: [
-      uniRender({ debug: true }),  // 暂时禁用插件，测试手动写法
+      uniRender({ debug: true }),
       uni()
     ],
     server: {
@@ -29,6 +29,18 @@ export default defineConfig(async ({ mode }) => {
       exclude: [
         'uniapp-render-compiler'
       ]
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          // 将 @vue/runtime-core 打包到独立文件，避免被 UniApp 的 Vue 覆盖
+          manualChunks(id: string) {
+            if (id.includes('@vue/runtime-core') || id.includes('@vue/runtime-dom')) {
+              return 'vue-runtime-core'
+            }
+          }
+        }
+      }
     }
   };
 });
