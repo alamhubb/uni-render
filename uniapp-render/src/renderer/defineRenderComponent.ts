@@ -38,8 +38,16 @@ export function defineRenderComponent(component: any) {
             if (originalRender) {
                 console.log('[defineRenderComponent] 使用单独的 render 属性')
                 return () => {
-                    const _ctx = { ...setupResult }
-                    const vnode = originalRender.call(_ctx, _ctx, [])
+                    // render 函数签名: render(_ctx, _cache, $props, $setup, $data, $options)
+                    // 正确传递 $setup 参数（setupResult 包含 setup 返回的绑定）
+                    const vnode = originalRender(
+                        setupResult,  // _ctx
+                        [],           // _cache
+                        {},           // $props
+                        setupResult,  // $setup - 这是关键！
+                        {},           // $data
+                        {}            // $options
+                    )
                     console.log('[defineRenderComponent] render 返回的 VNode:', vnode)
                     console.log('[defineRenderComponent] VNode.children:', vnode?.children)
                     return vnode
