@@ -17,6 +17,11 @@
   "files": [
     "dist"
   ],
+  "scripts": {
+    "build": "tsdown",
+    "prepublishOnly": "npm run build",
+    "clean": "rimraf dist"
+  },
   "keywords": [
     "uni-app",
     "vue",
