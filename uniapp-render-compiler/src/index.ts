@@ -358,6 +358,8 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
 
 function buildTransformedSFC(blocks: SFCBlock, transformedScript: string, isPage: boolean): string {
     const styleParts = blocks.styles.join('\n\n')
+    console.log('[buildTransformedSFC] styles 数量:', blocks.styles.length)
+    console.log('[buildTransformedSFC] styleParts:', styleParts.substring(0, 200))
 
     // Page 组件：使用 <render-component> 模板
     if (isPage) {
