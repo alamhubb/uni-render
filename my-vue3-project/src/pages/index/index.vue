@@ -3,10 +3,10 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, h } from 'vue'
+import { defineComponent, h } from '@/unirender'
 import './index.css'
-import HelloWorld from './components/HelloWorld.vue'
 import { defineRenderComponent } from '@/unirender'
+import HelloWorld from './components/HelloWorld'
 
 // 定义组件
 const MyComponent = defineComponent({
