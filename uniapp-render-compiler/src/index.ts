@@ -182,7 +182,8 @@ function transformScriptWithTemplate(scriptContent: string, descriptor: any, isP
     try {
         compiledScript = compileScript(descriptor, {
             id,
-            inlineTemplate: false
+            inlineTemplate: false,
+            isProd: true  // 生产模式：避免生成 __isScriptSetup 保护标记
         })
     } catch (e: any) {
         // 如果没有 script 标签，手动构造一个空的导出
