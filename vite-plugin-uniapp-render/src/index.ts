@@ -1,10 +1,10 @@
 /**
- * vite-plugin-uniapp-render
+ * vite-plugin-uni-render
  *
  * Vite 插件 - 自动将无模板的 Vue 组件转换为 render-component 方案
  *
  * 职责：文件过滤、目录检查、调用 compiler
- * 转换逻辑委托给 uniapp-render-compiler
+ * 转换逻辑委托给 uni-render-compiler
  */
 
 import type { Plugin } from 'vite'
@@ -27,7 +27,7 @@ const PLUGIN_VERSION = 'v2.0.1'  // 插件版本号
 const SRC_DIR = 'src'
 const PAGES_JSON = 'pages.json'
 const VIRTUAL_EXT = '.render.temp.ts'  // 虚拟模块扩展名
-const EXCLUDE_RENDER_COMPONENT = 'uniapp-render/src/components/RenderComponent'  // 排除 RenderComponent.vue（该组件不需要转换）
+const EXCLUDE_RENDER_COMPONENT = 'uni-render/src/components/RenderComponent'  // 排除 RenderComponent.vue（该组件不需要转换）
 
 // 需要替换 import from 'vue' 的纯脚本文件扩展名（不包括 .vue）
 const SCRIPT_EXTS = new Set(['.ts', '.js', '.mjs', '.cjs'])
@@ -70,15 +70,15 @@ type TransformResult = { code: string; map: null } | null
 function transformPageVue(code: string, id: string, root: string, debug: boolean): TransformResult {
     // 确认是 Page 组件，否则逻辑有问题
     if (!isPageComponent(id, root)) {
-        throw new Error(`[vite-plugin-uniapp-render] 意外的非 Page 组件: ${id}`)
+        throw new Error(`[vite-plugin-uni-render] 意外的非 Page 组件: ${id}`)
     }
 
     const result = transformVueSFC(code, true)
     if (!result) return null
 
     if (debug) {
-        console.log(`[vite-plugin-uniapp-render] ✓ 已转换(page): ${relative(process.cwd(), id)}`)
-        console.log(`[vite-plugin-uniapp-render] Page 转换后代码:\n${result}`)
+        console.log(`[vite-plugin-uni-render] ✓ 已转换(page): ${relative(process.cwd(), id)}`)
+        console.log(`[vite-plugin-uni-render] Page 转换后代码:\n${result}`)
     }
     return { code: result, map: null }
 }
@@ -94,7 +94,7 @@ function getPagePaths(root: string): Set<string> {
 
     const pagesJsonPath = resolve(root, SRC_DIR, PAGES_JSON)
     if (!existsSync(pagesJsonPath)) {
-        console.warn('[vite-plugin-uniapp-render] pages.json not found at:', pagesJsonPath)
+        console.warn('[vite-plugin-uni-render] pages.json not found at:', pagesJsonPath)
         return cachedPagePaths
     }
 
@@ -114,10 +114,10 @@ function getPagePaths(root: string): Set<string> {
         }
 
         if (singletonDebug) {
-            console.log('[vite-plugin-uniapp-render] Found pages:', Array.from(cachedPagePaths))
+            console.log('[vite-plugin-uni-render] Found pages:', Array.from(cachedPagePaths))
         }
     } catch (e: any) {
-        console.error('[vite-plugin-uniapp-render] Failed to parse pages.json:', e.message)
+        console.error('[vite-plugin-uni-render] Failed to parse pages.json:', e.message)
     }
 
     return cachedPagePaths
@@ -137,20 +137,20 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
     // 缓存非 Page 的 .vue 文件的 CSS
     const transformedCssCache = new Map<string, string>()
     // 虚拟模块前缀
-    const VIRTUAL_PREFIX = '\0uniapp-render:'
+    const VIRTUAL_PREFIX = '\0uni-render:'
     // CSS 虚拟模块前缀（用于 import 语句）
     const CSS_VIRTUAL_IMPORT_PREFIX = 'virtual:unirender-css:'
     // CSS 虚拟模块内部 ID 前缀（\0 开头，Vite 内部使用）
     const CSS_VIRTUAL_ID_PREFIX = '\0unirender-css:'
 
     return {
-        name: 'vite-plugin-uniapp-render',
+        name: 'vite-plugin-uni-render',
         enforce: 'pre', // 在 UniApp 之前执行
 
         configResolved(config) {
             root = config.root
             if (debug) {
-                console.log(`[vite-plugin-uniapp-render] 插件已加载 ${PLUGIN_VERSION}`)
+                console.log(`[vite-plugin-uni-render] 插件已加载 ${PLUGIN_VERSION}`)
             }
             // 重置缓存，以便 HMR 时重新读取
             cachedPagePaths = null
@@ -160,7 +160,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
         /**
          * 拦截模块解析
          * 1. 将非 Page 的 .vue 文件重定向到虚拟模块
-         * 2. 将 'vue' 重定向到 'uniapp-render'（仅限 src 目录下的非入口文件）
+         * 2. 将 'vue' 重定向到 'uni-render'（仅限 src 目录下的非入口文件）
          * 3. 处理 CSS 虚拟模块引用
          */
         resolveId(source, importer) {
@@ -172,7 +172,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             // ========== 2. 非 Page .vue 重定向到虚拟模块 ==========
             if (extname(source) === '.vue') {
                 if (debug) {
-                    console.log(`[vite-plugin-uniapp-render] resolveId 收到 .vue: ${source}, importer: ${importer}`)
+                    console.log(`[vite-plugin-uni-render] resolveId 收到 .vue: ${source}, importer: ${importer}`)
                 }
 
                 if (basename(source) === 'App.vue') return null
@@ -183,14 +183,14 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 }
 
                 if (debug) {
-                    console.log(`[vite-plugin-uniapp-render] .vue 完整路径: ${fullPath}`)
+                    console.log(`[vite-plugin-uni-render] .vue 完整路径: ${fullPath}`)
                 }
 
                 // 排除 RenderComponent.vue（该组件使用标准 Vue SFC，不需要转换）
                 const normalizedPath = normalize(fullPath)
                 if (normalizedPath.includes(EXCLUDE_RENDER_COMPONENT)) {
                     if (debug) {
-                        console.log(`[vite-plugin-uniapp-render] 排除 RenderComponent.vue`)
+                        console.log(`[vite-plugin-uni-render] 排除 RenderComponent.vue`)
                     }
                     return null
                 }
@@ -198,20 +198,20 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 // 非 Page 组件重定向到虚拟模块（.ts 扩展名）
                 const isPage = isPageComponent(fullPath, root)
                 if (debug) {
-                    console.log(`[vite-plugin-uniapp-render] 是否为 Page: ${isPage}`)
+                    console.log(`[vite-plugin-uni-render] 是否为 Page: ${isPage}`)
                 }
 
                 if (!isPage) {
                     const virtualId = VIRTUAL_PREFIX + changeExt(fullPath, '.vue', VIRTUAL_EXT)
                     if (debug) {
-                        console.log(`[vite-plugin-uniapp-render] 重定向非 Page .vue: ${source} -> ${virtualId}`)
+                        console.log(`[vite-plugin-uni-render] 重定向非 Page .vue: ${source} -> ${virtualId}`)
                     }
                     return virtualId
                 }
                 return null
             }
 
-            // ========== 2. 处理 vue → uniapp-render 重定向 ==========
+            // ========== 2. 处理 vue → uni-render 重定向 ==========
             // 条件：
             //   - 只处理纯脚本文件（.ts, .js, .jsx, .tsx 等）
             //   - 不处理 .vue 文件（因为 UniApp 会在 .vue 中注入代码，由 compiler 处理）
@@ -231,7 +231,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 if (SCRIPT_EXTS.has(importerExt) &&
                     !ENTRY_FILES.has(importerName)) {
                     if (debug) {
-                        console.log(`[vite-plugin-uniapp-render] 重定向 vue → ${RENDER_MODULE} (from: ${importerName})`)
+                        console.log(`[vite-plugin-uni-render] 重定向 vue → ${RENDER_MODULE} (from: ${importerName})`)
                     }
                     return { id: RENDER_MODULE, external: false }
                 }
@@ -243,7 +243,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             if (source.startsWith(CSS_VIRTUAL_IMPORT_PREFIX) && source.endsWith('.css')) {
                 const cssPath = source.slice(CSS_VIRTUAL_IMPORT_PREFIX.length)
                 if (debug) {
-                    console.log(`[vite-plugin-uniapp-render] 解析 CSS 虚拟模块: ${cssPath}`)
+                    console.log(`[vite-plugin-uni-render] 解析 CSS 虚拟模块: ${cssPath}`)
                 }
                 return CSS_VIRTUAL_ID_PREFIX + cssPath
             }
@@ -263,7 +263,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 // 检查缓存
                 if (transformedCssCache.has(originalVuePath)) {
                     if (debug) {
-                        console.log(`[vite-plugin-uniapp-render] 加载 CSS: ${relative(process.cwd(), originalVuePath)}`)
+                        console.log(`[vite-plugin-uni-render] 加载 CSS: ${relative(process.cwd(), originalVuePath)}`)
                     }
                     return transformedCssCache.get(originalVuePath)
                 }
@@ -277,7 +277,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                     if (styles.trim()) {
                         transformedCssCache.set(originalVuePath, styles)
                         if (debug) {
-                            console.log(`[vite-plugin-uniapp-render] 读取 CSS: ${relative(process.cwd(), originalVuePath)}`)
+                            console.log(`[vite-plugin-uni-render] 读取 CSS: ${relative(process.cwd(), originalVuePath)}`)
                         }
                         return styles
                     }
@@ -311,7 +311,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 // 转换 Vue SFC（非 Page）
                 const tsCode = transformVueSFC(code, false)
                 if (!tsCode) {
-                    console.error(`[vite-plugin-uniapp-render] 转换失败: ${originalPath}`)
+                    console.error(`[vite-plugin-uni-render] 转换失败: ${originalPath}`)
                     return null
                 }
 
@@ -329,8 +329,8 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 })
 
                 if (debug) {
-                    console.log(`[vite-plugin-uniapp-render] ✓ 已转换(component): ${relative(process.cwd(), originalPath)}`)
-                    console.log(`[vite-plugin-uniapp-render] 转换后代码:\n${jsCode}`)
+                    console.log(`[vite-plugin-uni-render] ✓ 已转换(component): ${relative(process.cwd(), originalPath)}`)
+                    console.log(`[vite-plugin-uni-render] 转换后代码:\n${jsCode}`)
                 }
 
                 // 缓存结果
@@ -353,7 +353,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             if (!isPageComponent(id, root)) return null
 
             if (debug) {
-                console.log(`[vite-plugin-uniapp-render] 开始处理 Page: ${relative(process.cwd(), id)}`)
+                console.log(`[vite-plugin-uni-render] 开始处理 Page: ${relative(process.cwd(), id)}`)
             }
 
             const result = transformVueSFCWithStyles(code, true) // isPage = true
@@ -375,8 +375,8 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             }
 
             if (debug) {
-                console.log(`[vite-plugin-uniapp-render] ✓ 已转换(page): ${relative(process.cwd(), id)}`)
-                console.log(`[vite-plugin-uniapp-render] 转换后代码:\n${finalCode}`)
+                console.log(`[vite-plugin-uni-render] ✓ 已转换(page): ${relative(process.cwd(), id)}`)
+                console.log(`[vite-plugin-uni-render] 转换后代码:\n${finalCode}`)
             }
 
             return { code: finalCode, map: null }
@@ -411,7 +411,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             if (mod) {
                 server.moduleGraph.invalidateModule(mod)
                 if (debug) {
-                    console.log(`[vite-plugin-uniapp-render] HMR: 使虚拟模块失效 ${virtualId}`)
+                    console.log(`[vite-plugin-uni-render] HMR: 使虚拟模块失效 ${virtualId}`)
                 }
             }
             if (cssMod) {
