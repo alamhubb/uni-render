@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import {ref} from 'vue'
 
-defineProps<{ msg: string }>()
+const props = defineProps<{ msg: string }>()
+
+console.log('[HelloWorld] props 对象:', props)
+console.log('[HelloWorld] props.msg:', props.msg)
 
 const count = ref(140)
 
