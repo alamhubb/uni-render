@@ -17,7 +17,13 @@ export default defineConfig(async ({ mode }) => {
       uni()
     ],
     server: {
-      host: '192.168.1.7'
-    }
+      host: '192.168.1.7',
+      // 确保静态资源在开发模式下不被缓存
+      headers: {
+        'Cache-Control': 'no-store'
+      }
+    },
+    // 优化静态资源处理
+    assetsInclude: ['**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.gif', '**/*.svg', '**/*.webp']
   };
 });

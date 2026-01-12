@@ -393,13 +393,17 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
         /**
          * 处理 HMR - 当 .vue 文件变化时，清除缓存并触发刷新
          * 由于组件使用自定义渲染器，标准 HMR 无法正确处理，需要强制页面刷新
+         * 对于非 .vue 文件（如静态资源），返回 undefined 让默认 HMR 处理
          */
         handleHotUpdate({ file, server }) {
-            if (!file.endsWith('.vue')) return
+            // 只处理 .vue 文件，其他文件（如图片、CSS 等）让默认 HMR 处理
+            if (!file.endsWith('.vue')) {
+                return undefined  // 让默认 HMR 处理静态资源等
+            }
 
             // 排除不处理的文件
-            if (basename(file) === 'App.vue') return
-            if (basename(file) === 'RenderComponent.vue') return
+            if (basename(file) === 'App.vue') return undefined
+            if (basename(file) === 'RenderComponent.vue') return undefined
 
             // 使用 pathe 的 normalize 标准化路径
             const normalizedPath = normalize(file)
@@ -434,7 +438,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
 
             // 由于使用自定义渲染器，标准 HMR 无法正确处理，强制 full-reload
             server.ws.send({ type: 'full-reload' })
-            return []  // 阻止默认 HMR 处理
+            return []  // 阻止默认 HMR 处理（仅对 .vue 文件）
         }
     }
 }
