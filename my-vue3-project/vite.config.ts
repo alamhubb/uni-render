@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
-import { uniRender } from "vite-plugin-uni-render";
-// import { uniRender } from "../vite-plugin-uni-render/dist/index.mjs";
+// import { uniRender } from "vite-plugin-uni-render";
+import { uniRender } from "../vite-plugin-uni-render/src/index";
 import { createRequire } from "module";
 import { fileURLToPath } from "url";
 
@@ -13,7 +13,7 @@ export default defineConfig(async ({ mode }) => {
   // 默认 h5 模式
   return {
     plugins: [
-      uniRender(),
+      uniRender({ debug: true }), // 启用调试模式查看 CSS 处理情况
       uni()
     ],
     server: {
