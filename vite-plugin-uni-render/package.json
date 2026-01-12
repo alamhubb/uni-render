@@ -17,12 +17,6 @@
     "files": [
         "dist"
     ],
-    "scripts": {
-        "build": "tsdown",
-        "release": "npm publish --tag latest",
-        "prepublishOnly": "npm run build",
-        "clean": "rimraf dist"
-    },
     "keywords": [
         "vite",
         "plugin",
@@ -31,17 +25,26 @@
         "render",
         "h-function",
         "miniapp"
-    ],
+    ],,
+    "scripts": {
+        "build": "tsdown",
+        "release": "npm publish --tag latest",
+        "prepublishOnly": "npm run build",
+        "clean": "rimraf dist"
+    }
     "dependencies": {
-        "@vue/compiler-sfc": "^3.0.0",
         "magic-string": "^0.30.0",
         "oxc-parser": "^0.107.0",
         "pathe": "^2.0.3",
         "publish": "^0.6.0",
         "uni-render": "*"
     },
+    "peerDependencies": {
+        "@vue/compiler-sfc": "^3.0.0"
+    },
     "devDependencies": {
         "@types/node": "^24.10.1",
+        "@vue/compiler-sfc": "3.4.21",
         "tsdown": "0.19.0",
         "tsx": "^4.21.0",
         "typescript": "^5.9.3",
