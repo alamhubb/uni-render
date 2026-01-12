@@ -34,25 +34,40 @@ export const RENDER_MODULE = 'uni-render'
 
 
 /**
- * 快速替换脚本中的 import from 'vue' → import from 'uni-render'
+ * 公共函数：替换脚本中的 import from 'vue' → import from 'uni-render'
  * 使用 OXC + magic-string，性能极高
- * 适用于非 Page 组件
+ * 
+ * @param code - 源代码
+ * @param s - MagicString 实例（如果已创建，可复用）
+ * @returns 返回替换后的 MagicString 实例和是否有变更
  */
-export function replaceVueImports(code: string): string {
+function replaceVueImportToUniRender(code: string, s?: MagicString): { s: MagicString, hasChange: boolean } {
     const result = parseSync(VIRTUAL_TS_FILE, code)
-    if (result.errors.length > 0) return code
+    if (result.errors.length > 0) {
+        return { s: s || new MagicString(code), hasChange: false }
+    }
 
-    const s = new MagicString(code)
+    const magicString = s || new MagicString(code)
     let hasChange = false
 
     for (const imp of result.module.staticImports) {
         if (imp.moduleRequest.value === 'vue') {
             hasChange = true
             // moduleRequest.start/end 包含引号位置，所以替换内容也需要带引号
-            s.overwrite(imp.moduleRequest.start, imp.moduleRequest.end, `'${RENDER_MODULE}'`)
+            magicString.overwrite(imp.moduleRequest.start, imp.moduleRequest.end, `'${RENDER_MODULE}'`)
         }
     }
 
+    return { s: magicString, hasChange }
+}
+
+/**
+ * 快速替换脚本中的 import from 'vue' → import from 'uni-render'
+ * 使用 OXC + magic-string，性能极高
+ * 适用于非 Page 组件
+ */
+export function replaceVueImports(code: string): string {
+    const { s, hasChange } = replaceVueImportToUniRender(code)
     return hasChange ? s.toString() : code
 }
 
@@ -64,20 +79,19 @@ export function transformScriptForPage(code: string): string {
     const result = parseSync(VIRTUAL_TS_FILE, code)
     if (result.errors.length > 0) return code
 
-    const s = new MagicString(code)
-    let vueImportNode: any = null  // 从 'vue' 的导入
+    // 1. 先使用公共函数替换 vue → uni-render 导入
+    const { s } = replaceVueImportToUniRender(code)
+    
     let renderImportNode: any = null  // 从 'uni-render' 的导入
     const renderSpecifiers: string[] = []
     let hasDefineRenderComponentImport = false
 
-    // 1. 使用 Visitor 遍历 AST
+    // 2. 使用 Visitor 遍历 AST，处理 defineComponent 和 uni-render 导入
     const visitor = new Visitor({
-        // 收集 'vue' 和 'uni-render' 的导入
+        // 收集 'uni-render' 的导入
         ImportDeclaration(node: any) {
             const sourceValue = node.source?.value
-            if (sourceValue === 'vue') {
-                vueImportNode = node
-            } else if (sourceValue === RENDER_MODULE) {
+            if (sourceValue === RENDER_MODULE) {
                 renderImportNode = node
                 for (const spec of node.specifiers || []) {
                     if (spec.type === 'ImportSpecifier' && spec.imported?.name) {
@@ -97,11 +111,6 @@ export function transformScriptForPage(code: string): string {
         }
     })
     visitor.visit(result.program)
-
-    // 2. 处理 'vue' 导入：直接替换为 'uni-render'
-    if (vueImportNode) {
-        s.overwrite(vueImportNode.source.start + 1, vueImportNode.source.end - 1, RENDER_MODULE)
-    }
 
     // 3. 处理 'uni-render' 导入：确保有 defineRenderComponent（避免重复导入）
     if (renderImportNode) {
