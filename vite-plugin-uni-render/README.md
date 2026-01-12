@@ -226,14 +226,11 @@ import { uniRender } from 'vite-plugin-uni-render'
 
 export default defineConfig({
   plugins: [
-    // ⚠️ 必须放在 uni() 之前
     uniRender({ debug: true }),
     uni()
   ]
 })
 ```
-
-**⚠️ 重要**：`uniRender()` 必须放在 `uni()` 之前（`enforce: 'pre'` 确保优先执行）。
 
 ## 配置选项
 

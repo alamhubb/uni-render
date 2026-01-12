@@ -49,7 +49,6 @@ import { uniRender } from 'vite-plugin-uni-render'
 
 export default defineConfig({
   plugins: [
-    // ⚠️ 必须放在 uni() 之前
     uniRender(),
     uni()
   ]
@@ -299,17 +298,15 @@ uniRender({
 
 ## ⚠️ 注意事项
 
-1. **插件顺序**：`uniRender()` 必须放在 `uni()` 之前，插件会自动使用 `enforce: 'pre'` 确保优先执行
+1. **导入来源**：在组件中使用 `import { ref, h } from 'uni-render'`，插件会自动处理 `vue → uni-render` 的转换
 
-2. **导入来源**：在组件中使用 `import { ref, h } from 'uni-render'`，插件会自动处理 `vue → uni-render` 的转换
+2. **样式处理**：非 Page 的 `.vue` 组件样式通过 CSS 虚拟模块处理，会自动注入到页面中
 
-3. **样式处理**：非 Page 的 `.vue` 组件样式通过 CSS 虚拟模块处理，会自动注入到页面中
+3. **响应式系统**：`ref`、`reactive` 等 API 从 `uni-render` 导入，使用完整的 Vue 3 响应式系统
 
-4. **响应式系统**：`ref`、`reactive` 等 API 从 `uni-render` 导入，使用完整的 Vue 3 响应式系统
+4. **事件处理**：使用 `onClick`、`onInput` 等 Vue 风格的事件名，会自动转换为 UniApp 的事件格式
 
-5. **事件处理**：使用 `onClick`、`onInput` 等 Vue 风格的事件名，会自动转换为 UniApp 的事件格式
-
-6. **Vue 版本**：要求 Vue 3.4.x 版本，确保兼容性
+5. **Vue 版本**：要求 Vue 3.4.x 版本，确保兼容性
 
 ## 🔗 相关链接
 
