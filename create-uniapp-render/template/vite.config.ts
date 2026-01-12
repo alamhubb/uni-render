@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import uni from '@dcloudio/vite-plugin-uni'
-import { uniRender } from 'vite-plugin-uniapp-render'
+import { uniRender } from 'vite-plugin-uni-render'
 
 export default defineConfig({
     plugins: [

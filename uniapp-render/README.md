@@ -1,4 +1,4 @@
-# uniapp-render
+# uni-render
 
 让 UniApp 支持 Vue 渲染函数（h 函数）开发，**兼容微信小程序**。
 
@@ -12,9 +12,9 @@
 ## 📦 安装
 
 ```bash
-npm install uniapp-render
+npm install uni-render
 # 或
-pnpm add uniapp-render
+pnpm add uni-render
 ```
 
 ## 🚀 快速开始
@@ -26,7 +26,7 @@ pnpm add uniapp-render
 
 <script setup>
 import { ref as vueRef } from 'vue'
-import { ref, h, useRender, watch } from 'uniapp-render'
+import { ref, h, useRender, watch } from 'uni-render'
 
 // 定义内部组件
 const InnerComponent = {
@@ -155,7 +155,7 @@ function renderEvent(eventId: string, event?: any): void
 
 <script setup>
 import { ref as vueRef } from 'vue'
-import { ref, h, useRender, watch, computed } from 'uniapp-render'
+import { ref, h, useRender, watch, computed } from 'uni-render'
 
 // 定义内部组件
 const CounterComponent = {

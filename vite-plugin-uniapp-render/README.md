@@ -1,4 +1,4 @@
-# vite-plugin-uniapp-render
+# vite-plugin-uni-render
 
 > Vite 插件 - 让标准 Vue 组件在 UniApp 中使用 render 函数
 
@@ -18,7 +18,7 @@ const count = ref(0)
 ```
 
 **插件自动帮你处理**：
-- 在 compiler 中将 `import 'vue'` 转换为 `import 'uniapp-render'`
+- 在 compiler 中将 `import 'vue'` 转换为 `import 'uni-render'`
 - 非 Page 组件：转换为纯 TypeScript + 渲染函数
 - Page 组件：使用 `<render-component :node="node" />` 模板 + `defineRenderComponent` 包装
 
@@ -32,7 +32,7 @@ UniApp 的 Vue SFC 编译器对某些标准 Vue 特性支持有限。本插件�
 |---------|---------|------|
 | **Page 组件** | 保持 `.vue` 格式，使用 `<render-component>` 模板 + `defineRenderComponent` | UniApp 需要处理 Page 的路由、生命周期 |
 | **非 Page 组件** | 通过虚拟模块转换为 `.render.temp` + `.css` | 完全绕过 UniApp SFC 编译 |
-| **纯脚本文件** | 在 resolveId 中重定向 `vue → uniapp-render` | UniApp 不会在脚本中注入代码 |
+| **纯脚本文件** | 在 resolveId 中重定向 `vue → uni-render` | UniApp 不会在脚本中注入代码 |
 | **App.vue** | 不处理 | 保持原始 Vue 行为 |
 
 ### 渲染函数处理
@@ -65,12 +65,12 @@ import './Component.vue'
 
 - **判断条件**：扩展名为 `.vue`，且不是 `App.vue`
 - **Page 组件**：返回 `null`，交给后续钩子处理
-- **非 Page 组件**：返回虚拟模块 ID `\0uniapp-render:D:/xxx/Component.ts`
+- **非 Page 组件**：返回虚拟模块 ID `\0uni-render:D:/xxx/Component.ts`
 
 **为什么要用虚拟模块？**  
 一旦返回虚拟 `.ts` ID，Vite 就认为这是 TypeScript 文件，UniApp 的 Vue 插件不会介入，从而绕过 SFC 编译限制。
 
-#### 1.2 处理 `vue` → `uniapp-render` 重定向（纯脚本文件）
+#### 1.2 处理 `vue` → `uni-render` 重定向（纯脚本文件）
 
 ```typescript
 // 在 .ts/.js 文件中
@@ -82,7 +82,7 @@ import { ref, h } from 'vue'
   - importer 是纯脚本文件（`.ts, .js, .mjs, .cjs`）
   - importer 不在 `node_modules`
   - importer 不是入口文件（`main.ts` 等）
-- **行为**：重定向到 `uniapp-render/src/index.ts`
+- **行为**：重定向到 `uni-render/src/index.ts`
 
 **为什么只处理纯脚本文件，不处理 .vue？**
 
@@ -128,7 +128,7 @@ import 'virtual:unirender-css:/path/to/Component.vue.css'
 #### 2.2 加载 `.vue` → `.ts` 虚拟模块
 
 ```typescript
-// 当 Vite 请求: \0uniapp-render:/path/to/Component.ts
+// 当 Vite 请求: \0uni-render:/path/to/Component.ts
 ```
 
 - **流程**：
@@ -178,7 +178,7 @@ import 'virtual:unirender-css:/path/to/Component.vue.css'
         ▼               ▼               ▼               ▼
    Page .vue       非Page .vue    import 'vue'     App.vue
    返回 null       → .render.temp  (.ts/.js 文件)   不处理
-        │               │         → uniapp-render       │
+        │               │         → uni-render       │
         ▼               ▼               │               │
    transform       load 钩子          │               │
    ┌──────────────┐ ┌──────────────┐   │               │
@@ -202,13 +202,13 @@ import 'virtual:unirender-css:/path/to/Component.vue.css'
 **说明**：
 - **Page .vue**：保持 .vue 格式，使用 `defineRenderComponent` + `<render-component>` 模板
 - **非 Page .vue**：转为 `.render.temp` 虚拟模块，绕过 UniApp 编译
-- **纯脚本文件**：直接在 resolveId 中重定向 `vue → uniapp-render`
+- **纯脚本文件**：直接在 resolveId 中重定向 `vue → uni-render`
 - **App.vue**：不处理（保持原始 Vue 行为）
 
 ## 安装
 
 ```bash
-pnpm add vite-plugin-uniapp-render
+pnpm add vite-plugin-uni-render
 ```
 
 ## 使用
@@ -218,7 +218,7 @@ pnpm add vite-plugin-uniapp-render
 ```typescript
 import { defineConfig } from 'vite'
 import uni from '@dcloudio/vite-plugin-uni'
-import { uniRender } from 'vite-plugin-uniapp-render'
+import { uniRender } from 'vite-plugin-uni-render'
 
 export default defineConfig({
   plugins: [
@@ -255,8 +255,8 @@ const count = ref(0)
 
 **转换后**（虚拟 `.ts` 模块）：
 ```typescript
-import { ref } from 'uniapp-render'
-import { defineRenderComponent } from 'uniapp-render'
+import { ref } from 'uni-render'
+import { defineRenderComponent } from 'uni-render'
 
 const count = ref(0)
 
@@ -296,7 +296,7 @@ export default defineComponent({
 </template>
 
 <script lang="ts">
-import { defineRenderComponent, ref, h } from 'uniapp-render'
+import { defineRenderComponent, ref, h } from 'uni-render'
 
 export default defineRenderComponent({
   setup() {
@@ -319,26 +319,26 @@ export default defineRenderComponent({
    - `App.vue` 不处理
    - 入口文件（`main.ts` 等）不处理
 4. **虚拟模块标识**：`\0` 前缀是 Vite 内部约定，用户无需关心
-5. **vue → uniapp-render 转换**：在 compiler 中进行，不影响 UniApp 注入的代码
+5. **vue → uni-render 转换**：在 compiler 中进行，不影响 UniApp 注入的代码
 
-## 与 uniapp-render 的关系
+## 与 uni-render 的关系
 
-本插件是 `uniapp-render` 的配套工具：
+本插件是 `uni-render` 的配套工具：
 
 | 包名 | 职责 | 说明 |
 |-----|------|------|
-| `uniapp-render` | 运行时库 | 提供 `defineRenderComponent`、`h`、`ref` 等 API |
-| `uniapp-render-compiler` | 编译器 | 提供 `transformVueSFC` 函数 |
-| `vite-plugin-uniapp-render` | Vite 插件 | 自动调用编译器，零配置转换 |
+| `uni-render` | 运行时库 | 提供 `defineRenderComponent`、`h`、`ref` 等 API |
+| `uni-render-compiler` | 编译器 | 提供 `transformVueSFC` 函数 |
+| `vite-plugin-uni-render` | Vite 插件 | 自动调用编译器，零配置转换 |
 
 **推荐使用**：
 ```json
 {
   "dependencies": {
-    "uniapp-render": "latest"
+    "uni-render": "latest"
   },
   "devDependencies": {
-    "vite-plugin-uniapp-render": "latest"
+    "vite-plugin-uni-render": "latest"
   }
 }
 ```

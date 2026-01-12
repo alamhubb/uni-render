@@ -1,4 +1,4 @@
-# uniapp-render
+# uni-render
 
 将 Vue 渲染函数组件转换为 UniApp 兼容格式的工具链。
 
@@ -10,12 +10,12 @@
 
 ## 文件处理规则
 
-### vite-plugin-uniapp-render 处理规则
+### vite-plugin-uni-render 处理规则
 
 | 文件类型 | 输出格式 | 处理方式 |
 |---------|---------|---------|
 | `main.ts` | 不处理 | UniApp 入口文件，需要真正的 `vue` |
-| 其他 `.ts` 文件 | `.ts` | 替换 `import from 'vue'` → `import from 'uniapp-render'` |
+| 其他 `.ts` 文件 | `.ts` | 替换 `import from 'vue'` → `import from 'uni-render'` |
 | Page `.vue` (pages.json 配置) | `.vue` | `transform` hook：编译 + `defineRenderComponent` + `<render-component>` template |
 | 非 Page `.vue` | **虚拟模块 `.ts`** | `resolveId` 拦截 → 虚拟模块 → 纯 `.ts` + CSS 虚拟模块 |
 
@@ -26,7 +26,7 @@ UniApp 的入口文件，需要使用真正的 `vue` 包（`createSSRApp`）。
 
 #### 2. 其他 `.ts` 文件
 所有 `src/` 目录下的 `.ts` 文件（除 `main.ts`）都会被处理：
-- 将 `import { xxx } from 'vue'` 替换为 `import { xxx } from 'uniapp-render'`
+- 将 `import { xxx } from 'vue'` 替换为 `import { xxx } from 'uni-render'`
 
 #### 3. Page 组件（`.vue`）
 在 `pages.json` 中配置的页面组件：
@@ -37,7 +37,7 @@ UniApp 的入口文件，需要使用真正的 `vue` 包（`createSSRApp`）。
 
 #### 4. 非 Page 组件（虚拟模块）
 不在 `pages.json` 中配置的 `.vue` 文件（包括 node_modules 中的）：
-- **`resolveId` hook 拦截**：将 `.vue` 导入重定向到虚拟模块 ID（`\0uniapp-render:xxx.ts`）
+- **`resolveId` hook 拦截**：将 `.vue` 导入重定向到虚拟模块 ID（`\0uni-render:xxx.ts`）
 - **`load` hook 返回**：编译后的纯 `.ts` 代码
 - **CSS 虚拟模块**：样式提取为独立虚拟模块（`virtual:unirender-css:xxx.vue.css`）
 - UniApp 不会处理虚拟模块（以 `\0` 开头）
@@ -56,8 +56,8 @@ UniApp 的入口文件，需要使用真正的 `vue` 包（`createSSRApp`）。
 ## 项目结构
 
 ```
-uniapp-render/
-├── uniapp-render/           # 核心运行时库
+uni-render/
+├── uni-render/           # 核心运行时库
 │   ├── src/
 │   │   ├── index.ts         # 导出所有 API
 │   │   ├── renderer/        # 自定义渲染器
@@ -68,11 +68,11 @@ uniapp-render/
 │   │   │   └── RenderComponent.vue  # 递归渲染 RenderNode
 │   │   └── event/           # 事件系统
 │
-├── uniapp-render-compiler/  # 编译时转换器
+├── uni-render-compiler/  # 编译时转换器
 │   └── src/
 │       └── index.ts         # SFC 转换逻辑
 │
-├── vite-plugin-uniapp-render/  # Vite 插件
+├── vite-plugin-uni-render/  # Vite 插件
 │   └── index.ts             # 文件处理入口
 │
 └── my-vue3-project/         # 示例项目
@@ -87,7 +87,7 @@ UniApp 的 Vite 插件会处理所有 `.vue` 文件。为了让非 Page 组件�
 
 | 类型 | import 语句 | 内部虚拟模块 ID |
 |-----|------------|----------------|
-| 组件 TS | `import XXX from './HelloWorld.vue'` | `\0uniapp-render:D:/.../HelloWorld.ts` |
+| 组件 TS | `import XXX from './HelloWorld.vue'` | `\0uni-render:D:/.../HelloWorld.ts` |
 | 组件 CSS | `import 'virtual:unirender-css:xxx.vue.css'` | `\0unirender-css:xxx.vue.css` |
 
 - `\0` 前缀是 Vite 虚拟模块约定
@@ -99,13 +99,13 @@ UniApp 的 Vite 插件会处理所有 `.vue` 文件。为了让非 Page 组件�
 ### 1. 安装依赖
 
 ```bash
-npm install uniapp-render uniapp-render-compiler vite-plugin-uniapp-render
+npm install uni-render uni-render-compiler vite-plugin-uni-render
 ```
 
 ### 2. 配置 vite.config.ts
 
 ```typescript
-import uniRender from 'vite-plugin-uniapp-render'
+import uniRender from 'vite-plugin-uni-render'
 
 export default defineConfig({
   plugins: [
@@ -155,7 +155,7 @@ export default defineComponent({
 
 1. **Component 样式**：非 Page 的 `.vue` 组件样式通过 CSS 虚拟模块处理，会自动注入到页面中。
 
-2. **响应式系统**：确保 `ref`、`reactive` 等 API 从 `uniapp-render`（实际是 `@vue/runtime-core`）导入，这样响应式更新才能正确工作。
+2. **响应式系统**：确保 `ref`、`reactive` 等 API 从 `uni-render`（实际是 `@vue/runtime-core`）导入，这样响应式更新才能正确工作。
 
 3. **事件处理**：使用 `onClick`、`onInput` 等 Vue 风格的事件名，会自动转换为 UniApp 的事件格式。
 

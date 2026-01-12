@@ -65,7 +65,7 @@ function getGlobalStorage() {
     }
 
     // 3. 其他环境：抛出错误
-    throw new Error('[uniapp-render] 无法获取全局存储，不支持的运行环境')
+    throw new Error('[uni-render] 无法获取全局存储，不支持的运行环境')
 }
 
 /**

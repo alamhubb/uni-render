@@ -3,7 +3,7 @@
 
 <template>
     <view class="container">
-        <text class="title">🚀 uniapp-render</text>
+        <text class="title">🚀 uni-render</text>
         <text class="subtitle">Vue 渲染函数支持</text>
         <navigator url="/pages/render-demo/render-demo" class="link">
             查看渲染函数示例 →

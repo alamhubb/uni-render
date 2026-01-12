@@ -1,5 +1,5 @@
 /**
- * uniapp-render-compiler
+ * uni-render-compiler
  *
  * 使用 @vue/compiler-sfc 解析 Vue SFC 文件
  * 使用 OXC + magic-string 进行高性能代码转换
@@ -29,12 +29,12 @@ export interface TransformResult {
 const VIRTUAL_TS_FILE = 'virtual.ts'
 
 // 渲染模块路径（vue 导入会被替换为这个路径）
-export const RENDER_MODULE = 'uniapp-render'
+export const RENDER_MODULE = 'uni-render'
 
 
 
 /**
- * 快速替换脚本中的 import from 'vue' → import from 'uniapp-render'
+ * 快速替换脚本中的 import from 'vue' → import from 'uni-render'
  * 使用 OXC + magic-string，性能极高
  * 适用于非 Page 组件
  */
@@ -272,7 +272,7 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
             // 替换 export default 为 const __sfc__ =
             scriptMagic.overwrite(node.start, node.declaration.start, 'const __sfc__ = ')
         },
-        // 替换 vue → uniapp-render
+        // 替换 vue → uni-render
         ImportDeclaration(node: any) {
             if (node.source?.value === 'vue') {
                 scriptMagic.overwrite(node.source.start, node.source.end, `'${RENDER_MODULE}'`)
@@ -303,7 +303,7 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
                 renderMagic.overwrite(node.start, node.declaration.start, '')
             }
         },
-        // 替换 vue → uniapp-render
+        // 替换 vue → uni-render
         ImportDeclaration(node: any) {
             if (node.source?.value === 'vue') {
                 renderMagic.overwrite(node.source.start, node.source.end, `'${RENDER_MODULE}'`)
@@ -339,7 +339,7 @@ function mergeCode(scriptCode: string, renderCode: string, isPage: boolean): str
     const scriptParts = extractImportsAndBody(newScriptCode)
     const renderParts = extractImportsAndBody(newRenderCode)
 
-    // 4. 合并 imports（已在 visitor 中处理了 vue → uniapp-render）
+    // 4. 合并 imports（已在 visitor 中处理了 vue → uni-render）
     const allImports = [...scriptParts.imports, ...renderParts.imports]
 
     // 5. 使用 magic-string 组合最终代码

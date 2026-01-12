@@ -11,10 +11,10 @@ const args = process.argv.slice(2)
 const projectName = args[0]
 
 if (!projectName) {
-    console.log('Usage: npx create-uniapp-render <project-name>')
+    console.log('Usage: npx create-uni-render <project-name>')
     console.log('')
     console.log('Example:')
-    console.log('  npx create-uniapp-render my-app')
+    console.log('  npx create-uni-render my-app')
     process.exit(1)
 }
 

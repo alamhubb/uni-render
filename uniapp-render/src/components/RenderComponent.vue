@@ -61,8 +61,8 @@
 <script lang="ts">
 import { defineComponent, computed } from 'vue'
 import type { PropType } from 'vue'
-import { renderEvent } from 'uniapp-render'
-import type { RenderNode } from 'uniapp-render'
+import { renderEvent } from 'uni-render'
+import type { RenderNode } from 'uni-render'
 
 /**
  * RenderComponent - 动态节点渲染组件

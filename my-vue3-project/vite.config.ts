@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import { uniRender } from "../vite-plugin-uniapp-render/index.ts";
+import { uniRender } from "../vite-plugin-uni-render/index.ts";
 import { createRequire } from "module";
 import { resolve } from "path";
 import { fileURLToPath } from "url";
@@ -21,12 +21,12 @@ export default defineConfig(async ({ mode }) => {
     },
     resolve: {
       alias: [
-        { find: 'uniapp-render-compiler', replacement: resolve(__dirname, '../uniapp-render-compiler/src/index.ts') }
+        { find: 'uni-render-compiler', replacement: resolve(__dirname, '../uni-render-compiler/src/index.ts') }
       ]
     },
     optimizeDeps: {
       exclude: [
-        'uniapp-render-compiler'
+        'uni-render-compiler'
       ]
     }
   };

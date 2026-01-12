@@ -1,10 +1,10 @@
 {
-    "name": "create-uniapp-render",
+    "name": "create-uni-render",
     "version": "0.1.0",
     "description": "Create a new UniApp project with render function support",
     "type": "module",
     "bin": {
-        "create-uniapp-render": "./bin/index.js"
+        "create-uni-render": "./bin/index.js"
     },
     "files": [
         "bin",
