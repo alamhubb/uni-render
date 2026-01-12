@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div>
+    <div style="display: flex;flex-direction: row;justify-content: center">
       <a href="https://vite.dev" target="_blank">
         <img src="/static/vite.svg" class="logo" alt="Vite logo" />
       </a>

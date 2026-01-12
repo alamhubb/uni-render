@@ -22,7 +22,7 @@ const count = ref(140)
     <a href="https://vuejs.org/guide/quick-start.html#local" target="_blank">create-vue</a>, the official Vue + Vite
     starter
   </p>
-  <p style="display: flex;flex-direction: row">
+  <p style="display: flex;flex-direction: row;justify-content: center">
     Learn more about IDE Support for Vue in the
     <a href="https://vuejs.org/guide/scaling-up/tooling.html#ide-support" target="_blank">Vue Docs Scaling up Guide</a>.
   </p>
