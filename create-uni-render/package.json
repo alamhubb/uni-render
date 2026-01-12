@@ -9,7 +9,6 @@
     },
     "files": [
         "bin",
-        "template",
         "README.md"
     ],
     "repository": {
