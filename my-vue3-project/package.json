@@ -1,6 +1,7 @@
 {
   "name": "uni-render-demo",
   "version": "0.0.0",
+  "type": "module",
   "scripts": {
     "dev:custom": "uni -p",
     "dev:mp-weixin": "uni -p mp-weixin",
