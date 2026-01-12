@@ -2,13 +2,13 @@
   <div>
     <div style="display: flex;flex-direction: row;justify-content: center">
       <a href="https://uniapp.dcloud.net.cn/" target="_blank">
-        <img src="/static/logo.png" class="logo" alt="Uniapp logo" />
+        <img src="/static/logo.png" class="logo" alt="Uniapp logo"/>
       </a>
       <a href="https://github.com/alamhubb/uni-render" target="_blank">
-        <img src="/static/renderlogo.png" class="vue logo" alt="UniRender logo" />
+        <img src="/static/renderlogo.png" class="vue logo" alt="UniRender logo"/>
       </a>
     </div>
-    <HelloWorld msg="Uniapp + Render" />
+    <HelloWorld msg="Uniapp + Render"/>
   </div>
 </template>
 
@@ -19,7 +19,7 @@ import HelloWorld from './components/HelloWorld.vue'
 .logo {
   height: 6em;
   width: 6em;
-  padding: 100em;
+  padding: 1.5em;
   will-change: filter;
   transition: filter 300ms;
 }
