@@ -60,12 +60,14 @@ export default defineConfig({
 
 **Page 组件（pages/index/index.vue）**：
 ```vue
+<template>
+  <view>
+    <HelloWorld msg="Uniapp + Render" />
+  </view>
+</template>
+
 <script setup lang="ts">
-import { ref, h } from 'uni-render'
-
-const count = ref(0)
-
-// 使用标准 Vue 渲染函数
+import HelloWorld from './components/HelloWorld.vue'
 </script>
 ```
 
@@ -74,8 +76,31 @@ const count = ref(0)
 <script setup lang="ts">
 import { ref, h } from 'uni-render'
 
-const msg = ref('Hello uni-render')
+const props = defineProps<{ msg: string }>()
+const count = ref(0)
+
+// 使用标准 Vue 渲染函数编写组件
 </script>
+```
+
+**使用渲染函数的组件示例**：
+```typescript
+// components/Counter.ts
+import { ref, h, defineComponent } from 'uni-render'
+
+export default defineComponent({
+  setup() {
+    const count = ref(0)
+    
+    return () => h('view', { class: 'counter' }, [
+      h('text', { class: 'title' }, '计数器'),
+      h('text', { class: 'count' }, `当前值: ${count.value}`),
+      h('button', { 
+        onClick: () => count.value++ 
+      }, '点击 +1')
+    ])
+  }
+})
 ```
 
 ## 📦 包说明
@@ -214,35 +239,45 @@ export default defineConfig({
 
 ### 3. 编写组件
 
-**Page 组件（.vue）**
+**Page 组件（pages/index/index.vue）**
 ```vue
-<script lang="ts">
-import { h, ref, defineComponent } from 'vue'
-import HelloWorld from './components/HelloWorld'
+<template>
+  <view class="container">
+    <HelloWorld msg="Uniapp + Render" />
+  </view>
+</template>
 
-export default defineComponent({
-  setup() {
-    return () => h('view', {}, [
-      h(HelloWorld, { msg: 'Hello' })
-    ])
-  }
-})
+<script setup lang="ts">
+import HelloWorld from './components/HelloWorld.vue'
 </script>
 ```
 
-**Component 组件（.ts）**
+**普通组件（components/HelloWorld.vue）**
+```vue
+<script setup lang="ts">
+import { ref, h } from 'uni-render'
+
+const props = defineProps<{ msg: string }>()
+const count = ref(0)
+
+// 使用标准 Vue 语法，插件会自动处理转换
+</script>
+```
+
+**使用渲染函数的组件（components/Counter.ts）**
 ```typescript
-import { h, ref, defineComponent } from 'vue'
+import { ref, h, defineComponent } from 'uni-render'
 
 export default defineComponent({
-  props: {
-    msg: { type: String, required: true }
-  },
-  setup(props) {
+  setup() {
     const count = ref(0)
-    return () => h('view', {}, [
-      h('text', {}, props.msg),
-      h('button', { onClick: () => count.value++ }, `count: ${count.value}`)
+    
+    return () => h('view', { class: 'counter' }, [
+      h('text', { class: 'title' }, '计数器'),
+      h('text', { class: 'count' }, `当前值: ${count.value}`),
+      h('button', { 
+        onClick: () => count.value++ 
+      }, '点击 +1')
     ])
   }
 })
