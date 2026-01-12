@@ -10,7 +10,7 @@
 import type { Plugin } from 'vite'
 import { relative, resolve, dirname, isAbsolute, basename, join, extname, normalize } from 'pathe'
 import { readFileSync, existsSync } from 'fs'
-import { transformVueSFC, transformVueSFCWithStyles, RENDER_MODULE } from 'uniapp-render-compiler'
+import { transformVueSFC, transformVueSFCWithStyles, RENDER_MODULE } from './uniRenderCompiler.ts'
 import { parse as parseSFC } from '@vue/compiler-sfc'
 
 export interface UniRenderOptions {
