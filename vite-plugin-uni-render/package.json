@@ -25,13 +25,13 @@
         "render",
         "h-function",
         "miniapp"
-    ],,
+    ],
     "scripts": {
         "build": "tsdown",
         "release": "npm publish --tag latest",
         "prepublishOnly": "npm run build",
         "clean": "rimraf dist"
-    }
+    },
     "dependencies": {
         "magic-string": "^0.30.0",
         "oxc-parser": "^0.107.0",
