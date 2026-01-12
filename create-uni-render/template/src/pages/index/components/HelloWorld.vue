@@ -25,7 +25,7 @@ const count = ref(0)
     Check out
     <a style="font-weight: 500;
     color: #646cff;margin-left:0.3em;
-    text-decoration: inherit;" href="https://vuejs.org/guide/quick-start.html#local" target="_blank">create-vue</a>, the
+    text-decoration: inherit;" href="https://github.com/alamhubb/uni-render" target="_blank">create-vue</a>, the
     official Vue + Vite
     starter
   </p>
@@ -33,7 +33,7 @@ const count = ref(0)
     Learn more about IDE Support for Vue in the
     <a style="font-weight: 500;
     color: #646cff;margin-left:0.3em;
-    text-decoration: inherit;" href="https://vuejs.org/guide/scaling-up/tooling.html#ide-support" target="_blank">Vue
+    text-decoration: inherit;" href="https://github.com/alamhubb/uni-render" target="_blank">Vue
       Docs Scaling up Guide</a>.
   </p>
   <p class="read-the-docs">Click on the Vite and Vue logos to learn more</p>
