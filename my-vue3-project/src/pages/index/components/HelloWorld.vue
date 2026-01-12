@@ -16,24 +16,26 @@ console.log('444')
 
   <div class="card">
     <button type="button" @click="count++">count is {{ count }}</button>
-    <p>
+    <p style="margin-top:1em">
       Edit
       <code>components/HelloWorld.vue</code> to test HMR
     </p>
   </div>
 
-  <p style="display: flex;flex-direction: row;justify-content: center">
+  <p style="display: flex;flex-direction: row;justify-content: center;margin-top:1em">
     Check out
     <a style="font-weight: 500;
-    color: #646cff;
-    text-decoration: inherit;" href="https://vuejs.org/guide/quick-start.html#local" target="_blank">create-vue</a>, the official Vue + Vite
+    color: #646cff;margin-left:0.3em;
+    text-decoration: inherit;" href="https://vuejs.org/guide/quick-start.html#local" target="_blank">create-vue</a>, the
+    official Vue + Vite
     starter
   </p>
-  <p style="display: flex;flex-direction: row;justify-content: center">
+  <p style="display: flex;flex-direction: row;justify-content: center;margin-top:1em">
     Learn more about IDE Support for Vue in the
     <a style="font-weight: 500;
-    color: #646cff;
-    text-decoration: inherit;" href="https://vuejs.org/guide/scaling-up/tooling.html#ide-support" target="_blank">Vue Docs Scaling up Guide</a>.
+    color: #646cff;margin-left:0.3em;
+    text-decoration: inherit;" href="https://vuejs.org/guide/scaling-up/tooling.html#ide-support" target="_blank">Vue
+      Docs Scaling up Guide</a>.
   </p>
   <p class="read-the-docs">Click on the Vite and Vue logos to learn more</p>
 </template>
@@ -41,5 +43,6 @@ console.log('444')
 <style scoped>
 .read-the-docs {
   color: #888;
+  margin-top: 1em;
 }
 </style>

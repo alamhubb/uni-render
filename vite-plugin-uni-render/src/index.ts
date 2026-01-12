@@ -419,6 +419,13 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 if (mod) {
                     server.moduleGraph.invalidateModule(mod)
                 }
+
+                // CSS 虚拟模块也需要失效
+                const cssVirtualId = CSS_VIRTUAL_ID_PREFIX + normalizedPath + '.css'
+                const cssMod = server.moduleGraph.getModuleById(cssVirtualId)
+                if (cssMod) {
+                    server.moduleGraph.invalidateModule(cssMod)
+                }
             }
 
             if (debug) {
