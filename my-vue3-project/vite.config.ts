@@ -1,6 +1,5 @@
 import { defineConfig } from "vite";
 import { uniRender } from "../vite-plugin-uniapp-render/index.ts";
-// import vitePluginMp from "../../miniprogram-web/vite-plugin-mp/src/index.ts";
 import { createRequire } from "module";
 import { resolve } from "path";
 import { fileURLToPath } from "url";
