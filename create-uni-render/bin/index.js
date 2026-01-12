@@ -8,14 +8,17 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 const args = process.argv.slice(2)
-const projectName = args[0]
+const DEFAULT_PROJECT_NAME = 'my-uni-render-project'
+let projectName = args[0] || DEFAULT_PROJECT_NAME
 
-if (!projectName) {
-    console.log('Usage: npx create-uni-render <project-name>')
-    console.log('')
-    console.log('Example:')
-    console.log('  npx create-uni-render my-app')
-    process.exit(1)
+// 如果使用默认名称且目录已存在，尝试添加数字后缀
+if (!args[0] && existsSync(join(process.cwd(), projectName))) {
+    let counter = 1
+    while (existsSync(join(process.cwd(), `${projectName}-${counter}`))) {
+        counter++
+    }
+    projectName = `${projectName}-${counter}`
+    console.log(`⚠️  Default project name "${DEFAULT_PROJECT_NAME}" already exists, using "${projectName}" instead.\n`)
 }
 
 const targetDir = join(process.cwd(), projectName)
