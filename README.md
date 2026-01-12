@@ -1,5 +1,103 @@
 # uni-render
 
+[![npm version](https://img.shields.io/npm/v/uni-render.svg)](https://www.npmjs.com/package/uni-render)
+[![npm downloads](https://img.shields.io/npm/dm/uni-render.svg)](https://www.npmjs.com/package/uni-render)
+[![license](https://img.shields.io/npm/l/uni-render.svg)](https://github.com/AlamHubb/uni-render/blob/main/LICENSE)
+
+让 UniApp 支持 Vue 渲染函数（h 函数）开发，兼容 H5 和微信小程序。
+
+## 🚀 快速开始
+
+### 方式一：使用脚手架（推荐）
+
+```bash
+# 创建新项目（不指定项目名时，默认使用 my-uni-render-project）
+npx create-uni-render
+
+# 或指定项目名
+npx create-uni-render my-app
+
+# 进入项目目录
+cd my-uni-render-project
+
+# 安装依赖
+npm install
+
+# 启动 H5 开发
+npm run dev:h5
+
+# 启动微信小程序开发
+npm run dev:mp-weixin
+```
+
+### 方式二：在现有项目中安装
+
+```bash
+# 安装核心依赖
+npm install uni-render vite-plugin-uni-render
+
+# 或使用 pnpm
+pnpm add uni-render vite-plugin-uni-render
+```
+
+在 `vite.config.ts` 中配置：
+
+```typescript
+import { defineConfig } from 'vite'
+import uni from '@dcloudio/vite-plugin-uni'
+import { uniRender } from 'vite-plugin-uni-render'
+
+export default defineConfig({
+  plugins: [
+    // ⚠️ 必须放在 uni() 之前
+    uniRender(),
+    uni()
+  ]
+})
+```
+
+### 编写组件
+
+**Page 组件（pages/index/index.vue）**：
+```vue
+<script setup lang="ts">
+import { ref, h } from 'uni-render'
+
+const count = ref(0)
+
+// 使用标准 Vue 渲染函数
+</script>
+```
+
+**普通组件（components/HelloWorld.vue）**：
+```vue
+<script setup lang="ts">
+import { ref, h } from 'uni-render'
+
+const msg = ref('Hello uni-render')
+</script>
+```
+
+## 📦 包说明
+
+| 包名 | 说明 | 安装 |
+|------|------|------|
+| `uni-render` | 核心运行时库，提供 `h`、`ref`、`defineRenderComponent` 等 API | `npm install uni-render` |
+| `vite-plugin-uni-render` | Vite 插件，自动转换 Vue 组件 | `npm install vite-plugin-uni-render -D` |
+| `create-uni-render` | 项目脚手架，快速创建新项目 | `npx create-uni-render` |
+
+## ✨ 核心特性
+
+- ✅ **标准 Vue 语法**：使用 `h` 函数编写组件，无需学习 UniApp 模板语法
+- ✅ **自动转换**：插件自动处理 `vue → uni-render` 导入转换
+- ✅ **兼容小程序**：支持微信小程序、支付宝小程序等
+- ✅ **响应式支持**：完整的 Vue 3 响应式系统
+- ✅ **零配置**：开箱即用，无需额外配置
+
+---
+
+## 📖 详细文档
+
 将 Vue 渲染函数组件转换为 UniApp 兼容格式的工具链。
 
 ## 核心概念
@@ -53,27 +151,26 @@ UniApp 的入口文件，需要使用真正的 `vue` 包（`createSSRApp`）。
    - Page → `.vue`（带 `<render-component>` template）
    - Component → `.ts`（纯 TypeScript）
 
-## 项目结构
+## 📁 项目结构
 
 ```
 uni-render/
-├── uni-render/           # 核心运行时库
+├── uni-render/              # 核心运行时库
 │   ├── src/
 │   │   ├── index.ts         # 导出所有 API
 │   │   ├── renderer/        # 自定义渲染器
-│   │   │   ├── customRenderer.ts    # 基于 @vue/runtime-core 的渲染器
-│   │   │   ├── defineRenderComponent.ts  # Page 组件包装器
-│   │   │   └── render.ts    # 渲染入口
 │   │   ├── components/      # 运行时组件
-│   │   │   └── RenderComponent.vue  # 递归渲染 RenderNode
 │   │   └── event/           # 事件系统
 │
-├── uni-render-compiler/  # 编译时转换器
-│   └── src/
-│       └── index.ts         # SFC 转换逻辑
-│
 ├── vite-plugin-uni-render/  # Vite 插件
-│   └── index.ts             # 文件处理入口
+│   └── src/
+│       ├── index.ts         # 插件入口
+│       └── uniRenderCompiler.ts  # 编译器
+│
+├── create-uni-render/       # 项目脚手架
+│   ├── bin/
+│   │   └── index.js         # 脚手架脚本
+│   └── template/            # 项目模板
 │
 └── my-vue3-project/         # 示例项目
 ```
@@ -151,17 +248,41 @@ export default defineComponent({
 })
 ```
 
-## 注意事项
+## ⚙️ 配置选项
 
-1. **Component 样式**：非 Page 的 `.vue` 组件样式通过 CSS 虚拟模块处理，会自动注入到页面中。
+### vite-plugin-uni-render 选项
 
-2. **响应式系统**：确保 `ref`、`reactive` 等 API 从 `uni-render`（实际是 `@vue/runtime-core`）导入，这样响应式更新才能正确工作。
+| 选项 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `debug` | `boolean` | `false` | 是否开启调试日志，打印转换过程 |
 
-3. **事件处理**：使用 `onClick`、`onInput` 等 Vue 风格的事件名，会自动转换为 UniApp 的事件格式。
+```typescript
+uniRender({
+  debug: true  // 开启调试模式
+})
+```
 
-4. **node_modules**：node_modules 中的 `.vue` 文件也会被处理（通过虚拟模块），确保第三方 Vue 组件也能正常工作。
+## ⚠️ 注意事项
 
-## 标签映射表
+1. **插件顺序**：`uniRender()` 必须放在 `uni()` 之前，插件会自动使用 `enforce: 'pre'` 确保优先执行
+
+2. **导入来源**：在组件中使用 `import { ref, h } from 'uni-render'`，插件会自动处理 `vue → uni-render` 的转换
+
+3. **样式处理**：非 Page 的 `.vue` 组件样式通过 CSS 虚拟模块处理，会自动注入到页面中
+
+4. **响应式系统**：`ref`、`reactive` 等 API 从 `uni-render` 导入，使用完整的 Vue 3 响应式系统
+
+5. **事件处理**：使用 `onClick`、`onInput` 等 Vue 风格的事件名，会自动转换为 UniApp 的事件格式
+
+6. **Vue 版本**：要求 Vue 3.4.x 版本，确保兼容性
+
+## 🔗 相关链接
+
+- [uni-render 运行时库文档](./uni-render/README.md)
+- [vite-plugin-uni-render 插件文档](./vite-plugin-uni-render/README.md)
+- [GitHub Issues](https://github.com/AlamHubb/uni-render/issues)
+
+## 🏷️ 标签映射表
 
 ### customRenderer 标签转换（第一层）
 
@@ -197,4 +318,12 @@ RenderComponent 根据节点的 `type` 值渲染对应的 UniApp 组件：
 | `input` | `<input>` | 支持 input、focus、blur 事件 |
 | `image` | `<image>` | 默认 mode="scaleToFill" |
 | 其他（默认） | `<view>` | 未知类型统一渲染为 view |
+
+## 📄 License
+
+MIT
+
+---
+
+**Made with ❤️ by [AlamHubb](https://github.com/AlamHubb)**
 
