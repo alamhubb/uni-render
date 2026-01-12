@@ -18,30 +18,38 @@ export function defineRenderComponent(component: any) {
         props: component?.props,
 
         setup(props: any, ctx: any) {
+            console.log('[defineRenderComponent] InnerComponent setup 被调用')
+            console.log('[defineRenderComponent] 原始组件 props 定义:', component?.props)
+            console.log('[defineRenderComponent] 接收到的 props:', props)
+
             // 如果原始组件有 setup，先执行它获取上下文
             let setupResult: any = {}
             if (originalSetup) {
                 setupResult = originalSetup(props, ctx)
+                console.log('[defineRenderComponent] originalSetup 返回:', setupResult)
             }
 
             // 如果 setup 返回的是函数，直接使用
             if (typeof setupResult === 'function') {
+                console.log('[defineRenderComponent] setup 返回的是渲染函数')
                 return setupResult
             }
 
             // 如果有单独的 render 属性，使用它
             if (originalRender) {
+                console.log('[defineRenderComponent] 使用 originalRender')
                 return () => {
                     // render 函数签名: render(_ctx, _cache, $props, $setup, $data, $options)
-                    // 正确传递所有参数
+                    console.log('[defineRenderComponent] 调用 render，$props:', props)
                     const vnode = originalRender(
                         setupResult,  // _ctx
                         [],           // _cache
-                        props,        // $props - 修复：传递实际的 props！
+                        props,        // $props
                         setupResult,  // $setup
                         {},           // $data
                         {}            // $options
                     )
+                    console.log('[defineRenderComponent] render 返回的 vnode:', vnode)
                     return vnode
                 }
             }
