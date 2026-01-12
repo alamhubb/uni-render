@@ -1,35 +1,34 @@
-<script setup lang="ts">
-</script>
-
 <template>
-    <view class="container">
-        <text class="title">🚀 uni-render</text>
-        <text class="subtitle">Vue 渲染函数支持</text>
-        <navigator url="/pages/render-demo/render-demo" class="link">
-            查看渲染函数示例 →
-        </navigator>
-    </view>
+  <div>
+    <div style="display: flex;flex-direction: row;justify-content: center">
+      <a href="https://uniapp.dcloud.net.cn/" target="_blank">
+        <img src="/static/logo.png" class="logo" alt="Uniapp logo"/>
+      </a>
+      <a href="https://github.com/alamhubb/uni-render" target="_blank">
+        <img src="/static/renderlogo.png" class="vue logo" alt="UniRender logo"/>
+      </a>
+    </div>
+    <HelloWorld msg="Uniapp + Render"/>
+  </div>
 </template>
 
+<script setup lang="ts">
+import HelloWorld from './components/HelloWorld.vue'
+</script>
 <style>
-.container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 40px 20px;
+.logo {
+  height: 6em;
+  width: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
 }
-.title {
-    font-size: 32px;
-    font-weight: bold;
-    margin-bottom: 10px;
+
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
 }
-.subtitle {
-    font-size: 16px;
-    color: #666;
-    margin-bottom: 30px;
-}
-.link {
-    color: #007aff;
-    font-size: 16px;
+
+.logo.vue:hover {
+  filter: drop-shadow(0 0 2em #42b883aa);
 }
 </style>
