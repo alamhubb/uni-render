@@ -387,43 +387,43 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
         },
 
         /**
-         * 处理 HMR - 当 .vue 文件变化时，清除缓存并使虚拟模块失效
+         * 处理 HMR - 当 .vue 文件变化时，清除缓存并触发刷新
+         * 由于组件使用自定义渲染器，标准 HMR 无法正确处理，需要强制页面刷新
          */
         handleHotUpdate({ file, server }) {
             if (!file.endsWith('.vue')) return
 
-            // 检查是否是我们处理的 .vue 文件（非 Page 组件）
+            // 排除不处理的文件
             if (basename(file) === 'App.vue') return
             if (basename(file) === 'RenderComponent.vue') return
-            if (isPageComponent(file, root)) return
 
-            // 使用 pathe 的 normalize 标准化路径（与 resolveId 保持一致）
+            // 使用 pathe 的 normalize 标准化路径
             const normalizedPath = normalize(file)
+            const isPage = isPageComponent(file, root)
 
             // 清除缓存
-            transformedVueCache.delete(normalizedPath)
             transformedCssCache.delete(normalizedPath)
 
-            // 计算虚拟模块 ID（与 resolveId 使用相同的规范化方式）
-            const virtualId = VIRTUAL_PREFIX + changeExt(normalizedPath, '.vue', VIRTUAL_EXT)
-            const cssVirtualId = CSS_VIRTUAL_IMPORT_PREFIX + normalizedPath + '.css'
+            if (!isPage) {
+                // 非 Page 组件：清除虚拟模块缓存
+                transformedVueCache.delete(normalizedPath)
 
-            // 使虚拟模块失效
-            const mod = server.moduleGraph.getModuleById(virtualId)
-            const cssMod = server.moduleGraph.getModuleById(cssVirtualId)
+                // 计算虚拟模块 ID 并使其失效
+                const virtualId = VIRTUAL_PREFIX + changeExt(normalizedPath, '.vue', VIRTUAL_EXT)
+                const mod = server.moduleGraph.getModuleById(virtualId)
 
-            if (mod) {
-                server.moduleGraph.invalidateModule(mod)
-                if (debug) {
-                    console.log(`[vite-plugin-uni-render] HMR: 使虚拟模块失效 ${virtualId}`)
+                if (mod) {
+                    server.moduleGraph.invalidateModule(mod)
                 }
             }
-            if (cssMod) {
-                server.moduleGraph.invalidateModule(cssMod)
+
+            if (debug) {
+                console.log(`[vite-plugin-uni-render] HMR: ${isPage ? 'Page' : '组件'} 变化 ${basename(file)}，触发刷新`)
             }
 
-            // 返回需要更新的模块
-            return mod ? [mod] : undefined
+            // 由于使用自定义渲染器，标准 HMR 无法正确处理，强制 full-reload
+            server.ws.send({ type: 'full-reload' })
+            return []  // 阻止默认 HMR 处理
         }
     }
 }
