@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import { uniRender } from "vite-plugin-uni-render";
 import { createRequire } from "module";
-import { resolve } from "path";
 import { fileURLToPath } from "url";
 
 const require = createRequire(import.meta.url);
