@@ -1,55 +1,73 @@
 {
-  "name": "vite-plugin-uni-render",
-  "version": "0.0.1-alpha.5",
-  "type": "module",
-  "description": "Vite 插件 - 自动将 render 函数转换为 uni-render 方案",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.mts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs",
-      "default": "./dist/index.mjs"
-    }
-  },
-  "files": [
-    "dist"
-  ],
-  "keywords": [
-    "vite",
-    "plugin",
-    "uniapp",
-    "vue",
-    "render",
-    "h-function",
-    "miniapp"
-  ],
-  "scripts": {
-    "build": "tsdown",
-    "release": "npm publish --tag latest",
-    "prepublishOnly": "npm run build",
-    "clean": "rimraf dist"
-  },
-  "dependencies": {
-    "magic-string": "^0.30.0",
-    "oxc-parser": "^0.107.0",
-    "pathe": "^2.0.3",
-    "publish": "^0.6.0",
-    "uni-render": "*"
-  },
-  "peerDependencies": {
-    "@vue/compiler-sfc": "^3.0.0",
-    "vite": ">=5.0.0"
-  },
-  "devDependencies": {
-    "@types/node": "^24.10.1",
-    "@vue/compiler-sfc": "3.4.21",
-    "tsdown": "0.19.0",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3",
-    "vite": "^5.0.0 || ^6.0.0"
-  },
-  "license": "MIT"
+    "name": "vite-plugin-uni-render",
+    "version": "0.0.1-alpha.5",
+    "type": "module",
+    "description": "Vite 插件 - 让 UniApp 支持 Vue render 函数开发，兼容 H5 和小程序",
+    "author": "alamhubb",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/AlamHubb/uni-render.git",
+        "directory": "vite-plugin-uni-render"
+    },
+    "bugs": {
+        "url": "https://github.com/AlamHubb/uni-render/issues"
+    },
+    "homepage": "https://github.com/AlamHubb/uni-render/tree/main/vite-plugin-uni-render#readme",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.mts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.cjs",
+            "default": "./dist/index.mjs"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "keywords": [
+        "vite",
+        "vite-plugin",
+        "plugin",
+        "uniapp",
+        "uni-app",
+        "vue",
+        "vue3",
+        "render",
+        "h-function",
+        "miniapp",
+        "weixin",
+        "wechat",
+        "miniprogram"
+    ],
+    "scripts": {
+        "build": "tsdown",
+        "release": "npm publish --tag latest",
+        "prepublishOnly": "npm run build",
+        "clean": "rimraf dist"
+    },
+    "dependencies": {
+        "magic-string": "^0.30.0",
+        "oxc-parser": "^0.107.0",
+        "pathe": "^2.0.3",
+        "uni-render": "*"
+    },
+    "peerDependencies": {
+        "@vue/compiler-sfc": "^3.0.0",
+        "vite": ">=5.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "^24.10.1",
+        "@vue/compiler-sfc": "3.4.21",
+        "tsdown": "0.19.0",
+        "tsx": "^4.21.0",
+        "typescript": "^5.9.3",
+        "vite": "^5.0.0 || ^6.0.0"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "license": "MIT"
 }

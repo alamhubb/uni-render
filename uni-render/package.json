@@ -1,8 +1,18 @@
 {
   "name": "uni-render",
   "version": "0.0.1-alpha.1",
-  "description": "让 UniApp 支持 Vue 渲染函数(h函数)开发",
   "type": "module",
+  "description": "让 UniApp 支持 Vue render 函数（h 函数）开发，兼容 H5 和微信小程序",
+  "author": "alamhubb",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlamHubb/uni-render.git",
+    "directory": "uni-render"
+  },
+  "bugs": {
+    "url": "https://github.com/AlamHubb/uni-render/issues"
+  },
+  "homepage": "https://github.com/AlamHubb/uni-render/tree/main/uni-render#readme",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
@@ -19,29 +29,43 @@
     "dist",
     "src/components"
   ],
+  "keywords": [
+    "uni-app",
+    "uniapp",
+    "vue",
+    "vue3",
+    "h-function",
+    "render",
+    "render-function",
+    "custom-renderer",
+    "miniapp",
+    "miniprogram",
+    "weixin",
+    "wechat",
+    "h5"
+  ],
   "scripts": {
     "build": "tsdown",
     "prepublishOnly": "npm run build",
     "clean": "rimraf dist"
   },
-  "keywords": [
-    "uni-app",
-    "vue",
-    "h-function",
-    "render",
-    "miniapp"
-  ],
   "peerDependencies": {
-    "vue": "3.4.21",
-    "@vue/runtime-dom": "3.4.21",
-    "@vue/runtime-core": "3.4.21"
+    "vue": "^3.4.0",
+    "@vue/runtime-dom": "^3.4.0",
+    "@vue/runtime-core": "^3.4.0"
   },
   "devDependencies": {
     "vite": "^5.0.0",
     "@types/node": "^24.10.1",
     "tsdown": "0.19.0",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "@vue/runtime-core": "3.4.21",
+    "@vue/runtime-dom": "3.4.21",
+    "vue": "3.4.21"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "license": "MIT"
 }

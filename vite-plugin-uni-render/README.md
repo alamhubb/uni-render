@@ -1,5 +1,9 @@
 # vite-plugin-uni-render
 
+[![npm version](https://img.shields.io/npm/v/vite-plugin-uni-render.svg)](https://www.npmjs.com/package/vite-plugin-uni-render)
+[![npm downloads](https://img.shields.io/npm/dm/vite-plugin-uni-render.svg)](https://www.npmjs.com/package/vite-plugin-uni-render)
+[![license](https://img.shields.io/npm/l/vite-plugin-uni-render.svg)](https://github.com/AlamHubb/uni-render/blob/main/LICENSE)
+
 > Vite 插件 - 让标准 Vue 组件在 UniApp 中使用 render 函数
 
 ## 核心功能

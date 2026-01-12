@@ -1,5 +1,9 @@
 # uni-render
 
+[![npm version](https://img.shields.io/npm/v/uni-render.svg)](https://www.npmjs.com/package/uni-render)
+[![npm downloads](https://img.shields.io/npm/dm/uni-render.svg)](https://www.npmjs.com/package/uni-render)
+[![license](https://img.shields.io/npm/l/uni-render.svg)](https://github.com/AlamHubb/uni-render/blob/main/LICENSE)
+
 让 UniApp 支持 Vue 渲染函数（h 函数）开发，**兼容微信小程序**。
 
 ## 🎯 核心特性
