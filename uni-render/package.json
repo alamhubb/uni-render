@@ -51,9 +51,9 @@
     "clean": "rimraf dist"
   },
   "peerDependencies": {
-    "vue": "~3.4.0",
-    "@vue/runtime-dom": "~3.4.0",
-    "@vue/runtime-core": "~3.4.0"
+    "vue": "3.4.21",
+    "@vue/runtime-dom": "3.4.21",
+    "@vue/runtime-core": "3.4.21"
   },
   "devDependencies": {
     "vite": "^5.0.0",
