@@ -1,5 +1,5 @@
 <script lang="ts">
-import {ref, h, defineComponent} from 'uni-render'
+import {ref, h, defineComponent} from 'vue'
 
 export default defineComponent({
   props: {

@@ -1,5 +1,5 @@
 <script lang="ts">
-import {defineComponent, h} from 'uni-render'
+import {defineComponent, h} from 'vue'
 import HelloWorld from './components/HelloWorld.vue'
 
 export default defineComponent({
