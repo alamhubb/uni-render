@@ -43,11 +43,11 @@ export default defineComponent({
           type: 'button',
           onClick: toggleMode,
           style: 'padding: 0.6em 1.2em; font-size: 1em; font-weight: 500; border-radius: 8px; border: 1px solid transparent; background-color: #646cff; color: white; cursor: pointer; transition: background-color 0.25s;'
-        }, isRenderMode.value ? '切换到模板模式' : '切换到渲染函数模式')
+        }, isRenderMode.value ? '点击切换模板模式' : '点击切换渲染模式')
       ]),
       isRenderMode.value 
-        ? h(HelloWorld, {msg: 'Uniapp + Render (Render Function Mode)'})
-        : h(HelloWorldTemplate, {msg: 'Uniapp + Render (Template Mode)'})
+        ? h(HelloWorld, {msg: 'Render Function Mode'})
+        : h(HelloWorldTemplate, {msg: 'Template Mode'})
     ])
   }
 })
