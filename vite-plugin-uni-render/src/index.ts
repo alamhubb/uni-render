@@ -8,9 +8,9 @@
  */
 
 import type { Plugin } from 'vite'
+import { transformWithEsbuild } from 'vite'
 import { relative, resolve, dirname, isAbsolute, basename, join, extname, normalize } from 'pathe'
 import { readFileSync, existsSync } from 'fs'
-import { transform as esbuildTransform } from 'esbuild'
 import { transformVueSFC, transformVueSFCWithStyles, RENDER_MODULE } from './uniRenderCompiler.ts'
 import { parse as parseSFC } from '@vue/compiler-sfc'
 
@@ -28,7 +28,7 @@ const PLUGIN_VERSION = 'v2.0.1'  // 插件版本号
 const ES_VERSION = 'ES2022'
 const SRC_DIR = 'src'
 const PAGES_JSON = 'pages.json'
-const VIRTUAL_EXT = '.render.temp.ts'  // 虚拟模块扩展名
+const VIRTUAL_EXT = '.vue.render.ts'  // 虚拟模块扩展名
 const EXCLUDE_RENDER_COMPONENT = 'uni-render/src/components/RenderComponent'  // 排除 RenderComponent.vue（该组件不需要转换）
 
 // 需要替换 import from 'vue' 的纯脚本文件扩展名（不包括 .vue）
@@ -324,16 +324,16 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                     finalTsCode = `import '${CSS_VIRTUAL_IMPORT_PREFIX}${originalPath}.css'\n${finalTsCode}`
                 }
 
-                // 使用 esbuild 转换 TS → JS
-                const { code: jsCode } = await esbuildTransform(finalTsCode, {
+                if (debug) {
+                    console.log(`[vite-plugin-uni-render] ✓ 已转换(component): ${relative(process.cwd(), originalPath)}`)
+                    console.log(`[vite-plugin-uni-render] TS 代码:\n${finalTsCode}`)
+                }
+
+                // 使用 Vite 内置的 esbuild 转换 TS → JS
+                const { code: jsCode } = await transformWithEsbuild(finalTsCode, originalPath, {
                     loader: 'ts',
                     target: ES_VERSION
                 })
-
-                if (debug) {
-                    console.log(`[vite-plugin-uni-render] ✓ 已转换(component): ${relative(process.cwd(), originalPath)}`)
-                    console.log(`[vite-plugin-uni-render] 转换后代码:\n${jsCode}`)
-                }
 
                 // 缓存结果
                 transformedVueCache.set(originalPath, jsCode)
