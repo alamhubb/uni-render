@@ -25,7 +25,7 @@ const count = ref(0)
     Check out
     <a style="font-weight: 500;
     color: #646cff;margin-left:0.3em;
-    text-decoration: inherit;" href="https://github.com/alamhubb/uni-render" target="_blank">create-vue</a>, the
+    text-decoration: inherit;" href="https://github.com/alamhubb/uni-render?tab=readme-ov-file#%E6%96%B9%E5%BC%8F%E4%B8%80%E4%BD%BF%E7%94%A8%E8%84%9A%E6%89%8B%E6%9E%B6%E6%8E%A8%E8%8D%90" target="_blank">create-vue</a>, the
     official Vue + Vite
     starter
   </p>
