@@ -1,11 +1,11 @@
 <template>
   <div>
     <div style="display: flex;flex-direction: row;justify-content: center">
-      <a href="https://vite.dev" target="_blank">
-        <img src="/static/vite.svg" class="logo" alt="Vite logo" />
+      <a href="https://uniapp.dcloud.net.cn/" target="_blank">
+        <img src="/static/logo.png" class="logo" alt="Uniapp logo" />
       </a>
-      <a href="https://vuejs.org/" target="_blank">
-        <img src="/static/vue.svg" class="logo vue" alt="Vue logo" />
+      <a href="https://github.com/alamhubb/uni-render" target="_blank">
+        <img src="/static/vue.svg" class="logo vue" alt="UniRender logo" />
       </a>
     </div>
     <HelloWorld msg="Uniapp + Render" />
