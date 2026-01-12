@@ -24,6 +24,7 @@ export interface UniRenderOptions {
 
 // ========== 常量 ==========
 const PLUGIN_VERSION = 'v2.0.1'  // 插件版本号
+const ES_VERSION = 'ES2022'
 const SRC_DIR = 'src'
 const PAGES_JSON = 'pages.json'
 const VIRTUAL_EXT = '.render.temp.ts'  // 虚拟模块扩展名
@@ -202,7 +203,9 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 }
 
                 if (!isPage) {
-                    const virtualId = VIRTUAL_PREFIX + changeExt(fullPath, '.vue', VIRTUAL_EXT)
+                    // 使用 pathe 的 normalize 确保虚拟模块 ID 使用 POSIX 风格路径
+                    const normalizedFullPath = normalize(fullPath)
+                    const virtualId = VIRTUAL_PREFIX + changeExt(normalizedFullPath, '.vue', VIRTUAL_EXT)
                     if (debug) {
                         console.log(`[vite-plugin-uni-render] 重定向非 Page .vue: ${source} -> ${virtualId}`)
                     }
@@ -288,6 +291,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             // ========== 处理非 Page .vue 虚拟模块 ==========
             if (id.startsWith(VIRTUAL_PREFIX) && id.endsWith(VIRTUAL_EXT)) {
                 const tempPath = id.slice(VIRTUAL_PREFIX.length)
+                // originalPath 已经是 POSIX 风格（从 resolveId 传递过来）
                 const originalPath = changeExt(tempPath, VIRTUAL_EXT, '.vue')
 
                 // 检查缓存
@@ -315,7 +319,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                     return null
                 }
 
-                // 添加 CSS 导入
+                // 添加 CSS 导入（originalPath 已经是 POSIX 风格）
                 let finalTsCode = tsCode
                 if (styles.trim()) {
                     finalTsCode = `import '${CSS_VIRTUAL_IMPORT_PREFIX}${originalPath}.css'\n${finalTsCode}`
@@ -325,7 +329,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 const esbuild = await import('esbuild')
                 const { code: jsCode } = await esbuild.transform(finalTsCode, {
                     loader: 'ts',
-                    target: 'esnext'
+                    target: ES_VERSION
                 })
 
                 if (debug) {
@@ -365,12 +369,14 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             }
 
             // 在 <script> 标签后添加 CSS 虚拟模块导入
+            // 规范化路径确保 CSS 虚拟模块 ID 使用 POSIX 风格
+            const normalizedId = normalize(id)
             let finalCode = result.code
             if (result.styles.trim()) {
                 // 在 <script> 开始标签后插入 CSS 导入
                 finalCode = finalCode.replace(
                     /(<script[^>]*>)/,
-                    `$1\nimport '${CSS_VIRTUAL_IMPORT_PREFIX}${id}.css'`
+                    `$1\nimport '${CSS_VIRTUAL_IMPORT_PREFIX}${normalizedId}.css'`
                 )
             }
 
@@ -393,14 +399,14 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             if (basename(file) === 'RenderComponent.vue') return
             if (isPageComponent(file, root)) return
 
-            // 标准化路径
-            const normalizedPath = file.replace(/\\/g, '/')
+            // 使用 pathe 的 normalize 标准化路径（与 resolveId 保持一致）
+            const normalizedPath = normalize(file)
 
             // 清除缓存
             transformedVueCache.delete(normalizedPath)
             transformedCssCache.delete(normalizedPath)
 
-            // 计算虚拟模块 ID
+            // 计算虚拟模块 ID（与 resolveId 使用相同的规范化方式）
             const virtualId = VIRTUAL_PREFIX + changeExt(normalizedPath, '.vue', VIRTUAL_EXT)
             const cssVirtualId = CSS_VIRTUAL_IMPORT_PREFIX + normalizedPath + '.css'
 
