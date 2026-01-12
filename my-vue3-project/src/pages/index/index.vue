@@ -5,7 +5,7 @@
         <img src="/static/logo.png" class="logo" alt="Uniapp logo" />
       </a>
       <a href="https://github.com/alamhubb/uni-render" target="_blank">
-        <img src="/static/vue.svg" class="logo vue" alt="UniRender logo" />
+        <img src="/static/renderlogo.png" class="render logo" alt="UniRender logo" />
       </a>
     </div>
     <HelloWorld msg="Uniapp + Render" />
