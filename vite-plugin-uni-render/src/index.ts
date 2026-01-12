@@ -245,8 +245,8 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
 
 
             // ========== 3. 处理 CSS 虚拟模块 ==========
-            // virtual:unirender-css:xxx.css -> \0unirender-css:xxx.css
-            if (source.startsWith(CSS_VIRTUAL_IMPORT_PREFIX) && source.endsWith('.css')) {
+            // virtual:unirender-css:xxx.vue.render.css -> \0unirender-css:xxx.vue.render.css
+            if (source.startsWith(CSS_VIRTUAL_IMPORT_PREFIX) && source.endsWith(VIRTUAL_EXT_CSS)) {
                 const cssPath = source.slice(CSS_VIRTUAL_IMPORT_PREFIX.length)
                 if (debug) {
                     console.log(`[vite-plugin-uni-render] 解析 CSS 虚拟模块: ${cssPath}`)
@@ -261,10 +261,10 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
          * 加载虚拟模块（非 Page 的 .vue 转换后的 .ts 代码，以及 CSS）
          */
         async load(id) {
-            // 处理 CSS 虚拟模块（\0unirender-css:....css 开头）
-            if (id.startsWith(CSS_VIRTUAL_ID_PREFIX) && extname(id) === '.css') {
-                // 移除前缀和后缀 .css
-                const pathInId = id.slice(CSS_VIRTUAL_ID_PREFIX.length, -4)
+            // 处理 CSS 虚拟模块（\0unirender-css:....vue.render.css 开头）
+            if (id.startsWith(CSS_VIRTUAL_ID_PREFIX) && id.endsWith(VIRTUAL_EXT_CSS)) {
+                // 移除前缀和后缀 VIRTUAL_EXT_CSS
+                const pathInId = id.slice(CSS_VIRTUAL_ID_PREFIX.length, -VIRTUAL_EXT_CSS.length)
                 // 路径可能是绝对路径或相对路径，需要统一处理
                 // 如果是绝对路径（Windows 上可能是 D:\...），直接使用；否则相对于 root
                 const originalVuePath = isAbsolute(pathInId) ? pathInId : resolve(root, pathInId)
@@ -333,7 +333,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 // 添加 CSS 导入（originalPath 已经是 POSIX 风格）
                 let finalTsCode = tsCode
                 if (styles.trim()) {
-                    finalTsCode = `import '${CSS_VIRTUAL_IMPORT_PREFIX}${originalPath}.css'\n${finalTsCode}`
+                    finalTsCode = `import '${CSS_VIRTUAL_IMPORT_PREFIX}${originalPath}${VIRTUAL_EXT_CSS}'\n${finalTsCode}`
                 }
 
                 if (debug) {
@@ -387,7 +387,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 // 在 <script> 开始标签后插入 CSS 导入
                 finalCode = finalCode.replace(
                     /(<script[^>]*>)/,
-                    `$1\nimport '${CSS_VIRTUAL_IMPORT_PREFIX}${normalizedId}.css'`
+                    `$1\nimport '${CSS_VIRTUAL_IMPORT_PREFIX}${normalizedId}${VIRTUAL_EXT_CSS}'`
                 )
             }
 
@@ -434,14 +434,14 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 }
 
                 // CSS 虚拟模块也需要失效（Page 和非 Page 都需要）
-                const cssVirtualId = CSS_VIRTUAL_ID_PREFIX + normalizedPath + '.css'
+                const cssVirtualId = CSS_VIRTUAL_ID_PREFIX + normalizedPath + VIRTUAL_EXT_CSS
                 const cssMod = server.moduleGraph.getModuleById(cssVirtualId)
                 if (cssMod) {
                     server.moduleGraph.invalidateModule(cssMod)
                 }
             } else {
                 // Page 组件的 CSS 虚拟模块也需要失效
-                const cssVirtualId = CSS_VIRTUAL_ID_PREFIX + normalizedPath + '.css'
+                const cssVirtualId = CSS_VIRTUAL_ID_PREFIX + normalizedPath + VIRTUAL_EXT_CSS
                 const cssMod = server.moduleGraph.getModuleById(cssVirtualId)
                 if (cssMod) {
                     server.moduleGraph.invalidateModule(cssMod)
