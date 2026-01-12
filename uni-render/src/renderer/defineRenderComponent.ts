@@ -14,6 +14,9 @@ export function defineRenderComponent(component: any) {
 
     // 创建一个包装组件，让 setup 返回渲染函数
     const InnerComponent = {
+        // 继承原始组件的 props 定义
+        props: component?.props,
+
         setup(props: any, ctx: any) {
             // 如果原始组件有 setup，先执行它获取上下文
             let setupResult: any = {}
@@ -30,12 +33,12 @@ export function defineRenderComponent(component: any) {
             if (originalRender) {
                 return () => {
                     // render 函数签名: render(_ctx, _cache, $props, $setup, $data, $options)
-                    // 正确传递 $setup 参数（setupResult 包含 setup 返回的绑定）
+                    // 正确传递所有参数
                     const vnode = originalRender(
                         setupResult,  // _ctx
                         [],           // _cache
-                        {},           // $props
-                        setupResult,  // $setup - 这是关键！
+                        props,        // $props - 修复：传递实际的 props！
+                        setupResult,  // $setup
                         {},           // $data
                         {}            // $options
                     )
