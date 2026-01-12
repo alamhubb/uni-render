@@ -36,6 +36,9 @@ export default defineComponent({
           })
         ])
       ]),
+      isRenderMode.value
+          ? h(HelloWorld, {msg: 'Render Function Mode'})
+          : h(HelloWorldTemplate, {msg: 'Template Mode'}),
       h('div', {
         style: 'display: flex; justify-content: center; margin: 2em 0;'
       }, [
@@ -43,11 +46,8 @@ export default defineComponent({
           type: 'button',
           onClick: toggleMode,
           style: 'padding: 0.6em 1.2em; font-size: 1em; font-weight: 500; border-radius: 8px; border: 1px solid transparent; background-color: #646cff; color: white; cursor: pointer; transition: background-color 0.25s;'
-        }, isRenderMode.value ? '点击切换模板模式' : '点击切换渲染模式')
+        }, isRenderMode.value ? '切换为模板代码' : '切换为h函数代码')
       ]),
-      isRenderMode.value 
-        ? h(HelloWorld, {msg: 'Render Function Mode'})
-        : h(HelloWorldTemplate, {msg: 'Template Mode'})
     ])
   }
 })

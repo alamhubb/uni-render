@@ -11,7 +11,7 @@
     <div class="card">
       <button type="button" @click="count++">count is {{ count }}</button>
       <p :style="{ marginTop: '1em' }">
-        Edit <code>components/HelloWorldTemplate.vue</code> to test HMR
+        Edit <code>./components/HelloWorldTemplate.vue</code> to test HMR
       </p>
     </div>
 

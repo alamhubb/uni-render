@@ -33,7 +33,7 @@ export default defineComponent({
           style: 'margin-top:1em'
         }, [
           'Edit ',
-          h('code', {}, 'components/HelloWorld.vue'),
+          h('code', {}, './components/HelloWorld.vue'),
           ' to test HMR'
         ])
       ]),
