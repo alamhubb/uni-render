@@ -14,7 +14,7 @@ console.log('444')
 <template>
   <h1 style="font-size: 2em; color: #333;line-height: 1.1;font-weight: bold;">{{ msg }}</h1>
 
-  <div style="margin-top: 20px; text-align: center;">
+  <div style="margin-top: 2em; text-align: center;">
     <p style="color: #42b883;">Hello uni-render</p>
   </div>
 
