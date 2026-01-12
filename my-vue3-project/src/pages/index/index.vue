@@ -18,6 +18,4 @@
 <script setup lang="ts">
 import HelloWorld from './components/HelloWorld.vue'
 import './index.css'
-
-console.log(HelloWorld)
 </script>
