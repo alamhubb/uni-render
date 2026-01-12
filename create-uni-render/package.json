@@ -2,20 +2,38 @@
     "name": "create-uni-render",
     "version": "0.1.0",
     "description": "Create a new UniApp project with render function support",
+    "author": "alamhubb",
     "type": "module",
     "bin": {
         "create-uni-render": "./bin/index.js"
     },
     "files": [
         "bin",
-        "template"
+        "template",
+        "README.md"
     ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/AlamHubb/uni-render.git",
+        "directory": "create-uni-render"
+    },
+    "bugs": {
+        "url": "https://github.com/AlamHubb/uni-render/issues"
+    },
+    "homepage": "https://github.com/AlamHubb/uni-render/tree/main/create-uni-render#readme",
     "keywords": [
         "create",
         "uniapp",
+        "uni-app",
         "render",
         "cli",
-        "scaffold"
+        "scaffold",
+        "template",
+        "vue3",
+        "h-function"
     ],
+    "engines": {
+        "node": ">=18.0.0"
+    },
     "license": "MIT"
 }

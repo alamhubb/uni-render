@@ -221,7 +221,7 @@ UniApp 的 Vite 插件会处理所有 `.vue` 文件。为了让非 Page 组件�
 ### 1. 安装依赖
 
 ```bash
-npm install uni-render uni-render-compiler vite-plugin-uni-render
+npm install uni-render vite-plugin-uni-render
 ```
 
 ### 2. 配置 vite.config.ts
@@ -315,6 +315,7 @@ uniRender({
 
 - [uni-render 运行时库文档](./uni-render/README.md)
 - [vite-plugin-uni-render 插件文档](./vite-plugin-uni-render/README.md)
+- [create-uni-render 脚手架文档](./create-uni-render/README.md)
 - [GitHub Issues](https://github.com/AlamHubb/uni-render/issues)
 
 ## 🏷️ 标签映射表

@@ -332,8 +332,7 @@ export default defineRenderComponent({
 | 包名 | 职责 | 说明 |
 |-----|------|------|
 | `uni-render` | 运行时库 | 提供 `defineRenderComponent`、`h`、`ref` 等 API |
-| `uni-render-compiler` | 编译器 | 提供 `transformVueSFC` 函数 |
-| `vite-plugin-uni-render` | Vite 插件 | 自动调用编译器，零配置转换 |
+| `vite-plugin-uni-render` | Vite 插件 | 自动转换 Vue 组件，内置编译器 |
 
 **推荐使用**：
 ```json

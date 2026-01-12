@@ -4,36 +4,51 @@
 [![npm downloads](https://img.shields.io/npm/dm/uni-render.svg)](https://www.npmjs.com/package/uni-render)
 [![license](https://img.shields.io/npm/l/uni-render.svg)](https://github.com/AlamHubb/uni-render/blob/main/LICENSE)
 
-让 UniApp 支持 Vue 渲染函数（h 函数）开发，**兼容微信小程序**。
+让 UniApp 支持 Vue 渲染函数（h 函数）开发，**兼容 H5 和微信小程序**。
 
 ## 🎯 核心特性
 
-- ✅ **兼容微信小程序**：通过 eventId 映射，不传递函数
-- ✅ **响应式支持**：数据变化自动更新视图
-- ✅ **简单 API**：只需 `useRender` + 响应式桥接
+- ✅ **标准 Vue 语法**：使用 `h` 函数编写组件，无需学习 UniApp 模板语法
+- ✅ **兼容小程序**：通过 eventId 映射，不传递函数，完全兼容微信小程序
+- ✅ **响应式支持**：完整的 Vue 3 响应式系统，数据变化自动更新视图
 - ✅ **纯 JSON 通信**：RenderNode 可通过 setData 传递
+- ✅ **配套插件**：配合 `vite-plugin-uni-render` 零配置使用
 
 ## 📦 安装
 
 ```bash
-npm install uni-render
+npm install uni-render vite-plugin-uni-render
 # 或
-pnpm add uni-render
+pnpm add uni-render vite-plugin-uni-render
 ```
 
 ## 🚀 快速开始
 
+### 1. 配置 Vite
+
+```typescript
+// vite.config.ts
+import { defineConfig } from 'vite'
+import uni from '@dcloudio/vite-plugin-uni'
+import { uniRender } from 'vite-plugin-uni-render'
+
+export default defineConfig({
+  plugins: [
+    uniRender(),  // ⚠️ 必须放在 uni() 之前
+    uni()
+  ]
+})
+```
+
+### 2. 编写组件
+
+**渲染函数组件（推荐方式）**：
 ```vue
-<template>
-  <render-component :node="node" />
-</template>
+<!-- components/Counter.vue -->
+<script lang="ts">
+import { ref, h, defineComponent } from 'vue'
 
-<script setup>
-import { ref as vueRef } from 'vue'
-import { ref, h, useRender, watch } from 'uni-render'
-
-// 定义内部组件
-const InnerComponent = {
+export default defineComponent({
   setup() {
     const count = ref(0)
     
@@ -42,18 +57,25 @@ const InnerComponent = {
       h('button', { onClick: () => count.value++ }, '+1')
     ])
   }
-}
-
-// 使用 Custom Renderer
-const nodeInternal = useRender(InnerComponent)
-
-// 桥接到 mp-vue
-const node = vueRef(nodeInternal.value)
-watch(() => nodeInternal.value, (newVal) => {
-  node.value = newVal
-}, { deep: true })
+})
 </script>
 ```
+
+**Page 组件中使用**：
+```vue
+<!-- pages/index/index.vue -->
+<template>
+  <view>
+    <Counter />
+  </view>
+</template>
+
+<script setup lang="ts">
+import Counter from './components/Counter.vue'
+</script>
+```
+
+> **注意**：配合 `vite-plugin-uni-render` 使用时，你可以直接写 `import { ref, h } from 'vue'`，插件会自动处理导入转换。
 
 ## 🔍 工作原理
 
@@ -63,9 +85,9 @@ watch(() => nodeInternal.value, (newVal) => {
 ┌──────────────────────────────────────────────────────────────┐
 │  逻辑层 (JSCore)                                             │
 ├──────────────────────────────────────────────────────────────┤
-│  1. useRender 执行 render 函数                               │
-│  2. VNode → RenderNode（纯 JSON，事件用 eventId 代替）       │
-│  3. 事件处理器存入 Map                                        │
+│  1. defineRenderComponent 包装组件                           │
+│  2. render() 使用 Custom Renderer 渲染                       │
+│  3. VNode → RenderNode（纯 JSON，事件用 eventId 代替）       │
 │  4. 响应式变化 → 自动重新生成 RenderNode                      │
 └────────────────────────┬─────────────────────────────────────┘
                          │ setData({ node: RenderNode })
@@ -89,7 +111,7 @@ interface RenderNode {
   props: {
     class?: string
     style?: string
-    bindtap?: string      // 事件 ID，如 'e0'
+    bindtap?: string      // 事件 ID，如 '__mp_evt_1__'
     // ... 其他属性
   }
   children: RenderNode[]
@@ -101,27 +123,44 @@ interface RenderNode {
 
 ## 📐 API
 
-### useRender(componentOrRenderFn)
+### defineRenderComponent(component)
 
-使用 Custom Renderer 渲染组件，返回响应式 RenderNode。
+将 Vue 组件包装为可在 UniApp 中使用的渲染函数组件。
 
 ```typescript
-// 组件定义模式
-function useRender(component: Component): ComputedRef<RenderNode>
+import { defineRenderComponent } from 'uni-render'
 
-// 渲染函数模式
-function useRender(renderFn: () => VNode): ComputedRef<RenderNode>
+export default defineRenderComponent({
+  setup() {
+    const count = ref(0)
+    return () => h('view', {}, `count: ${count.value}`)
+  }
+})
 ```
 
-**特性**：
-- 自动在组件卸载时清理事件
-- 支持组件定义和渲染函数两种模式
+**返回值**：返回一个 Vue 组件，其 `setup()` 返回 `{ node }` 供模板使用。
+
+### render(componentOrRenderFn)
+
+底层 API，使用 Custom Renderer 渲染组件，返回响应式 RenderNode。
+
+```typescript
+import { render } from 'uni-render'
+
+// 组件定义模式
+const { node, unmount } = render(MyComponent)
+
+// 渲染函数模式
+const { node, unmount } = render(() => h('view', {}, 'Hello'))
+```
 
 ### renderEvent(eventId, event)
 
-触发渲染事件（供 RenderComponent 调用）。
+触发渲染事件（供 RenderComponent 内部调用）。
 
 ```typescript
+import { renderEvent } from 'uni-render'
+
 function renderEvent(eventId: string, event?: any): void
 ```
 
@@ -129,11 +168,12 @@ function renderEvent(eventId: string, event?: any): void
 
 | 类型 | 说明 |
 |------|------|
-| `view` | 容器 |
-| `text` | 文本 |
+| `view` | 容器（div → view） |
+| `text` | 文本（span → text） |
 | `button` | 按钮 |
 | `input` | 输入框 |
-| `image` | 图片 |
+| `image` | 图片（img → image） |
+| `navigator` | 导航（a → navigator） |
 
 ## 🔧 事件支持
 
@@ -147,46 +187,6 @@ function renderEvent(eventId: string, event?: any): void
 | `onFocus` | `bindfocus` |
 | `onBlur` | `bindblur` |
 
-## 📝 完整示例
-
-```vue
-<template>
-  <view class="container">
-    <text class="title">计数器</text>
-    <render-component :node="node" />
-  </view>
-</template>
-
-<script setup>
-import { ref as vueRef } from 'vue'
-import { ref, h, useRender, watch, computed } from 'uni-render'
-
-// 定义内部组件
-const CounterComponent = {
-  setup() {
-    const count = ref(0)
-    const double = computed(() => count.value * 2)
-    
-    return () => h('view', { class: 'counter' }, [
-      h('text', { class: 'count' }, `计数: ${count.value}`),
-      h('text', { class: 'double' }, `双倍: ${double.value}`),
-      h('view', { class: 'buttons' }, [
-        h('button', { onClick: () => count.value-- }, '-1'),
-        h('button', { onClick: () => count.value++ }, '+1')
-      ])
-    ])
-  }
-}
-
-// 使用 Custom Renderer
-const nodeInternal = useRender(CounterComponent)
-
-// 桥接到 mp-vue
-const node = vueRef(nodeInternal.value)
-watch(() => nodeInternal.value, (v) => node.value = v, { deep: true })
-</script>
-```
-
 ## 🌍 平台兼容性
 
 | 平台 | 支持 |
@@ -196,97 +196,36 @@ watch(() => nodeInternal.value, (v) => node.value = v, { deep: true })
 | 支付宝小程序 | ✅ |
 | 其他小程序 | ✅ |
 
-## 🔬 核心技术实现
+## ⚙️ Vue 版本要求
 
-### Custom Renderer 架构
+本库要求 **Vue 3.4.21** 版本，确保与 UniApp 的 Vue 版本兼容。
 
-基于 Vue `createRenderer` 实现独立的渲染器，将 Vue 组件渲染为纯 JSON（RenderNode）。
-
-```
-Vue 组件 (runtime-core)
-       ↓ createRenderer
-InternalNode（内部节点树）
-       ↓ toRenderNode
-RenderNode（纯 JSON）
-       ↓ RenderComponent
-真实 UI
-```
-
-### 响应式桥接
-
-**问题**：运行在 `@vue/runtime-core` 中，需要与 `mp-vue` 的模板系统通信。
-
-**方案**：两套响应式系统 + watch 手动同步
-
-```typescript
-// 内部系统（@vue/runtime-core）
-const nodeInternal = useRender(InnerComponent)
-
-// 外部系统（mp-vue）
-const node = vueRef(nodeInternal.value)
-
-// 桥接：监听内部变化 → 同步到外部
-watch(() => nodeInternal.value, (newVal) => {
-  node.value = newVal  // 触发 mp-vue 模板更新
-}, { deep: true })
-```
-
-### 事件系统（双 Map 架构）
-
-**问题**：`vOn` 需要在 mp-vue 组件上下文中调用，但 Custom Renderer 运行在独立的上下文。
-
-**方案**：双 Map 事件系统
-
-```typescript
-// 1. 全局事件表：eventId → handler
-const eventRegistry = new Map<string, Function>()
-
-// 2. 组件事件表：scopeId → Set<eventId>
-const scopeRegistry = new Map<string, Set<string>>()
-
-// 注册事件（带作用域）
-export function registerEvent(handler: Function, scopeId?: string): string {
-  const eventId = `__mp_evt_${++counter}__`
-  eventRegistry.set(eventId, handler)
-  if (scopeId) {
-    scopeRegistry.get(scopeId)!.add(eventId)
+```json
+{
+  "peerDependencies": {
+    "vue": "3.4.21",
+    "@vue/runtime-core": "3.4.21",
+    "@vue/runtime-dom": "3.4.21"
   }
-  return eventId
-}
-
-// 触发事件
-export function renderEvent(eventId: string, event?: any): void {
-  eventRegistry.get(eventId)?.(event)
-}
-
-// 清理作用域事件
-export function clearEventScope(scopeId: string): void {
-  const eventIds = scopeRegistry.get(scopeId)
-  eventIds?.forEach(id => eventRegistry.delete(id))
-  scopeRegistry.delete(scopeId)
 }
 ```
 
-**事件流程**：
-```
-h('view', { onClick: handler })
-  ↓ patchProp
-registerEvent(handler, scopeId) → eventId
-  ↓
-RenderNode: { props: { bindtap: eventId, 'data-eid-tap': eventId }}
-  ↓
-RenderComponent 渲染 → 用户点击
-  ↓
-onTap → renderEvent(eventId) → handler()
-```
-
-### 核心文件
+## 📁 核心文件
 
 | 文件 | 作用 |
 |------|------|
-| `mpRenderer.ts` | Custom Renderer 实现（useRender, toRenderNode） |
-| `eventRegistry.ts` | 双 Map 事件系统（页面隔离） |
-| `types.ts` | RenderNode 类型定义 |
+| `renderer/customRenderer.ts` | Custom Renderer 实现 |
+| `renderer/render.ts` | render() 函数 |
+| `renderer/defineRenderComponent.ts` | defineRenderComponent() 高层 API |
+| `renderer/event.ts` | 双 Map 事件系统（页面隔离） |
+| `renderer/types.ts` | RenderNode 类型定义 |
+| `components/RenderComponent.vue` | 渲染 RenderNode 的 UniApp 组件 |
+
+## 🔗 相关链接
+
+- [vite-plugin-uni-render](https://www.npmjs.com/package/vite-plugin-uni-render) - Vite 插件
+- [create-uni-render](https://www.npmjs.com/package/create-uni-render) - 项目脚手架
+- [GitHub 仓库](https://github.com/AlamHubb/uni-render)
 
 ## 📄 License
 
