@@ -55,8 +55,7 @@
         "uni-render": "*"
     },
     "peerDependencies": {
-        "@vue/compiler-sfc": "~3.4.0",
-        "vue": "~3.4.0",
+        "@vue/compiler-sfc": "3.4.21",
         "vite": ">=5.0.0"
     },
     "devDependencies": {
