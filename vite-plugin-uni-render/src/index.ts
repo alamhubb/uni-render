@@ -10,6 +10,7 @@
 import type { Plugin } from 'vite'
 import { relative, resolve, dirname, isAbsolute, basename, join, extname, normalize } from 'pathe'
 import { readFileSync, existsSync } from 'fs'
+import { transform as esbuildTransform } from 'esbuild'
 import { transformVueSFC, transformVueSFCWithStyles, RENDER_MODULE } from './uniRenderCompiler.ts'
 import { parse as parseSFC } from '@vue/compiler-sfc'
 
@@ -272,9 +273,8 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 }
 
                 // CSS 会在 transform 时被缓存，如果没有就尝试读取
-                const fs = await import('fs')
-                if (fs.existsSync(originalVuePath)) {
-                    const code = fs.readFileSync(originalVuePath, 'utf-8')
+                if (existsSync(originalVuePath)) {
+                    const code = readFileSync(originalVuePath, 'utf-8')
                     const { descriptor } = parseSFC(code, { filename: originalVuePath })
                     const styles = descriptor.styles.map(s => s.content).join('\n')
                     if (styles.trim()) {
@@ -300,8 +300,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 }
 
                 // 读取原始 .vue 文件
-                const fs = await import('fs')
-                const code = fs.readFileSync(originalPath, 'utf-8')
+                const code = readFileSync(originalPath, 'utf-8')
 
                 // 解析 SFC 获取 style 块
                 const { descriptor } = parseSFC(code, { filename: originalPath })
@@ -326,8 +325,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 }
 
                 // 使用 esbuild 转换 TS → JS
-                const esbuild = await import('esbuild')
-                const { code: jsCode } = await esbuild.transform(finalTsCode, {
+                const { code: jsCode } = await esbuildTransform(finalTsCode, {
                     loader: 'ts',
                     target: ES_VERSION
                 })
