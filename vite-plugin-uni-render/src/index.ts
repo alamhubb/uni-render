@@ -266,14 +266,18 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             // 处理 CSS 虚拟模块（\0unirender-css:....css 开头）
             if (id.startsWith(CSS_VIRTUAL_ID_PREFIX) && extname(id) === '.css') {
                 // 移除前缀和后缀 .css
-                const originalVuePath = id.slice(CSS_VIRTUAL_ID_PREFIX.length, -4)
+                const pathInId = id.slice(CSS_VIRTUAL_ID_PREFIX.length, -4)
+                // 路径可能是绝对路径或相对路径，需要统一处理
+                // 如果是绝对路径（Windows 上可能是 D:\...），直接使用；否则相对于 root
+                const originalVuePath = isAbsolute(pathInId) ? pathInId : resolve(root, pathInId)
 
-                // 检查缓存
-                if (transformedCssCache.has(originalVuePath)) {
+                // 检查缓存（使用标准化路径作为 key）
+                const normalizedPath = normalize(originalVuePath)
+                if (transformedCssCache.has(normalizedPath)) {
                     if (debug) {
-                        console.log(`[vite-plugin-uni-render] 加载 CSS: ${relative(process.cwd(), originalVuePath)}`)
+                        console.log(`[vite-plugin-uni-render] 加载 CSS (缓存): ${relative(process.cwd(), normalizedPath)}`)
                     }
-                    return transformedCssCache.get(originalVuePath)
+                    return transformedCssCache.get(normalizedPath)
                 }
 
                 // CSS 会在 transform 时被缓存，如果没有就尝试读取
@@ -282,11 +286,16 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                     const { descriptor } = parseSFC(code, { filename: originalVuePath })
                     const styles = descriptor.styles.map(s => s.content).join('\n')
                     if (styles.trim()) {
-                        transformedCssCache.set(originalVuePath, styles)
+                        transformedCssCache.set(normalizedPath, styles)
                         if (debug) {
-                            console.log(`[vite-plugin-uni-render] 读取 CSS: ${relative(process.cwd(), originalVuePath)}`)
+                            console.log(`[vite-plugin-uni-render] 读取 CSS: ${relative(process.cwd(), normalizedPath)}`)
                         }
+                        // 返回 CSS 内容，Vite 会自动处理 CSS 模块
                         return styles
+                    }
+                } else {
+                    if (debug) {
+                        console.warn(`[vite-plugin-uni-render] CSS 文件不存在: ${originalVuePath}`)
                     }
                 }
                 return ''
@@ -310,9 +319,10 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                 const { descriptor } = parseSFC(code, { filename: originalPath })
                 const styles = descriptor.styles.map(s => s.content).join('\n')
 
-                // 缓存 CSS
+                // 缓存 CSS（使用标准化路径作为 key）
                 if (styles.trim()) {
-                    transformedCssCache.set(originalPath, styles)
+                    const normalizedPath = normalize(originalPath)
+                    transformedCssCache.set(normalizedPath, styles)
                 }
 
                 // 转换 Vue SFC（非 Page）
@@ -365,9 +375,10 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             const result = transformVueSFCWithStyles(code, true) // isPage = true
             if (!result) return null
 
-            // 缓存 CSS
+            // 缓存 CSS（使用标准化路径作为 key）
             if (result.styles.trim()) {
-                transformedCssCache.set(id, result.styles)
+                const normalizedId = normalize(id)
+                transformedCssCache.set(normalizedId, result.styles)
             }
 
             // 在 <script> 标签后添加 CSS 虚拟模块导入
@@ -409,7 +420,7 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
             const normalizedPath = normalize(file)
             const isPage = isPageComponent(file, root)
 
-            // 清除缓存
+            // 清除缓存（使用标准化路径）
             transformedCssCache.delete(normalizedPath)
 
             if (!isPage) {
@@ -424,7 +435,14 @@ export function uniRender(options: UniRenderOptions = {}): Plugin {
                     server.moduleGraph.invalidateModule(mod)
                 }
 
-                // CSS 虚拟模块也需要失效
+                // CSS 虚拟模块也需要失效（Page 和非 Page 都需要）
+                const cssVirtualId = CSS_VIRTUAL_ID_PREFIX + normalizedPath + '.css'
+                const cssMod = server.moduleGraph.getModuleById(cssVirtualId)
+                if (cssMod) {
+                    server.moduleGraph.invalidateModule(cssMod)
+                }
+            } else {
+                // Page 组件的 CSS 虚拟模块也需要失效
                 const cssVirtualId = CSS_VIRTUAL_ID_PREFIX + normalizedPath + '.css'
                 const cssMod = server.moduleGraph.getModuleById(cssVirtualId)
                 if (cssMod) {

@@ -5,7 +5,7 @@
         <img src="/static/logo.png" class="logo" alt="Uniapp logo" />
       </a>
       <a href="https://github.com/alamhubb/uni-render" target="_blank">
-        <img src="/static/renderlogo.png" class="render logo" alt="UniRender logo" />
+        <img src="/static/renderlogo.png" class="vue logo" alt="UniRender logo" />
       </a>
     </div>
     <HelloWorld msg="Uniapp + Render" />
@@ -19,7 +19,7 @@ import HelloWorld from './components/HelloWorld.vue'
 .logo {
   height: 6em;
   width: 6em;
-  padding: 1.5em;
+  padding: 100em;
   will-change: filter;
   transition: filter 300ms;
 }
