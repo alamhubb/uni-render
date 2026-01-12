@@ -25,6 +25,10 @@ export interface UniRenderOptions {
 
 // ========== 常量 ==========
 const PLUGIN_VERSION = 'v2.0.1'  // 插件版本号
+
+console.log(PLUGIN_VERSION)
+console.log(PLUGIN_VERSION)
+console.log(PLUGIN_VERSION)
 const ES_VERSION = 'ES2022'
 const SRC_DIR = 'src'
 const PAGES_JSON = 'pages.json'

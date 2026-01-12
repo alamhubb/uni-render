@@ -50,6 +50,13 @@ const TAG_MAP: Record<string, string> = {
     'img': 'image',
     'a': 'navigator',
     'code': 'text',
+    // 标题标签
+    'h1': 'view',
+    'h2': 'view',
+    'h3': 'view',
+    'h4': 'view',
+    'h5': 'view',
+    'h6': 'view',
     // 保持不变的标签
     'view': 'view',
     'text': 'text',
