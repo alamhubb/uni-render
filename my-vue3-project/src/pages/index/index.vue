@@ -1,19 +1,38 @@
-<template>
-  <div>
-    <div style="display: flex;flex-direction: row;justify-content: center">
-      <a href="https://uniapp.dcloud.net.cn/" target="_blank">
-        <img src="/static/logo.png" class="logo" alt="Uniapp logo"/>
-      </a>
-      <a href="https://github.com/alamhubb/uni-render" target="_blank">
-        <img src="/static/renderlogo.png" class="vue logo" alt="UniRender logo"/>
-      </a>
-    </div>
-    <HelloWorld msg="Uniapp + Render"/>
-  </div>
-</template>
-
-<script setup lang="ts">
+<script lang="ts">
+import {defineComponent, h} from 'uni-render'
 import HelloWorld from './components/HelloWorld.vue'
+
+export default defineComponent({
+  setup() {
+    return () => h('div', {}, [
+      h('div', {
+        style: 'display: flex;flex-direction: row;justify-content: center'
+      }, [
+        h('a', {
+          href: 'https://uniapp.dcloud.net.cn/',
+          target: '_blank'
+        }, [
+          h('img', {
+            src: '/static/logo.png',
+            class: 'logo',
+            alt: 'Uniapp logo'
+          })
+        ]),
+        h('a', {
+          href: 'https://github.com/alamhubb/uni-render',
+          target: '_blank'
+        }, [
+          h('img', {
+            src: '/static/renderlogo.png',
+            class: 'render logo',
+            alt: 'UniRender logo'
+          })
+        ])
+      ]),
+      h(HelloWorld, {msg: 'Uniapp + Render'})
+    ])
+  }
+})
 </script>
 <style>
 .logo {
@@ -28,7 +47,7 @@ import HelloWorld from './components/HelloWorld.vue'
   filter: drop-shadow(0 0 2em #646cffaa);
 }
 
-.logo.vue:hover {
+.logo.render:hover {
   filter: drop-shadow(0 0 2em #42b883aa);
 }
 </style>
