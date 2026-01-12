@@ -65,47 +65,55 @@ export function transformScriptForPage(code: string): string {
     if (result.errors.length > 0) return code
 
     const s = new MagicString(code)
-    let hasDefineComponent = false
-    let vueImportNode: any = null
-    const vueSpecifiers: string[] = []
+    let vueImportNode: any = null  // 从 'vue' 的导入
+    let renderImportNode: any = null  // 从 'uni-render' 的导入
+    const renderSpecifiers: string[] = []
+    let hasDefineRenderComponentImport = false
 
     // 1. 使用 Visitor 遍历 AST
     const visitor = new Visitor({
-        // 收集 vue 导入的 specifiers
+        // 收集 'vue' 和 'uni-render' 的导入
         ImportDeclaration(node: any) {
-            if (node.source?.value === 'vue') {
+            const sourceValue = node.source?.value
+            if (sourceValue === 'vue') {
                 vueImportNode = node
+            } else if (sourceValue === RENDER_MODULE) {
+                renderImportNode = node
                 for (const spec of node.specifiers || []) {
                     if (spec.type === 'ImportSpecifier' && spec.imported?.name) {
-                        vueSpecifiers.push(spec.imported.name)
+                        renderSpecifiers.push(spec.imported.name)
+                        if (spec.imported.name === 'defineRenderComponent') {
+                            hasDefineRenderComponentImport = true
+                        }
                     }
                 }
             }
         },
-        // 检查是否有 defineComponent 调用
+        // 替换 defineComponent 调用为 defineRenderComponent
         CallExpression(node: any) {
             if (node.callee?.type === 'Identifier' && node.callee.name === 'defineComponent') {
-                hasDefineComponent = true
                 s.overwrite(node.callee.start, node.callee.end, 'defineRenderComponent')
             }
         }
     })
     visitor.visit(result.program)
 
-    // 2. 如果有 vue 导入，需要处理
+    // 2. 处理 'vue' 导入：直接替换为 'uni-render'
     if (vueImportNode) {
-        if (hasDefineComponent) {
-            // 替换 defineComponent → defineRenderComponent 并更新导入
-            const newSpecifiers = vueSpecifiers
-                .filter(s => s !== 'defineComponent')
-                .concat('defineRenderComponent')
-                .sort()
+        s.overwrite(vueImportNode.source.start + 1, vueImportNode.source.end - 1, RENDER_MODULE)
+    }
+
+    // 3. 处理 'uni-render' 导入：确保有 defineRenderComponent（避免重复导入）
+    if (renderImportNode) {
+        if (!hasDefineRenderComponentImport) {
+            // 添加 defineRenderComponent 到现有导入
+            const newSpecifiers = [...renderSpecifiers, 'defineRenderComponent'].sort()
             const newImport = `import { ${newSpecifiers.join(', ')} } from '${RENDER_MODULE}'`
-            s.overwrite(vueImportNode.start, vueImportNode.end, newImport)
-        } else {
-            // 只替换模块名
-            s.overwrite(vueImportNode.source.start + 1, vueImportNode.source.end - 1, RENDER_MODULE)
+            s.overwrite(renderImportNode.start, renderImportNode.end, newImport)
         }
+    } else {
+        // 如果没有 'uni-render' 导入，添加 defineRenderComponent 导入
+        s.prepend(`import { defineRenderComponent } from '${RENDER_MODULE}'\n`)
     }
 
     return s.toString()
