@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import { uniRender } from "vite-plugin-uni-render";
+import { uniRender } from "../vite-plugin-uni-render/dist/index.mjs";
 import { createRequire } from "module";
 import { fileURLToPath } from "url";
 
