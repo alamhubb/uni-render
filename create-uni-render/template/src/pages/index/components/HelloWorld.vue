@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {ref} from 'vue'
+import {ref} from 'uni-render'
 
 const props = defineProps<{ msg: string }>()
 
@@ -26,17 +26,16 @@ const count = ref(0)
     <a style="font-weight: 500;
     color: #646cff;margin-left:0.3em;
     text-decoration: inherit;" href="https://github.com/alamhubb/uni-render/tree/main/create-uni-render/template" target="_blank">create-uni-render</a>, the
-    official Vue + Vite
-    starter
+    official UniApp render function starter
   </p>
   <p style="display: flex;flex-direction: row;justify-content: center;margin-top:1em">
-    Learn more about IDE Support for Vue in the
+    Learn more about uni-render in the
     <a style="font-weight: 500;
     color: #646cff;margin-left:0.3em;
-    text-decoration: inherit;" href="https://github.com/alamhubb/uni-render" target="_blank">Vue
-      Docs Scaling up Guide</a>.
+    text-decoration: inherit;" href="https://github.com/alamhubb/uni-render" target="_blank">uni-render
+      Documentation</a>.
   </p>
-  <p class="read-the-docs">Click on the Vite and Vue logos to learn more</p>
+  <p class="read-the-docs">Click on the UniApp and uni-render logos to learn more</p>
 </template>
 
 <style scoped>
