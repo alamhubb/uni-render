@@ -69,13 +69,10 @@ export function render(componentOrRenderFn: Component | (() => any)) {
         app = createRendererApp(WrapperComponent)
     } else {
         // 组件定义模式
-        console.log('[render] 使用组件定义模式')
         app = createRendererApp(componentOrRenderFn as Component)
     }
 
-    console.log('[render] 开始 mount')
     app.mount(rootNode as any)
-    console.log('[render] mount 完成, rootNode.children:', rootNode.children.length)
 
     // 转换为 RenderNode（响应式）
     const node = computed(() => {

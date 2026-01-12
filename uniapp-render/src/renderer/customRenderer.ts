@@ -71,7 +71,6 @@ let nodeIdCounter = 0
 const nodeOps: RendererOptions<InternalNode, InternalNode> = {
     createElement(type: string): InternalNode {
         const normalizedType = normalizeTagName(type)
-        console.log('[customRenderer.createElement]', type, '->', normalizedType)
         return reactive({
             id: ++nodeIdCounter,
             type: normalizedType,
@@ -113,8 +112,6 @@ const nodeOps: RendererOptions<InternalNode, InternalNode> = {
     },
 
     insert(child: InternalNode, parent: InternalNode, anchor?: InternalNode | null): void {
-        console.log('[customRenderer.insert] child:', child.type, 'parent:', parent.type)
-
         // 从旧父节点移除
         if (child._parent) {
             const idx = child._parent.children.indexOf(child)
@@ -133,7 +130,6 @@ const nodeOps: RendererOptions<InternalNode, InternalNode> = {
             }
         }
         parent.children.push(child)
-        console.log('[customRenderer.insert] parent.children:', parent.children.length)
     },
 
     remove(child: InternalNode): void {
@@ -156,7 +152,6 @@ const nodeOps: RendererOptions<InternalNode, InternalNode> = {
     },
 
     patchProp(el: InternalNode, key: string, prevValue: any, nextValue: any): void {
-        console.log('[patchProp]', el.type, key, '=', nextValue)
         // 处理事件
         if (key.startsWith('on') && typeof nextValue === 'function') {
             const eventType = key.slice(2).toLowerCase()
